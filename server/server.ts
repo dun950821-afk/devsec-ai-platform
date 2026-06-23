@@ -3,6 +3,7 @@
 
 import { createServer, type Server } from 'http';
 import express from 'express';
+import path from 'path';
 import router from './routes/index';
 import { setupVite } from './vite';
 
@@ -35,6 +36,11 @@ async function startServer(): Promise<Server> {
 
   // 集成 Vite（开发模式）或静态文件服务（生产模式）
   await setupVite(app);
+
+  // SPA fallback - 在 Vite middleware 之后处理
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'index.html'));
+  });
 
   // 全局错误处理
   app.use((err: Error, req: express.Request, res: express.Response, _next: express.NextFunction) => {
