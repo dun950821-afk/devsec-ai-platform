@@ -1,17 +1,19 @@
-// ABOUTME: Express server with Vite integration
-// ABOUTME: Handles API routes and serves frontend in dev/prod modes
+// ABOUTME: Express server - handles API routes and serves frontend in dev/prod modes
 
 import { createServer, type Server } from 'http';
 import express from 'express';
 import path from 'path';
+import { dirname } from 'path';
+import { fileURLToPath } from 'url';
 import router from './routes/index';
-import { setupVite } from './vite';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const isDev = process.env.COZE_PROJECT_ENV !== 'PROD';
 const port = parseInt(process.env.PORT || '5000', 10);
 const hostname = process.env.HOSTNAME || 'localhost';
 const app = express();
-// 使用 http.createServer 包装 Express app，以便支持 WebSocket 等协议升级
 const server = createServer(app);
 
 async function startServer(): Promise<Server> {
@@ -34,29 +36,32 @@ async function startServer(): Promise<Server> {
   // 注册 API 路由
   app.use(router);
 
-  // 集成 Vite（开发模式）或静态文件服务（生产模式）
-  await setupVite(app);
-
-  // SPA fallback - 在 Vite middleware 之后处理
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '..', 'index.html'));
-  });
+  if (isDev) {
+    // 开发模式：导入并使用 Vite 开发服务器
+    const { setupVite } = await import('./vite.js');
+    await setupVite(app);
+    
+    // SPA fallback
+    app.get('*', (_req, res) => {
+      res.sendFile(path.join(__dirname, '..', 'index.html'));
+    });
+  } else {
+    // 生产模式：服务静态文件
+    const distPath = path.join(__dirname, '..', 'dist');
+    app.use(express.static(distPath));
+    
+    // SPA fallback
+    app.get('*', (_req, res) => {
+      res.sendFile(path.join(distPath, 'index.html'));
+    });
+  }
 
   // 全局错误处理
-  app.use((err: Error, req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
     console.error('Server error:', err);
-    const status = 'status' in err ? (err as { status?: number }).status ?? 500 : 500;
-    // 确保 res 是标准的 Express Response 对象
-    if (typeof res.status === 'function') {
-      res.status(status).json({
-        error: err.message || 'Internal server error',
-      });
-    } else {
-      // 如果 res 不是标准 Response，至少尝试发送错误
-      res.json({
-        error: err.message || 'Internal server error',
-      });
-    }
+    res.status(500).json({
+      error: err.message || 'Internal server error',
+    });
   });
 
   server.once('error', err => {

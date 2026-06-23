@@ -139,3 +139,4 @@ node-compile-cache/
 # Vite
 .vite/
 .coze-logs
+devsec-ai-server/data/devsecai.mv.db

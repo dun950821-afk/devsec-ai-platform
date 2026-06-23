@@ -1,7 +1,8 @@
 {
   "name": "projects",
   "version": "1.0.0",
-  "description": "Vanilla TypeScript application with Express + Vite (HTML + CSS + TS + Node API)",
+  "type": "module",
+  "description": "DevSecAI Plugin Management Platform - Vue 3 + Vite + TypeScript",
   "scripts": {
     "build": "bash ./scripts/build.sh",
     "dev": "bash ./scripts/dev.sh",
@@ -53,5 +54,10 @@
       "esbuild": "^0.27.2",
       "is-generator-function": "1.0.10"
     }
-  }
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not dead"
+  ]
 }

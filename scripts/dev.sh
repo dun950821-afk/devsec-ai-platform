@@ -29,6 +29,6 @@ kill_port_if_listening() {
 
 echo "Clearing port ${DEPLOY_RUN_PORT} before start."
 kill_port_if_listening
-echo "Starting express + Vite dev server on port ${DEPLOY_RUN_PORT}..."
 
-PORT=${DEPLOY_RUN_PORT} pnpm tsx watch server/server.ts
+echo "Starting Vite dev server on port ${DEPLOY_RUN_PORT}..."
+npx vite --port ${DEPLOY_RUN_PORT}

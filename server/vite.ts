@@ -20,7 +20,7 @@ export async function setupViteMiddleware(app: Application) {
   const vite = await createViteServer({
     root: path.resolve(__dirname, '..'),
     plugins: [vue()],
-    appType: 'custom', // 关键：使用 custom 类型，不使用 SPA fallback
+    appType: 'custom',
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '..', 'src'),
