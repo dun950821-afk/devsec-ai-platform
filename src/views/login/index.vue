@@ -56,6 +56,10 @@
         <p class="login-subtitle">欢迎使用国舜 DevSecAI 插件管理平台</p>
         
         <form @submit.prevent="handleLogin" class="login-form">
+          <div v-if="errorMessage" class="error-message">
+            {{ errorMessage }}
+          </div>
+
           <div class="form-group">
             <label>用户名</label>
             <input 
@@ -107,6 +111,7 @@ import { useUserStore } from '@/stores/user';
 const router = useRouter();
 const userStore = useUserStore();
 const loading = ref(false);
+const errorMessage = ref('');
 
 const form = reactive({
   username: '',
@@ -121,14 +126,18 @@ async function handleLogin() {
   }
   
   loading.value = true;
+  errorMessage.value = '';
+  
   try {
-    const success = await userStore.login(form.username, form.password);
-    if (success) {
-      ElMessage.success('登录成功');
+    await userStore.login(form.username, form.password);
+    ElMessage.success('登录成功，正在跳转...');
+    setTimeout(() => {
       router.push('/');
-    }
+    }, 500);
   } catch (error: any) {
-    ElMessage.error(error.message || '用户名或密码错误');
+    console.error('Login error:', error);
+    errorMessage.value = error.message || '用户名或密码错误';
+    ElMessage.error(errorMessage.value);
   } finally {
     loading.value = false;
   }
@@ -312,6 +321,16 @@ async function handleLogin() {
   display: flex;
   flex-direction: column;
   gap: 20px;
+}
+
+.error-message {
+  padding: 12px 16px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  color: #dc2626;
+  font-size: 14px;
+  text-align: center;
 }
 
 .form-group {

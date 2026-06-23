@@ -13,6 +13,7 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
   app.component(key, component);
 }
 
+// 重要：先初始化 Pinia，再初始化 Router
 app.use(createPinia());
 app.use(router);
 app.use(ElementPlus);
