@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.guoshun.devsecai.mapper.UserMapper">
+    <select id="selectByUsername" resultType="com.guoshun.devsecai.entity.User">
+        SELECT * FROM SYS_USER WHERE USERNAME = #{username} AND DELETED = 0
+    </select>
+</mapper>

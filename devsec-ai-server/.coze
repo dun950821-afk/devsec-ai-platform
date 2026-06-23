@@ -1,0 +1,11 @@
+[project]
+entrypoint = "index.html"
+requires = ["nodejs-24", "java-17"]
+
+[dev]
+build = ["bash", "-c", "cd devsec-ai-server && mvn clean compile -q"]
+run = ["bash", "-c", "cd devsec-ai-server && mvn spring-boot:run -Dspring-boot.run.profiles=dev"]
+
+[deploy]
+build = ["bash", "-c", "cd devsec-ai-server && mvn clean package -DskipTests -q"]
+run = ["bash", "-c", "cd devsec-ai-server && java -jar devsec-ai-server/target/devsec-ai-server-1.0.0.jar --spring.profiles.active=prod"]

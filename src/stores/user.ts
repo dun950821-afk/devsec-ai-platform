@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
+import { authApi } from '../services/api';
 
 export interface UserInfo {
   id: string;
@@ -18,34 +19,44 @@ export const useUserStore = defineStore('user', () => {
 
   const isLoggedIn = computed(() => !!token.value);
 
-  function login(username: string, password: string): Promise<boolean> {
-    return new Promise((resolve) => {
-      // Mock 登录
-      setTimeout(() => {
-        if (username === 'admin' && password === 'admin123') {
-          token.value = 'mock-token-' + Date.now();
-          userInfo.value = {
-            id: '1',
-            username: 'admin',
-            name: '系统管理员',
-            email: 'admin@guoshun.com',
-            phone: '138****8888',
-            role: '系统管理员',
-            org: '国舜科技'
-          };
-          localStorage.setItem('token', token.value!);
-          resolve(true);
-        } else {
-          resolve(false);
-        }
-      }, 500);
-    });
+  async function login(username: string, password: string): Promise<boolean> {
+    try {
+      const result = await authApi.login(username, password);
+      token.value = result.token;
+      userInfo.value = result.userInfo;
+      localStorage.setItem('token', result.token);
+      return true;
+    } catch (error) {
+      console.error('Login failed:', error);
+      return false;
+    }
   }
 
-  function logout() {
+  async function logout() {
+    try {
+      await authApi.logout();
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
     token.value = null;
     userInfo.value = null;
     localStorage.removeItem('token');
+  }
+
+  // Initialize from stored token on page load
+  function initFromStorage() {
+    const storedToken = localStorage.getItem('token');
+    const storedUserInfo = localStorage.getItem('userInfo');
+    if (storedToken) {
+      token.value = storedToken;
+      if (storedUserInfo) {
+        try {
+          userInfo.value = JSON.parse(storedUserInfo);
+        } catch (e) {
+          console.error('Failed to parse stored user info', e);
+        }
+      }
+    }
   }
 
   return {
@@ -53,6 +64,7 @@ export const useUserStore = defineStore('user', () => {
     userInfo,
     isLoggedIn,
     login,
-    logout
+    logout,
+    initFromStorage
   };
 });

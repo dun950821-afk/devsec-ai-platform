@@ -1,0 +1,54 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: devsec-ai-server
+  
+  # H2 开发数据库
+  datasource:
+    driver-class-name: org.h2.Driver
+    url: jdbc:h2:file:./data/devsecai;MODE=MySQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password: 
+    
+  # H2 Console (仅开发环境启用)
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  
+  # 禁用 JPA，只使用 MyBatis Plus
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration
+      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+
+# MyBatis Plus 配置
+mybatis-plus:
+  mapper-locations: classpath*:/mapper/**/*.xml
+  type-aliases-package: com.guoshun.devsecai.entity
+  global-config:
+    db-config:
+      id-type: auto
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      table-prefix: sys_
+  configuration:
+    map-underscore-to-camel-case: true
+
+  # 禁用 Redis 自动配置
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+
+  # Jackson 配置
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
+
+# JWT 配置
+jwt:
+  secret: devsec-ai-jwt-secret-key-2024-very-long-secret-key-for-security
+  expiration: 86400000
