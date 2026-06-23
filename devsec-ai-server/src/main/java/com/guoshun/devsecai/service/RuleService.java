@@ -36,6 +36,15 @@ public class RuleService {
     }
     
     public void create(ScanRule rule) {
+        if (rule.getRuleKey() == null || rule.getRuleKey().isEmpty()) {
+            rule.setRuleKey("RULE_" + System.currentTimeMillis());
+        }
+        if (rule.getStatus() == null) {
+            rule.setStatus(1);
+        }
+        if (rule.getCategory() == null) {
+            rule.setCategory("security");
+        }
         ruleMapper.insert(rule);
     }
     

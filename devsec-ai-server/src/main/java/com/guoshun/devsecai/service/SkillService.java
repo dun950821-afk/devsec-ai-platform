@@ -33,6 +33,15 @@ public class SkillService {
     }
     
     public void create(Skill skill) {
+        if (skill.getSkillKey() == null || skill.getSkillKey().isEmpty()) {
+            skill.setSkillKey("SKILL_" + System.currentTimeMillis());
+        }
+        if (skill.getStatus() == null) {
+            skill.setStatus(1);
+        }
+        if (skill.getType() == null) {
+            skill.setType("analyzer");
+        }
         skillMapper.insert(skill);
     }
     

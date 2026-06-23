@@ -43,6 +43,12 @@ public class PluginService {
     }
     
     public void create(Plugin plugin) {
+        if (plugin.getPluginKey() == null || plugin.getPluginKey().isEmpty()) {
+            plugin.setPluginKey("PLUGIN_" + System.currentTimeMillis());
+        }
+        if (plugin.getStatus() == null) {
+            plugin.setStatus(1);
+        }
         pluginMapper.insert(plugin);
     }
     
