@@ -1,16 +1,12 @@
 [project]
-requires = [ "nodejs-24" ]
-template = "vite"
-version = "0.0.27"
-appliedPatches = [ ]
+requires = ["nodejs-24"]
+template = "native-static"
+version = "0.0.29"
 
 [dev]
-build = [ "bash", "./scripts/prepare.sh" ]
-run = [ "bash", "./scripts/dev.sh" ]
-validate = [ "bash", "./scripts/validate.sh" ]
-deps = [ "git" ]
+build = ["echo", "Static site, no build needed"]
+run = ["node", "server.cjs"]
 
 [deploy]
-build = [ "bash", "./scripts/build.sh" ]
-run = [ "bash", "./scripts/start.sh" ]
-deps = [ "git" ]
+build = ["echo", "Static site, no build needed"]
+run = ["node", "server.cjs"]
