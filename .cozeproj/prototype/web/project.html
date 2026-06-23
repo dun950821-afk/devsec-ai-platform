@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <link href="https://lf-code-agent.coze.cn/obj/x-ai-cn/fonts/google/google-all-fonts.css" rel="stylesheet"/>
+
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/jquery/jquery-3.7.1.min.js"></script>
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/lucide/lucide-1.11.0.min.js"></script>
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/tailwindcss/tailwindcss-browser-4.2.4.min.js"></script>
+
+  <style type="text/tailwindcss">
+    @theme {
+      /* === 品牌色 - 商务稳重蓝色 === */
+      --color-primary:              #2563EB;
+      --color-primary-hover:        #1D4ED8;
+      --color-primary-container:    #DBEAFE;
+      --color-on-primary:           #ffffff;
+      /* === 背景 / 表面 === */
+      --color-background:          #ffffff;
+      --color-surface-container-lowest:   #ffffff;
+      --color-surface:             #F8FAFC;
+      --color-surface-container:   #F1F5F9;
+      --color-surface-container-high:     #E2E8F0;
+      --color-surface-container-highest:  #CBD5E1;
+      --color-sidebar:             #EFF6FF;
+      /* === 文字 === */
+      --color-on-surface:          #1F2937;
+      --color-on-surface-variant:  #6B7280;
+      --color-text-secondary:      #9CA3AF;
+      /* === 功能色 === */
+      --color-success:             #22c55e;
+      --color-success-bg:          #DCFCE7;
+      --color-error:               #ef4444;
+      --color-error-bg:            #FEE2E2;
+      --color-warning:             #f59e0b;
+      --color-warning-bg:         #FEF3C7;
+      --color-info:                #3b82f6;
+      --color-info-bg:             #DBEAFE;
+      /* === 边框 === */
+      --color-outline:             #E5E7EB;
+      --color-outline-variant:     #F3F4F6;
+      /* === 圆角 === */
+      --radius-sm:   0.25rem;
+      --radius-md:   0.375rem;
+      --radius-lg:   0.5rem;
+      --radius-xl:   0.75rem;
+      --radius-2xl:  1rem;
+      --radius-full: 9999px;
+      /* === 阴影 === */
+      --shadow-card:   0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+      --shadow-float:  0 4px 6px rgba(0,0,0,0.1), 0 2px 4px rgba(0,0,0,0.06);
+      --shadow-dialog: 0 25px 50px rgba(0,0,0,0.15);
+      /* === 字体 === */
+      --font-sans: "Inter", "Noto Sans SC", system-ui, sans-serif;
+    }
+  </style>
+
+  <style>
+    /* 滚动条样式 */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+    
+    /* 自定义样式 */
+    .stat-up { color: #ef4444; }
+    .stat-down { color: #22c55e; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+    .status-online { background: #22c55e; }
+    .status-offline { background: #9CA3AF; }
+    .status-error { background: #ef4444; }
+    .status-pending { background: #f59e0b; }
+    .risk-high { color: #ef4444; font-weight: 500; }
+    .risk-medium { color: #f59e0b; font-weight: 500; }
+    .risk-low { color: #22c55e; font-weight: 500; }
+    .score-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 48px; padding: 2px 8px; border-radius: 4px; font-weight: 600; font-size: 13px; }
+    .score-high { background: #DCFCE7; color: #16a34a; }
+    .score-medium { background: #FEF3C7; color: #d97706; }
+    .score-low { background: #FEE2E2; color: #dc2626; }
+  </style>
+</head>
+
+<body class="bg-background text-on-surface font-sans">
+
+  <!-- @nav:start 导航组件 -->
+  <div class="flex h-screen">
+    <!-- 侧边栏 -->
+    <aside class="w-64 shrink-0 bg-sidebar flex flex-col border-r border-outline">
+      <!-- Logo区域 -->
+      <div class="h-16 flex items-center px-4 border-b border-outline">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 bg-primary rounded-md flex items-center justify-center">
+            <i data-lucide="shield-check" class="w-5 h-5 text-white"></i>
+          </div>
+          <span class="font-bold text-base text-on-surface">国舜DevSecAI</span>
+        </div>
+      </div>
+      
+      <!-- 导航菜单 -->
+      <nav class="flex-1 overflow-y-auto py-3 px-2">
+        <div class="space-y-0.5">
+          <a href="home.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors" data-page="home">
+            <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+            <span>首页总览</span>
+          </a>
+          <a href="project.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors" data-page="project" aria-current="page">
+            <i data-lucide="folder-kanban" class="w-5 h-5"></i>
+            <span>项目管理</span>
+          </a>
+          <a href="plugin.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors" data-page="plugin">
+            <i data-lucide="puzzle" class="w-5 h-5"></i>
+            <span>插件管理</span>
+          </a>
+          <a href="plugin-capability.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors" data-page="plugin-capability">
+            <i data-lucide="sliders" class="w-5 h-5"></i>
+            <span>插件能力配置</span>
+          </a>
+          <a href="policy.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors" data-page="policy">
+            <i data-lucide="shield" class="w-5 h-5"></i>
+            <span>检测策略中心</span>
+          </a>
+          <a href="rules.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors" data-page="rules">
+            <i data-lucide="scroll-text" class="w-5 h-5"></i>
+            <span>规则管理中心</span>
+          </a>
+          <a href="results.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors" data-page="results">
+            <i data-lucide="scan" class="w-5 h-5"></i>
+            <span>检测结果中心</span>
+          </a>
+          <a href="skill.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors" data-page="skill">
+            <i data-lucide="sparkles" class="w-5 h-5"></i>
+            <span>大模型Skill中心</span>
+          </a>
+          <a href="audit-log.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors" data-page="audit-log">
+            <i data-lucide="file-text" class="w-5 h-5"></i>
+            <span>插件审计日志</span>
+          </a>
+          <a href="settings.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors" data-page="settings">
+            <i data-lucide="settings" class="w-5 h-5"></i>
+            <span>系统设置</span>
+          </a>
+        </div>
+      </nav>
+      
+      <!-- 底部信息 -->
+      <div class="p-3 border-t border-outline">
+        <div class="flex items-center justify-between text-xs text-on-surface-variant">
+          <span>规则包版本: 2026.06.23</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- 右侧主内容区 -->
+    <div class="flex-1 flex flex-col min-w-0">
+      <!-- 顶栏 -->
+      <header class="h-16 bg-surface border-b border-outline flex items-center justify-between px-6">
+        <div class="flex items-center gap-4">
+          <!-- 全局搜索 -->
+          <div class="relative">
+            <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant"></i>
+            <input type="text" placeholder="搜索项目、插件、规则..." class="w-72 h-9 pl-9 pr-4 bg-surface-container border-none rounded-md text-sm focus:ring-2 focus:ring-primary/30 outline-none">
+          </div>
+        </div>
+        
+        <div class="flex items-center gap-4">
+          <!-- 在线插件数 -->
+          <div class="flex items-center gap-2 px-3 py-1.5 bg-success-bg rounded-full">
+            <span class="status-dot status-online"></span>
+            <span class="text-xs font-medium text-on-surface">在线插件 168</span>
+          </div>
+          
+          <!-- 消息通知 -->
+          <button class="relative p-2 hover:bg-surface-container rounded-md transition-colors">
+            <i data-lucide="bell" class="w-5 h-5 text-on-surface-variant"></i>
+            <span class="absolute top-1 right-1 w-2 h-2 bg-error rounded-full"></span>
+          </button>
+          
+          <!-- 用户信息 -->
+          <div class="flex items-center gap-3 pl-4 border-l border-outline">
+            <div class="text-right">
+              <div class="text-sm font-medium text-on-surface">管理员</div>
+              <div class="text-xs text-on-surface-variant">系统管理员</div>
+            </div>
+            <div class="w-9 h-9 bg-primary-container rounded-full flex items-center justify-center">
+              <span class="text-sm font-medium text-primary">管</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- @main-content:start -->
+      <main class="flex-1 min-w-0 overflow-y-auto bg-background p-6">
+        <!-- 页面标题区 -->
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h1 class="text-2xl font-bold text-on-surface">项目管理</h1>
+            <p class="text-sm text-on-surface-variant mt-1">管理所有接入安全检测的项目，支持策略绑定和风险查看</p>
+          </div>
+          <button id="btn-add-project" class="bg-primary text-on-primary px-4 py-2 rounded-md text-sm font-medium hover:opacity-90 active:scale-[0.98] transition-all inline-flex items-center gap-2">
+            <i data-lucide="plus" class="w-4 h-4"></i>
+            新增项目
+          </button>
+        </div>
+
+        <!-- 统计卡片 -->
+        <div class="grid grid-cols-4 gap-4 mb-6">
+          <div class="bg-surface rounded-lg shadow-card p-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-xs text-on-surface-variant font-medium">项目总数</p>
+                <p class="text-2xl font-bold text-on-surface mt-1">24</p>
+              </div>
+              <div class="w-10 h-10 bg-primary-container rounded-lg flex items-center justify-center">
+                <i data-lucide="folder-kanban" class="w-5 h-5 text-primary"></i>
+              </div>
+            </div>
+            <p class="text-xs text-on-surface-variant mt-2"><span class="text-success stat-down">↑ 3</span> 本月新增</p>
+          </div>
+          <div class="bg-surface rounded-lg shadow-card p-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-xs text-on-surface-variant font-medium">在线插件数</p>
+                <p class="text-2xl font-bold text-on-surface mt-1">168</p>
+              </div>
+              <div class="w-10 h-10 bg-success-bg rounded-lg flex items-center justify-center">
+                <i data-lucide="plug" class="w-5 h-5 text-success"></i>
+              </div>
+            </div>
+            <p class="text-xs text-on-surface-variant mt-2"><span class="text-success stat-down">↑ 12</span> 较上周</p>
+          </div>
+          <div class="bg-surface rounded-lg shadow-card p-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-xs text-on-surface-variant font-medium">高危风险数</p>
+                <p class="text-2xl font-bold text-error mt-1">15</p>
+              </div>
+              <div class="w-10 h-10 bg-error-bg rounded-lg flex items-center justify-center">
+                <i data-lucide="alert-triangle" class="w-5 h-5 text-error"></i>
+              </div>
+            </div>
+            <p class="text-xs text-on-surface-variant mt-2"><span class="text-success stat-down">↓ 8</span> 较上周</p>
+          </div>
+          <div class="bg-surface rounded-lg shadow-card p-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-xs text-on-surface-variant font-medium">平均安全评分</p>
+                <p class="text-2xl font-bold text-success mt-1">87.5</p>
+              </div>
+              <div class="w-10 h-10 bg-info-bg rounded-lg flex items-center justify-center">
+                <i data-lucide="shield-check" class="w-5 h-5 text-info"></i>
+              </div>
+            </div>
+            <p class="text-xs text-on-surface-variant mt-2"><span class="text-success stat-down">↑ 2.3</span> 较上周</p>
+          </div>
+        </div>
+
+        <!-- 筛选区域 -->
+        <div class="bg-surface rounded-lg shadow-card p-4 mb-6">
+          <div class="flex items-center gap-4">
+            <div class="flex items-center gap-2">
+              <label class="text-sm text-on-surface-variant">部门:</label>
+              <select id="filter-department" class="h-9 bg-surface-container border-none rounded-md px-3 text-sm focus:ring-2 focus:ring-primary/30 outline-none cursor-pointer">
+                <option value="">全部部门</option>
+                <option value="tech">技术研发部</option>
+                <option value="product">产品部</option>
+                <option value="operation">运维部</option>
+              </select>
+            </div>
+            <div class="flex items-center gap-2">
+              <label class="text-sm text-on-surface-variant">绑定策略:</label>
+              <select id="filter-policy" class="h-9 bg-surface-container border-none rounded-md px-3 text-sm focus:ring-2 focus:ring-primary/30 outline-none cursor-pointer">
+                <option value="">全部策略</option>
+                <option value="strict">严格模式</option>
+                <option value="standard">标准模式</option>
+                <option value="relaxed">宽松模式</option>
+              </select>
+            </div>
+            <div class="flex-1">
+              <div class="relative">
+                <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant"></i>
+                <input id="search-project" type="text" placeholder="搜索项目名称或Git地址..." class="w-full h-9 pl-9 pr-4 bg-surface-container border-none rounded-md text-sm focus:ring-2 focus:ring-primary/30 outline-none">
+              </div>
+            </div>
+            <button id="btn-search" class="h-9 px-4 bg-primary text-on-primary rounded-md text-sm font-medium hover:opacity-90 transition-all inline-flex items-center gap-2">
+              <i data-lucide="search" class="w-4 h-4"></i>
+              搜索
+            </button>
+            <button id="btn-reset" class="h-9 px-4 bg-surface-container text-on-surface rounded-md text-sm font-medium hover:bg-surface-container-high transition-all">
+              重置
+            </button>
+          </div>
+        </div>
+
+        <!-- 项目列表表格 -->
+        <div class="bg-surface rounded-lg shadow-card overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full">
+              <thead>
+                <tr class="bg-surface-container">
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-on-surface-variant uppercase tracking-wide">项目名称</th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-on-surface-variant uppercase tracking-wide">所属部门</th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-on-surface-variant uppercase tracking-wide">项目负责人</th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-on-surface-variant uppercase tracking-wide min-w-[200px]">Git地址</th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-on-surface-variant uppercase tracking-wide">绑定策略</th>
+                  <th class="px-4 py-3 text-center text-xs font-semibold text-on-surface-variant uppercase tracking-wide">在线插件</th>
+                  <th class="px-4 py-3 text-center text-xs font-semibold text-on-surface-variant uppercase tracking-wide">高危</th>
+                  <th class="px-4 py-3 text-center text-xs font-semibold text-on-surface-variant uppercase tracking-wide">中危</th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-on-surface-variant uppercase tracking-wide">最近扫描</th>
+                  <th class="px-4 py-3 text-center text-xs font-semibold text-on-surface-variant uppercase tracking-wide">安全评分</th>
+                  <th class="px-4 py-3 text-center text-xs font-semibold text-on-surface-variant uppercase tracking-wide">操作</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-outline-variant/50">
+                <!-- 列表-项目1: 智能风控系统 -->
+                <tr class="hover:bg-surface-container/50 transition-colors" data-project-id="1">
+                  <td class="px-4 py-3">
+                    <div class="flex items-center gap-2">
+                      <i data-lucide="folder-git-2" class="w-4 h-4 text-primary"></i>
+                      <span class="text-sm font-medium text-on-surface">智能风控系统</span>
+                    </div>
+                  </td>
+                  <td class="px-4 py-3">
+                    <span class="text-sm text-on-surface-variant">技术研发部</span>
+                  </td>
+                  <td class="px-4 py-3">
+                    <div class="flex items-center gap-2">
+                      <div class="w-6 h-6 bg-primary-container rounded-full flex items-center justify-center">
+                        <span class="text-xs font-medium text-primary">张</span>
+                      </div>
+                      <span class="text-sm text-on-surface">张明</span>
+                    </div>
+                  </td>
+                  <td class="px-4 py-3">
+                    <span class="text-sm text-on-surface-variant font-mono text-xs">https://gitlab.guoss.cn/risk-control/system</span>
+                  </td>
+                  <td class="px-4 py-3">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-error/15 text-error">严格模式</span>
+                  </td>
+                  <td class="px-4 py-3 text-center">
+                    <span class="inline-flex items-center gap-1 text-sm font-medium text-success">12</span>
+                  </td>
+                  <td class="px-4 py-3 text-center">
+                    <span class="risk-high">3</span>
+                  </td>
+                  <td class="px-4 py-3 text-center">
+                    <span class="risk-medium">8</span>
+                  </td>
+                  <td class="px-4 py-3">
+                    <span class="text-sm text-on-surface-variant">2024-01-18 14:32</span>
+                  </td>
+                  <td class="px-4 py-3 text-center">
+                    <span class="score-badge score-medium">78</span>
+                  </td>
+                  <td class="px-4 py-3">
+                    <div class="flex items-center justify-center gap-2">
+                      <button id="btn-edit-1" class="text-primary text-sm font-medium hover:underline">编辑</button>
+                      <button id="btn-bind-1" class="text-info text-sm font-medium hover:underline">绑定策略</button>
+                      <button id="btn-delete-1" class="text-error text-sm font-medium hover:underline">删除</button>
+                    </div>
+                  </td>
+                </tr>
+                <!-- 列表-项目2: 用户中心服务 -->
+                <tr class="hover:bg-surface-container/50 transition-colors" data-project-id="2">
+                  <td class="px-4 py-3">
+                    <div class="flex items-center gap-2">
+                      <i data-lucide="folder-git-2" class="w-4 h-4 text-primary"></i>
+                      <span class="text-sm font-medium text-on-surface">用户中心服务</span>
+                    </div>
+                  </td>
+                  <td class="px-4 py-3">
+                    <span class="text-sm text-on-surface-variant">技术研发部</span>
+                  </td>
+                  <td class="px-4 py-3">
+                    <div class="flex items-center gap-2">
+                      <div class="w-6 h-6 bg-warning-bg rounded-full flex items-center justify-center">
+                        <span class="text-xs font-medium text-warning">李</span>
+                      </div>
+                      <span class="text-sm text-on-surface">李华</span>
+                    </div>
+                  </td>
+                  <td class="px-4 py-3">
+                    <span class="text-sm text-on-surface-variant font-mono text-xs">https://gitlab.guoss.cn/user-center/api</span>
+                  </td>
+                  <td class="px-4 py-3">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-warning-bg text-warning">标准模式</span>
+                  </td>
+                  <td class="px-4 py-3 text-center">
+                    <span class="inline-flex items-center gap-1 text-sm font-medium text-success">8</span>
+                  </td>
+                  <td class="px-4 py-3 text-center">
+                    <span class="risk-high">1</span>
+                  </td>
+                  <td class="px-4 py-3 text-center">
+                    <span class="risk-medium">4</span>
+                  </td>
+                  <td class="px-4 py-3">
+                    <span class="text-sm text-on-surface-variant">2024-01-18 10:15</span>
+                  </td>
+                  <td class="px-4 py-3 text-center">
+                    <span class="score-badge score-high">92</span>
+                  </td>
+                  <td class="px-4 py-3">
+                    <div class="flex items-center justify-center gap-2">
+                      <button id="btn-edit-2" class="text-primary text-sm font-medium hover:underline">编辑</button>
+                      <button id="btn-bind-2" class="text-info text-sm font-medium hover:underline">绑定策略</button>
+                      <button id="btn-delete-2" class="text-error text-sm font-medium hover:underline">删除</button>
+                    </div>
+                  </td>
+                </tr>
+                <!-- 列表-项目3: 交易支付平台 -->
+                <tr class="hover:bg-surface-container/50 transition-colors" data-project-id="3">
+                  <td class="px-4 py-3">
+                    <div class="flex items-center gap-2">
+                      <i data-lucide="folder-git-2" class="w-4 h-4 text-primary"></i>
+                      <span class="text-sm font-medium text-on-surface">交易支付平台</span>
+                    </div>
+                  </td>
+                  <td class="px-4 py-3">
+                    <span class="text-sm text-on-surface-variant">产品部</span>
+                  </td>
+                  <td class="px-4 py-3">
+                    <div class="flex items-center gap-2">
+                      <div class="w-6 h-6 bg-success-bg rounded-full flex items-center justify-center">
+                        <span class="text-xs font-medium text-success">王</span>
+                      </div>
+                      <span class="text-sm text-on-surface">王芳</span>
+                    </div>
+                  </td>
+                  <td class="px-4 py-3">
+                    <span class="text-sm text-on-surface-variant font-mono text-xs">https://gitlab.guoss.cn/payment/gateway</span>
+                  </td>
+                  <td class="px-4 py-3">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-error/15 text-error">严格模式</span>
+                  </td>
+                  <td class="px-4 py-3 text-center">
+                    <span class="inline-flex items-center gap-1 text-sm font-medium text-success">15</span>
+                  </td>
+                  <td class="px-4 py-3 text-center">
+                    <span class="risk-high">5</span>
+                  </td>
+                  <td class="px-4 py-3 text-center">
+                    <span class="risk-medium">12</span>
+                  </td>
+                  <td class="px-4 py-3">
+                    <span class="text-sm text-on-surface-variant">2024-01-17 22:08</span>
+                  </td>
+                  <td class="px-4 py-3 text-center">
+                    <span class="score-badge score-low">65</span>
+                  </td>
+                  <td class="px-4 py-3">
+                    <div class="flex items-center justify-center gap-2">
+                      <button id="btn-edit-3" class="text-primary text-sm font-medium hover:underline">编辑</button>
+                      <button id="btn-bind-3" class="text-info text-sm font-medium hover:underline">绑定策略</button>
+                      <button id="btn-delete-3" class="text-error text-sm font-medium hover:underline">删除</button>
+                    </div>
+                  </td>
+                </tr>
+                <!-- 列表-项目4: 数据分析后台 -->
+                <tr class="hover:bg-surface-container/50 transition-colors" data-project-id="4">
+                  <td class="px-4 py-3">
+                    <div class="flex items-center gap-2">
+                      <i data-lucide="folder-git-2" class="w-4 h-4 text-primary"></i>
+                      <span class="text-sm font-medium text-on-surface">数据分析后台</span>
+                    </div>
+                  </td>
+                  <td class="px-4 py-3">
+                    <span class="text-sm text-on-surface-variant">运维部</span>
+                  </td>
+                  <td class="px-4 py-3">
+                    <div class="flex items-center gap-2">
+                      <div class="w-6 h-6 bg-info-bg rounded-full flex items-center justify-center">
+                        <span class="text-xs font-medium text-info">赵</span>
+                      </div>
+                      <span class="text-sm text-on-surface">赵强</span>
+                    </div>
+                  </td>
+                  <td class="px-4 py-3">
+                    <span class="text-sm text-on-surface-variant font-mono text-xs">https://gitlab.guoss.cn/data/analytics</span>
+                  </td>
+                  <td class="px-4 py-3">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-success-bg text-success">宽松模式</span>
+                  </td>
+                  <td class="px-4 py-3 text-center">
+                    <span class="inline-flex items-center gap-1 text-sm font-medium text-success">6</span>
+                  </td>
+                  <td class="px-4 py-3 text-center">
+                    <span class="risk-high">0</span>
+                  </td>
+                  <td class="px-4 py-3 text-center">
+                    <span class="risk-medium">2</span>
+                  </td>
+                  <td class="px-4 py-3">
+                    <span class="text-sm text-on-surface-variant">2024-01-17 16:45</span>
+                  </td>
+                  <td class="px-4 py-3 text-center">
+                    <span class="score-badge score-high">96</span>
+                  </td>
+                  <td class="px-4 py-3">
+                    <div class="flex items-center justify-center gap-2">
+                      <button id="btn-edit-4" class="text-primary text-sm font-medium hover:underline">编辑</button>
+                      <button id="btn-bind-4" class="text-info text-sm font-medium hover:underline">绑定策略</button>
+                      <button id="btn-delete-4" class="text-error text-sm font-medium hover:underline">删除</button>
+                    </div>
+                  </td>
+                </tr>
+                <!-- 列表-项目5: 移动端App -->
+                <tr class="hover:bg-surface-container/50 transition-colors" data-project-id="5">
+                  <td class="px-4 py-3">
+                    <div class="flex items-center gap-2">
+                      <i data-lucide="folder-git-2" class="w-4 h-4 text-primary"></i>
+                      <span class="text-sm font-medium text-on-surface">移动端App</span>
+                    </div>
+                  </td>
+                  <td class="px-4 py-3">
+                    <span class="text-sm text-on-surface-variant">产品部</span>
+                  </td>
+                  <td class="px-4 py-3">
+                    <div class="flex items-center gap-2">
+                      <div class="w-6 h-6 bg-error-bg rounded-full flex items-center justify-center">
+                        <span class="text-xs font-medium text-error">陈</span>
+                      </div>
+                      <span class="text-sm text-on-surface">陈静</span>
+                    </div>
+                  </td>
+                  <td class="px-4 py-3">
+                    <span class="text-sm text-on-surface-variant font-mono text-xs">https://gitlab.guoss.cn/mobile/app-client</span>
+                  </td>
+                  <td class="px-4 py-3">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-warning-bg text-warning">标准模式</span>
+                  </td>
+                  <td class="px-4 py-3 text-center">
+                    <span class="inline-flex items-center gap-1 text-sm font-medium text-success">10</span>
+                  </td>
+                  <td class="px-4 py-3 text-center">
+                    <span class="risk-high">2</span>
+                  </td>
+                  <td class="px-4 py-3 text-center">
+                    <span class="risk-medium">6</span>
+                  </td>
+                  <td class="px-4 py-3">
+                    <span class="text-sm text-on-surface-variant">2024-01-16 11:20</span>
+                  </td>
+                  <td class="px-4 py-3 text-center">
+                    <span class="score-badge score-medium">85</span>
+                  </td>
+                  <td class="px-4 py-3">
+                    <div class="flex items-center justify-center gap-2">
+                      <button id="btn-edit-5" class="text-primary text-sm font-medium hover:underline">编辑</button>
+                      <button id="btn-bind-5" class="text-info text-sm font-medium hover:underline">绑定策略</button>
+                      <button id="btn-delete-5" class="text-error text-sm font-medium hover:underline">删除</button>
+                    </div>
+                  </td>
+                </tr>
+                <!-- 列表-项目6: 消息推送服务 -->
+                <tr class="hover:bg-surface-container/50 transition-colors" data-project-id="6">
+                  <td class="px-4 py-3">
+                    <div class="flex items-center gap-2">
+                      <i data-lucide="folder-git-2" class="w-4 h-4 text-primary"></i>
+                      <span class="text-sm font-medium text-on-surface">消息推送服务</span>
+                    </div>
+                  </td>
+                  <td class="px-4 py-3">
+                    <span class="text-sm text-on-surface-variant">技术研发部</span>
+                  </td>
+                  <td class="px-4 py-3">
+                    <div class="flex items-center gap-2">
+                      <div class="w-6 h-6 bg-primary-container rounded-full flex items-center justify-center">
+                        <span class="text-xs font-medium text-primary">刘</span>
+                      </div>
+                      <span class="text-sm text-on-surface">刘洋</span>
+                    </div>
+                  </td>
+                  <td class="px-4 py-3">
+                    <span class="text-sm text-on-surface-variant font-mono text-xs">https://gitlab.guoss.cn/notification/push</span>
+                  </td>
+                  <td class="px-4 py-3">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-error/15 text-error">严格模式</span>
+                  </td>
+                  <td class="px-4 py-3 text-center">
+                    <span class="inline-flex items-center gap-1 text-sm font-medium text-success">7</span>
+                  </td>
+                  <td class="px-4 py-3 text-center">
+                    <span class="risk-high">4</span>
+                  </td>
+                  <td class="px-4 py-3 text-center">
+                    <span class="risk-medium">9</span>
+                  </td>
+                  <td class="px-4 py-3">
+                    <span class="text-sm text-on-surface-variant">2024-01-15 09:30</span>
+                  </td>
+                  <td class="px-4 py-3 text-center">
+                    <span class="score-badge score-medium">72</span>
+                  </td>
+                  <td class="px-4 py-3">
+                    <div class="flex items-center justify-center gap-2">
+                      <button id="btn-edit-6" class="text-primary text-sm font-medium hover:underline">编辑</button>
+                      <button id="btn-bind-6" class="text-info text-sm font-medium hover:underline">绑定策略</button>
+                      <button id="btn-delete-6" class="text-error text-sm font-medium hover:underline">删除</button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <!-- 分页 -->
+          <div class="flex items-center justify-between px-4 py-3 border-t border-outline">
+            <p class="text-sm text-on-surface-variant">共 <span class="font-medium">24</span> 条记录，每页显示 <span class="font-medium">6</span> 条</p>
+            <div class="flex items-center gap-2">
+              <button class="h-8 px-3 bg-surface-container text-on-surface-variant rounded text-sm font-medium hover:bg-surface-container-high transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                上一页
+              </button>
+              <button class="h-8 w-8 bg-primary text-on-primary rounded text-sm font-medium">1</button>
+              <button class="h-8 w-8 bg-surface-container text-on-surface rounded text-sm font-medium hover:bg-surface-container-high transition-colors">2</button>
+              <button class="h-8 w-8 bg-surface-container text-on-surface rounded text-sm font-medium hover:bg-surface-container-high transition-colors">3</button>
+              <button class="h-8 w-8 bg-surface-container text-on-surface rounded text-sm font-medium hover:bg-surface-container-high transition-colors">4</button>
+              <button class="h-8 px-3 bg-surface-container text-on-surface rounded text-sm font-medium hover:bg-surface-container-high transition-colors">
+                下一页
+              </button>
+            </div>
+          </div>
+        </div>
+      </main>
+      <!-- @main-content:end -->
+    </div>
+  </div>
+
+  <!-- 新增/编辑项目弹窗 -->
+  <div id="modal-project" class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 hidden">
+    <div class="bg-surface rounded-xl shadow-dialog max-w-lg w-full max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between p-4 border-b border-outline">
+        <h3 id="modal-title" class="text-lg font-semibold text-on-surface">新增项目</h3>
+        <button id="btn-close-modal" class="p-1 hover:bg-surface-container rounded transition-colors">
+          <i data-lucide="x" class="w-5 h-5 text-on-surface-variant"></i>
+        </button>
+      </div>
+      <form id="form-project" class="p-4 space-y-4">
+        <input type="hidden" id="project-id" value="">
+        <div>
+          <label class="block text-sm font-medium text-on-surface mb-1.5">项目名称 <span class="text-error">*</span></label>
+          <input type="text" id="project-name" class="w-full bg-surface-container border-none rounded-md px-3 py-2 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none focus:ring-2 focus:ring-primary/30" placeholder="请输入项目名称">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-on-surface mb-1.5">所属部门 <span class="text-error">*</span></label>
+          <select id="project-department" class="w-full bg-surface-container border-none rounded-md px-3 py-2 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/30 cursor-pointer">
+            <option value="">请选择部门</option>
+            <option value="tech">技术研发部</option>
+            <option value="product">产品部</option>
+            <option value="operation">运维部</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-on-surface mb-1.5">项目负责人 <span class="text-error">*</span></label>
+          <select id="project-leader" class="w-full bg-surface-container border-none rounded-md px-3 py-2 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/30 cursor-pointer">
+            <option value="">请选择负责人</option>
+            <option value="1">张明</option>
+            <option value="2">李华</option>
+            <option value="3">王芳</option>
+            <option value="4">赵强</option>
+            <option value="5">陈静</option>
+            <option value="6">刘洋</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-on-surface mb-1.5">Git地址 <span class="text-error">*</span></label>
+          <input type="text" id="project-git" class="w-full bg-surface-container border-none rounded-md px-3 py-2 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none focus:ring-2 focus:ring-primary/30 font-mono" placeholder="https://gitlab.guoss.cn/xxx/xxx">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-on-surface mb-1.5">绑定策略</label>
+          <select id="project-policy" class="w-full bg-surface-container border-none rounded-md px-3 py-2 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/30 cursor-pointer">
+            <option value="">请选择检测策略</option>
+            <option value="strict">严格模式 - 全量扫描+高危阻断</option>
+            <option value="standard">标准模式 - 标准扫描+提示</option>
+            <option value="relaxed">宽松模式 - 基础扫描</option>
+          </select>
+        </div>
+        <div class="flex items-center gap-3 pt-2">
+          <button type="button" id="btn-cancel" class="flex-1 h-10 bg-surface-container text-on-surface rounded-md text-sm font-medium hover:bg-surface-container-high transition-all">
+            取消
+          </button>
+          <button type="submit" class="flex-1 h-10 bg-primary text-on-primary rounded-md text-sm font-medium hover:opacity-90 transition-all">
+            保存
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 绑定策略弹窗 -->
+  <div id="modal-bind-policy" class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 hidden">
+    <div class="bg-surface rounded-xl shadow-dialog max-w-md w-full max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between p-4 border-b border-outline">
+        <h3 class="text-lg font-semibold text-on-surface">绑定检测策略</h3>
+        <button id="btn-close-bind-modal" class="p-1 hover:bg-surface-container rounded transition-colors">
+          <i data-lucide="x" class="w-5 h-5 text-on-surface-variant"></i>
+        </button>
+      </div>
+      <div class="p-4">
+        <p class="text-sm text-on-surface-variant mb-4">为项目「<span id="bind-project-name" class="text-on-surface font-medium">智能风控系统</span>」选择检测策略</p>
+        <div class="space-y-3">
+          <label class="flex items-start gap-3 p-3 bg-surface-container rounded-lg cursor-pointer hover:bg-surface-container-high transition-colors">
+            <input type="radio" name="policy" value="strict" class="mt-0.5 w-4 h-4 text-primary accent-primary">
+            <div class="flex-1">
+              <div class="flex items-center gap-2">
+                <span class="text-sm font-medium text-on-surface">严格模式</span>
+                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-error/15 text-error">推荐</span>
+              </div>
+              <p class="text-xs text-on-surface-variant mt-1">全量扫描SCA/SAST/Secrets/Baseline，高危风险阻断提交</p>
+            </div>
+          </label>
+          <label class="flex items-start gap-3 p-3 bg-surface-container rounded-lg cursor-pointer hover:bg-surface-container-high transition-colors">
+            <input type="radio" name="policy" value="standard" class="mt-0.5 w-4 h-4 text-primary accent-primary" checked>
+            <div class="flex-1">
+              <div class="flex items-center gap-2">
+                <span class="text-sm font-medium text-on-surface">标准模式</span>
+              </div>
+              <p class="text-xs text-on-surface-variant mt-1">标准扫描+AI漏洞解释和修复建议，仅提示不阻断</p>
+            </div>
+          </label>
+          <label class="flex items-start gap-3 p-3 bg-surface-container rounded-lg cursor-pointer hover:bg-surface-container-high transition-colors">
+            <input type="radio" name="policy" value="relaxed" class="mt-0.5 w-4 h-4 text-primary accent-primary">
+            <div class="flex-1">
+              <div class="flex items-center gap-2">
+                <span class="text-sm font-medium text-on-surface">宽松模式</span>
+              </div>
+              <p class="text-xs text-on-surface-variant mt-1">基础扫描，仅检测高危漏洞和敏感信息泄露</p>
+            </div>
+          </label>
+        </div>
+        <div class="flex items-center gap-3 mt-5">
+          <button id="btn-bind-cancel" class="flex-1 h-10 bg-surface-container text-on-surface rounded-md text-sm font-medium hover:bg-surface-container-high transition-all">
+            取消
+          </button>
+          <button id="btn-bind-confirm" class="flex-1 h-10 bg-primary text-on-primary rounded-md text-sm font-medium hover:opacity-90 transition-all">
+            确认绑定
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 删除确认弹窗 -->
+  <div id="modal-delete" class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 hidden">
+    <div class="bg-surface rounded-xl shadow-dialog max-w-sm w-full">
+      <div class="p-6 text-center">
+        <div class="w-12 h-12 bg-error-bg rounded-full flex items-center justify-center mx-auto mb-4">
+          <i data-lucide="alert-triangle" class="w-6 h-6 text-error"></i>
+        </div>
+        <h3 class="text-lg font-semibold text-on-surface mb-2">确认删除项目</h3>
+        <p class="text-sm text-on-surface-variant mb-1">确定要删除「<span id="delete-project-name" class="text-on-surface font-medium">智能风控系统</span>」吗？</p>
+        <p class="text-xs text-error">删除后，该项目下的所有检测记录和插件绑定将一并清除</p>
+      </div>
+      <div class="flex border-t border-outline">
+        <button id="btn-delete-cancel" class="flex-1 h-12 bg-surface-container text-on-surface rounded-bl-xl text-sm font-medium hover:bg-surface-container-high transition-all">
+          取消
+        </button>
+        <button id="btn-delete-confirm" class="flex-1 h-12 bg-error text-on-primary rounded-br-xl text-sm font-medium hover:opacity-90 transition-all">
+          确认删除
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 高亮当前页面导航
+    document.addEventListener('DOMContentLoaded', function() {
+      lucide.createIcons();
+    });
+
+    $(function() {
+      // 新增项目按钮
+      $('#btn-add-project').on('click', function() {
+        $('#modal-title').text('新增项目');
+        $('#project-id').val('');
+        $('#form-project')[0].reset();
+        $('#modal-project').removeClass('hidden');
+      });
+
+      // 编辑项目按钮 - 点击后应实现：
+      // 1. 获取当前行的项目ID
+      // 2. 调用接口获取项目详情
+      // 3. 填充表单数据
+      // 4. 打开编辑弹窗
+      $('[id^="btn-edit-"]').on('click', function() {
+        var projectId = $(this).closest('tr').data('project-id');
+        console.log('编辑项目:', projectId);
+        $('#modal-title').text('编辑项目');
+        $('#project-id').val(projectId);
+        // 模拟填充数据
+        $('#project-name').val('智能风控系统');
+        $('#project-department').val('tech');
+        $('#project-leader').val('1');
+        $('#project-git').val('https://gitlab.guoss.cn/risk-control/system');
+        $('#project-policy').val('strict');
+        $('#modal-project').removeClass('hidden');
+      });
+
+      // 绑定策略按钮 - 点击后应实现：
+      // 1. 获取当前项目名称
+      // 2. 显示绑定策略弹窗
+      $('[id^="btn-bind-"]').on('click', function() {
+        var projectName = $(this).closest('tr').find('td:first-child span.font-medium').text();
+        console.log('绑定策略:', projectName);
+        $('#bind-project-name').text(projectName);
+        $('#modal-bind-policy').removeClass('hidden');
+      });
+
+      // 删除项目按钮 - 点击后应实现：
+      // 1. 获取当前项目名称
+      // 2. 显示删除确认弹窗
+      $('[id^="btn-delete-"]').on('click', function() {
+        var projectName = $(this).closest('tr').find('td:first-child span.font-medium').text();
+        console.log('删除项目:', projectName);
+        $('#delete-project-name').text(projectName);
+        $('#modal-delete').removeClass('hidden');
+      });
+
+      // 关闭新增/编辑弹窗
+      $('#btn-close-modal, #btn-cancel').on('click', function() {
+        $('#modal-project').addClass('hidden');
+      });
+
+      // 关闭绑定策略弹窗
+      $('#btn-close-bind-modal, #btn-bind-cancel').on('click', function() {
+        $('#modal-bind-policy').addClass('hidden');
+      });
+
+      // 关闭删除确认弹窗
+      $('#btn-delete-cancel').on('click', function() {
+        $('#modal-delete').addClass('hidden');
+      });
+
+      // 确认绑定策略 - 点击后应实现：
+      // 1. 获取选中的策略值
+      // 2. 调用接口绑定策略到项目
+      // 3. 刷新列表或更新当前行
+      $('#btn-bind-confirm').on('click', function() {
+        var selectedPolicy = $('input[name="policy"]:checked').val();
+        var projectName = $('#bind-project-name').text();
+        console.log('确认绑定 - 项目:', projectName, '策略:', selectedPolicy);
+        $('#modal-bind-policy').addClass('hidden');
+        // 实际应刷新列表或更新UI
+      });
+
+      // 确认删除 - 点击后应实现：
+      // 1. 调用接口删除项目
+      // 2. 刷新列表
+      $('#btn-delete-confirm').on('click', function() {
+        var projectName = $('#delete-project-name').text();
+        console.log('确认删除 - 项目:', projectName);
+        $('#modal-delete').addClass('hidden');
+        // 实际应调用删除接口并刷新列表
+      });
+
+      // 搜索按钮
+      $('#btn-search').on('click', function() {
+        var keyword = $('#search-project').val();
+        var department = $('#filter-department').val();
+        var policy = $('#filter-policy').val();
+        console.log('搜索条件:', { keyword: keyword, department: department, policy: policy });
+        // 实际应调用搜索接口
+      });
+
+      // 重置按钮
+      $('#btn-reset').on('click', function() {
+        $('#search-project').val('');
+        $('#filter-department').val('');
+        $('#filter-policy').val('');
+        console.log('重置筛选条件');
+        // 实际应刷新完整列表
+      });
+
+      // 表单提交 - 点击后应实现：
+      // 1. 表单验证
+      // 2. 收集表单数据
+      // 3. 调用新增/编辑接口
+      // 4. 成功后关闭弹窗并刷新列表
+      $('#form-project').on('submit', function(e) {
+        e.preventDefault();
+        var formData = {
+          id: $('#project-id').val(),
+          name: $('#project-name').val(),
+          department: $('#project-department').val(),
+          leader: $('#project-leader').val(),
+          gitUrl: $('#project-git').val(),
+          policy: $('#project-policy').val()
+        };
+        console.log('提交表单:', formData);
+        $('#modal-project').addClass('hidden');
+        // 实际应调用接口并刷新列表
+      });
+
+      // 点击弹窗背景关闭
+      $('#modal-project, #modal-bind-policy, #modal-delete').on('click', function(e) {
+        if (e.target === this) {
+          $(this).addClass('hidden');
+        }
+      });
+    });
+  </script>
+</body>
+
+</html>

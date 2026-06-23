@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <link href="https://lf-code-agent.coze.cn/obj/x-ai-cn/fonts/google/google-all-fonts.css" rel="stylesheet"/>
+
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/jquery/jquery-3.7.1.min.js"></script>
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/lucide/lucide-1.11.0.min.js"></script>
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/tailwindcss/tailwindcss-browser-4.2.4.min.js"></script>
+
+  <style type="text/tailwindcss">
+    @theme {
+      /* === 品牌色 - 商务稳重蓝色 === */
+      --color-primary:              #2563EB;
+      --color-primary-hover:        #1D4ED8;
+      --color-primary-container:    #DBEAFE;
+      --color-on-primary:           #ffffff;
+      /* === 背景 / 表面 === */
+      --color-background:          #ffffff;
+      --color-surface-container-lowest:   #ffffff;
+      --color-surface:             #F8FAFC;
+      --color-surface-container:   #F1F5F9;
+      --color-surface-container-high:     #E2E8F0;
+      --color-surface-container-highest:  #CBD5E1;
+      --color-sidebar:             #EFF6FF;
+      /* === 文字 === */
+      --color-on-surface:          #1F2937;
+      --color-on-surface-variant:  #6B7280;
+      --color-text-secondary:      #9CA3AF;
+      /* === 功能色 === */
+      --color-success:             #22c55e;
+      --color-success-bg:          #DCFCE7;
+      --color-error:               #ef4444;
+      --color-error-bg:            #FEE2E2;
+      --color-warning:             #f59e0b;
+      --color-warning-bg:         #FEF3C7;
+      --color-info:                #3b82f6;
+      --color-info-bg:             #DBEAFE;
+      /* === 边框 === */
+      --color-outline:             #E5E7EB;
+      --color-outline-variant:     #F3F4F6;
+      /* === 圆角 === */
+      --radius-sm:   0.25rem;
+      --radius-md:   0.375rem;
+      --radius-lg:   0.5rem;
+      --radius-xl:   0.75rem;
+      --radius-2xl:  1rem;
+      --radius-full: 9999px;
+      /* === 阴影 === */
+      --shadow-card:   0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+      --shadow-float:  0 4px 6px rgba(0,0,0,0.1), 0 2px 4px rgba(0,0,0,0.06);
+      --shadow-dialog: 0 25px 50px rgba(0,0,0,0.15);
+      /* === 字体 === */
+      --font-sans: "Inter", "Noto Sans SC", system-ui, sans-serif;
+    }
+  </style>
+
+  <style>
+    /* 滚动条样式 */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+    
+    /* 自定义样式 */
+    .stat-up { color: #ef4444; }
+    .stat-down { color: #22c55e; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+    .status-online { background: #22c55e; }
+    .status-offline { background: #9CA3AF; }
+    .status-error { background: #ef4444; }
+    .status-pending { background: #f59e0b; }
+    .result-success { color: #22c55e; font-weight: 500; }
+    .result-failed { color: #ef4444; font-weight: 500; }
+    .result-blocked { color: #ef4444; font-weight: 600; }
+    .modal-overlay { background: rgba(0,0,0,0.5); }
+  </style>
+</head>
+
+<body class="bg-background text-on-surface font-sans">
+
+  <!-- @nav:start 导航组件 -->
+  <div class="flex h-screen">
+    <!-- 侧边栏 -->
+    <aside class="w-64 shrink-0 bg-sidebar flex flex-col border-r border-outline">
+      <!-- Logo区域 -->
+      <div class="h-16 flex items-center px-4 border-b border-outline">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 bg-primary rounded-md flex items-center justify-center">
+            <i data-lucide="shield-check" class="w-5 h-5 text-white"></i>
+          </div>
+          <span class="font-bold text-base text-on-surface">国舜DevSecAI</span>
+        </div>
+      </div>
+      
+      <!-- 导航菜单 -->
+      <nav class="flex-1 overflow-y-auto py-3 px-2">
+        <div class="space-y-0.5">
+          <a href="home.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors" data-page="home">
+            <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+            <span>首页总览</span>
+          </a>
+          <a href="project.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors" data-page="project">
+            <i data-lucide="folder-kanban" class="w-5 h-5"></i>
+            <span>项目管理</span>
+          </a>
+          <a href="plugin.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors" data-page="plugin">
+            <i data-lucide="puzzle" class="w-5 h-5"></i>
+            <span>插件管理</span>
+          </a>
+          <a href="plugin-capability.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors" data-page="plugin-capability">
+            <i data-lucide="sliders" class="w-5 h-5"></i>
+            <span>插件能力配置</span>
+          </a>
+          <a href="policy.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors" data-page="policy">
+            <i data-lucide="shield" class="w-5 h-5"></i>
+            <span>检测策略中心</span>
+          </a>
+          <a href="rules.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors" data-page="rules">
+            <i data-lucide="scroll-text" class="w-5 h-5"></i>
+            <span>规则管理中心</span>
+          </a>
+          <a href="results.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors" data-page="results">
+            <i data-lucide="scan" class="w-5 h-5"></i>
+            <span>检测结果中心</span>
+          </a>
+          <a href="skill.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors" data-page="skill">
+            <i data-lucide="sparkles" class="w-5 h-5"></i>
+            <span>大模型Skill中心</span>
+          </a>
+          <a href="audit-log.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors bg-primary/10 text-primary" data-page="audit-log" aria-current="page">
+            <i data-lucide="file-text" class="w-5 h-5"></i>
+            <span>插件审计日志</span>
+          </a>
+          <a href="settings.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors" data-page="settings">
+            <i data-lucide="settings" class="w-5 h-5"></i>
+            <span>系统设置</span>
+          </a>
+        </div>
+      </nav>
+      
+      <!-- 底部信息 -->
+      <div class="p-3 border-t border-outline">
+        <div class="flex items-center justify-between text-xs text-on-surface-variant">
+          <span>规则包版本: 2026.06.23</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- 右侧主内容区 -->
+    <div class="flex-1 flex flex-col min-w-0">
+      <!-- 顶栏 -->
+      <header class="h-16 bg-surface border-b border-outline flex items-center justify-between px-6">
+        <div class="flex items-center gap-4">
+          <!-- 全局搜索 -->
+          <div class="relative">
+            <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant"></i>
+            <input type="text" placeholder="搜索项目、插件、规则..." class="w-72 h-9 pl-9 pr-4 bg-surface-container border-none rounded-md text-sm focus:ring-2 focus:ring-primary/30 outline-none">
+          </div>
+        </div>
+        
+        <div class="flex items-center gap-4">
+          <!-- 在线插件数 -->
+          <div class="flex items-center gap-2 px-3 py-1.5 bg-success-bg rounded-full">
+            <span class="status-dot status-online"></span>
+            <span class="text-xs font-medium text-on-surface">在线插件 168</span>
+          </div>
+          
+          <!-- 消息通知 -->
+          <button id="btn-notification" class="relative p-2 hover:bg-surface-container rounded-md transition-colors">
+            <i data-lucide="bell" class="w-5 h-5 text-on-surface-variant"></i>
+            <span class="absolute top-1 right-1 w-2 h-2 bg-error rounded-full"></span>
+          </button>
+          
+          <!-- 用户信息 -->
+          <div class="flex items-center gap-3 pl-4 border-l border-outline">
+            <div class="text-right">
+              <div class="text-sm font-medium text-on-surface">管理员</div>
+              <div class="text-xs text-on-surface-variant">系统管理员</div>
+            </div>
+            <div class="w-9 h-9 bg-primary-container rounded-full flex items-center justify-center">
+              <span class="text-sm font-medium text-primary">管</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- @main-content:start -->
+      <main class="flex-1 min-w-0 overflow-y-auto bg-background p-6">
+        <!-- 页面标题 -->
+        <div class="mb-6">
+          <h1 class="text-2xl font-bold text-on-surface">插件审计日志</h1>
+          <p class="text-sm text-on-surface-variant mt-1">记录所有插件操作行为，支持多维度查询和AI调用详情追溯</p>
+        </div>
+
+        <!-- 筛选栏 -->
+        <div class="bg-surface rounded-lg shadow-card p-4 mb-6">
+          <div class="grid grid-cols-6 gap-4">
+            <!-- 操作类型 -->
+            <div>
+              <label class="block text-xs font-medium text-on-surface-variant mb-1.5">操作类型</label>
+              <select id="filter-action-type" class="w-full h-9 bg-surface-container border-none rounded-md px-3 text-sm focus:ring-2 focus:ring-primary/30 outline-none">
+                <option value="">全部</option>
+                <option value="scan">安全扫描</option>
+                <option value="policy">策略下发</option>
+                <option value="ai_call">AI调用</option>
+                <option value="plugin_enable">启用插件</option>
+                <option value="plugin_disable">禁用插件</option>
+              </select>
+            </div>
+            
+            <!-- 所属项目 -->
+            <div>
+              <label class="block text-xs font-medium text-on-surface-variant mb-1.5">所属项目</label>
+              <select id="filter-project" class="w-full h-9 bg-surface-container border-none rounded-md px-3 text-sm focus:ring-2 focus:ring-primary/30 outline-none">
+                <option value="">全部项目</option>
+                <option value="proj-001">用户中心系统</option>
+                <option value="proj-002">订单管理系统</option>
+                <option value="proj-003">支付网关服务</option>
+                <option value="proj-004">商品推荐引擎</option>
+                <option value="proj-005">消息推送系统</option>
+              </select>
+            </div>
+            
+            <!-- 开发者 -->
+            <div>
+              <label class="block text-xs font-medium text-on-surface-variant mb-1.5">开发者</label>
+              <select id="filter-developer" class="w-full h-9 bg-surface-container border-none rounded-md px-3 text-sm focus:ring-2 focus:ring-primary/30 outline-none">
+                <option value="">全部开发者</option>
+                <option value="dev-001">张小明</option>
+                <option value="dev-002">李晓华</option>
+                <option value="dev-003">王建国</option>
+                <option value="dev-004">陈思思</option>
+              </select>
+            </div>
+            
+            <!-- 插件ID -->
+            <div>
+              <label class="block text-xs font-medium text-on-surface-variant mb-1.5">插件ID</label>
+              <input id="filter-plugin-id" type="text" placeholder="输入插件ID" class="w-full h-9 bg-surface-container border-none rounded-md px-3 text-sm focus:ring-2 focus:ring-primary/30 outline-none">
+            </div>
+            
+            <!-- 风险等级 -->
+            <div>
+              <label class="block text-xs font-medium text-on-surface-variant mb-1.5">风险等级</label>
+              <select id="filter-risk-level" class="w-full h-9 bg-surface-container border-none rounded-md px-3 text-sm focus:ring-2 focus:ring-primary/30 outline-none">
+                <option value="">全部</option>
+                <option value="critical">Critical</option>
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
+                <option value="info">Info</option>
+              </select>
+            </div>
+            
+            <!-- 时间范围 -->
+            <div>
+              <label class="block text-xs font-medium text-on-surface-variant mb-1.5">时间范围</label>
+              <select id="filter-time-range" class="w-full h-9 bg-surface-container border-none rounded-md px-3 text-sm focus:ring-2 focus:ring-primary/30 outline-none">
+                <option value="">全部时间</option>
+                <option value="today">今天</option>
+                <option value="yesterday">昨天</option>
+                <option value="last7days" selected>近7天</option>
+                <option value="last30days">近30天</option>
+                <option value="custom">自定义</option>
+              </select>
+            </div>
+          </div>
+          
+          <!-- 搜索和导出按钮 -->
+          <div class="flex items-center justify-between mt-4 pt-4 border-t border-outline-variant">
+            <div class="flex items-center gap-3">
+              <button id="btn-search" class="bg-primary text-on-primary px-4 py-2 rounded-md text-sm font-medium hover:opacity-90 active:scale-[0.98] transition-all inline-flex items-center gap-2">
+                <i data-lucide="search" class="w-4 h-4"></i>搜索
+              </button>
+              <button id="btn-reset" class="bg-surface-container text-on-surface border-none px-4 py-2 rounded-md text-sm font-medium hover:bg-surface-container-high active:scale-[0.98] transition-all">
+                重置
+              </button>
+            </div>
+            <button id="btn-export" class="bg-surface-container text-on-surface border-none px-4 py-2 rounded-md text-sm font-medium hover:bg-surface-container-high active:scale-[0.98] transition-all inline-flex items-center gap-2">
+              <i data-lucide="download" class="w-4 h-4"></i>导出日志
+            </button>
+          </div>
+        </div>
+
+        <!-- 日志列表表格 -->
+        <div class="bg-surface rounded-lg shadow-card overflow-hidden">
+          <!-- 表头 -->
+          <div class="grid grid-cols-8 px-4 py-3 bg-surface-container text-xs font-semibold text-on-surface-variant uppercase tracking-wide">
+            <span>时间</span>
+            <span>操作用户</span>
+            <span>插件ID</span>
+            <span>所属项目</span>
+            <span>操作类型</span>
+            <span>操作详情</span>
+            <span>结果</span>
+            <span>来源IP</span>
+          </div>
+          
+          <!-- 表格内容 -->
+          <div class="divide-y divide-outline-variant/50">
+            <!-- 列表-日志1：AI调用-成功 -->
+            <div id="log-row-1" class="grid grid-cols-8 px-4 py-3 hover:bg-surface-container/50 transition-colors cursor-pointer">
+              <span class="text-sm text-on-surface-variant">2026-06-23 14:32:18</span>
+              <span class="text-sm font-medium text-on-surface">张小明</span>
+              <span class="text-sm text-primary font-mono">plug-a8f3c2</span>
+              <span class="text-sm text-on-surface">用户中心系统</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-info-bg text-info w-fit">AI调用</span>
+              <span class="text-sm text-on-surface truncate" title="调用AI解释漏洞CWE-287">调用AI解释漏洞CWE-287</span>
+              <span class="result-success text-sm">成功</span>
+              <span class="text-sm text-on-surface-variant">192.168.1.105</span>
+            </div>
+            
+            <!-- 列表-日志2：安全扫描-有高危风险 -->
+            <div id="log-row-2" class="grid grid-cols-8 px-4 py-3 hover:bg-surface-container/50 transition-colors cursor-pointer">
+              <span class="text-sm text-on-surface-variant">2026-06-23 14:28:45</span>
+              <span class="text-sm font-medium text-on-surface">李晓华</span>
+              <span class="text-sm text-primary font-mono">plug-b7d4e1</span>
+              <span class="text-sm text-on-surface">订单管理系统</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-warning-bg text-warning w-fit">安全扫描</span>
+              <span class="text-sm text-on-surface truncate" title="全项目扫描，检测到3个高危漏洞">全项目扫描，检测到3个高危漏洞</span>
+              <span class="text-sm text-warning font-medium">部分阻断</span>
+              <span class="text-sm text-on-surface-variant">192.168.1.112</span>
+            </div>
+            
+            <!-- 列表-日志3：策略下发-成功 -->
+            <div id="log-row-3" class="grid grid-cols-8 px-4 py-3 hover:bg-surface-container/50 transition-colors cursor-pointer">
+              <span class="text-sm text-on-surface-variant">2026-06-23 14:15:03</span>
+              <span class="text-sm font-medium text-on-surface">王建国</span>
+              <span class="text-sm text-primary font-mono">plug-c9e2a5</span>
+              <span class="text-sm text-on-surface">支付网关服务</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-primary-container text-primary w-fit">策略下发</span>
+              <span class="text-sm text-on-surface truncate" title="下发SCA检测策略v2.1">下发SCA检测策略v2.1</span>
+              <span class="result-success text-sm">成功</span>
+              <span class="text-sm text-on-surface-variant">192.168.1.98</span>
+            </div>
+            
+            <!-- 列表-日志4：AI修复建议-已采纳 -->
+            <div id="log-row-4" class="grid grid-cols-8 px-4 py-3 hover:bg-surface-container/50 transition-colors cursor-pointer">
+              <span class="text-sm text-on-surface-variant">2026-06-23 13:56:22</span>
+              <span class="text-sm font-medium text-on-surface">陈思思</span>
+              <span class="text-sm text-primary font-mono">plug-d3f8b2</span>
+              <span class="text-sm text-on-surface">商品推荐引擎</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-info-bg text-info w-fit">AI调用</span>
+              <span class="text-sm text-on-surface truncate" title="AI修复建议-已采纳">AI修复建议-已采纳</span>
+              <span class="result-success text-sm">成功</span>
+              <span class="text-sm text-on-surface-variant">192.168.1.120</span>
+            </div>
+            
+            <!-- 列表-日志5：安全扫描-失败/已阻断 -->
+            <div id="log-row-5" class="grid grid-cols-8 px-4 py-3 hover:bg-surface-container/50 transition-colors cursor-pointer">
+              <span class="text-sm text-on-surface-variant">2026-06-23 13:42:11</span>
+              <span class="text-sm font-medium text-on-surface">张小明</span>
+              <span class="text-sm text-primary font-mono">plug-e5a1c7</span>
+              <span class="text-sm text-on-surface">用户中心系统</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-warning-bg text-warning w-fit">安全扫描</span>
+              <span class="text-sm text-on-surface truncate" title="提交前扫描-发现8处SQL注入风险">提交前扫描-发现8处SQL注入风险</span>
+              <span class="result-blocked text-sm">已阻断</span>
+              <span class="text-sm text-on-surface-variant">192.168.1.105</span>
+            </div>
+            
+            <!-- 列表-日志6：AI调用-失败 -->
+            <div id="log-row-6" class="grid grid-cols-8 px-4 py-3 hover:bg-surface-container/50 transition-colors cursor-pointer">
+              <span class="text-sm text-on-surface-variant">2026-06-23 13:28:39</span>
+              <span class="text-sm font-medium text-on-surface">李晓华</span>
+              <span class="text-sm text-primary font-mono">plug-f2b9d4</span>
+              <span class="text-sm text-on-surface">订单管理系统</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-info-bg text-info w-fit">AI调用</span>
+              <span class="text-sm text-on-surface truncate" title="AI漏洞解释请求超时">AI漏洞解释请求超时</span>
+              <span class="result-failed text-sm">失败</span>
+              <span class="text-sm text-on-surface-variant">192.168.1.112</span>
+            </div>
+            
+            <!-- 列表-日志7：插件启用-成功 -->
+            <div id="log-row-7" class="grid grid-cols-8 px-4 py-3 hover:bg-surface-container/50 transition-colors cursor-pointer">
+              <span class="text-sm text-on-surface-variant">2026-06-23 12:55:07</span>
+              <span class="text-sm font-medium text-on-surface">王建国</span>
+              <span class="text-sm text-primary font-mono">plug-g7c3e8</span>
+              <span class="text-sm text-on-surface">支付网关服务</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-success-bg text-success w-fit">插件启用</span>
+              <span class="text-sm text-on-surface truncate" title="启用插件，版本更新至2.3.1">启用插件，版本更新至2.3.1</span>
+              <span class="result-success text-sm">成功</span>
+              <span class="text-sm text-on-surface-variant">192.168.1.98</span>
+            </div>
+            
+            <!-- 列表-日志8：安全扫描-成功 -->
+            <div id="log-row-8" class="grid grid-cols-8 px-4 py-3 hover:bg-surface-container/50 transition-colors cursor-pointer">
+              <span class="text-sm text-on-surface-variant">2026-06-23 12:31:54</span>
+              <span class="text-sm font-medium text-on-surface">陈思思</span>
+              <span class="text-sm text-primary font-mono">plug-h1d6f9</span>
+              <span class="text-sm text-on-surface">消息推送系统</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-warning-bg text-warning w-fit">安全扫描</span>
+              <span class="text-sm text-on-surface truncate" title="增量扫描-仅检测变更文件">增量扫描-仅检测变更文件</span>
+              <span class="result-success text-sm">成功</span>
+              <span class="text-sm text-on-surface-variant">192.168.1.88</span>
+            </div>
+          </div>
+          
+          <!-- 分页 -->
+          <div class="flex items-center justify-between px-4 py-3 border-t border-outline-variant">
+            <span class="text-sm text-on-surface-variant">共 <strong class="text-on-surface">1,284</strong> 条记录，每页显示 10 条</span>
+            <div class="flex items-center gap-2">
+              <button class="px-3 py-1.5 text-sm text-on-surface-variant hover:bg-surface-container rounded-md transition-colors disabled:opacity-50" disabled>上一页</button>
+              <button class="px-3 py-1.5 text-sm bg-primary text-white rounded-md">1</button>
+              <button class="px-3 py-1.5 text-sm text-on-surface hover:bg-surface-container rounded-md transition-colors">2</button>
+              <button class="px-3 py-1.5 text-sm text-on-surface hover:bg-surface-container rounded-md transition-colors">3</button>
+              <span class="px-2 text-on-surface-variant">...</span>
+              <button class="px-3 py-1.5 text-sm text-on-surface hover:bg-surface-container rounded-md transition-colors">129</button>
+              <button class="px-3 py-1.5 text-sm text-on-surface hover:bg-surface-container rounded-md transition-colors">下一页</button>
+            </div>
+          </div>
+        </div>
+      </main>
+      <!-- @main-content:end -->
+    </div>
+  </div>
+
+  <!-- AI调用详情弹窗 -->
+  <div id="modal-detail" class="fixed inset-0 modal-overlay flex items-center justify-center p-4 z-50 hidden">
+    <div class="bg-surface rounded-xl shadow-dialog max-w-lg w-full max-h-[90vh] overflow-y-auto">
+      <!-- 弹窗头部 -->
+      <div class="flex items-center justify-between px-6 py-4 border-b border-outline">
+        <h3 class="text-lg font-semibold text-on-surface">AI调用详情</h3>
+        <button id="btn-close-modal" class="p-1 hover:bg-surface-container rounded-md transition-colors">
+          <i data-lucide="x" class="w-5 h-5 text-on-surface-variant"></i>
+        </button>
+      </div>
+      
+      <!-- 弹窗内容 -->
+      <div class="p-6 space-y-4">
+        <!-- 基本信息 -->
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-medium text-on-surface-variant mb-1">调用时间</label>
+            <p id="modal-time" class="text-sm text-on-surface">2026-06-23 14:32:18</p>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-on-surface-variant mb-1">操作用户</label>
+            <p id="modal-user" class="text-sm text-on-surface">张小明</p>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-on-surface-variant mb-1">插件ID</label>
+            <p id="modal-plugin-id" class="text-sm text-primary font-mono">plug-a8f3c2</p>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-on-surface-variant mb-1">所属项目</label>
+            <p id="modal-project" class="text-sm text-on-surface">用户中心系统</p>
+          </div>
+        </div>
+        
+        <!-- AI调用信息 -->
+        <div class="bg-surface-container rounded-lg p-4 space-y-3">
+          <h4 class="text-sm font-semibold text-on-surface">AI调用信息</h4>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs text-on-surface-variant mb-1">模型名称</label>
+              <p id="modal-model" class="text-sm text-on-surface font-medium">gpt-4-turbo</p>
+            </div>
+            <div>
+              <label class="block text-xs text-on-surface-variant mb-1">Token消耗</label>
+              <p id="modal-tokens" class="text-sm text-on-surface">
+                <span class="text-primary font-medium">2,845</span>
+                <span class="text-on-surface-variant text-xs"> (输入: 1,523 / 输出: 1,322)</span>
+              </p>
+            </div>
+            <div>
+              <label class="block text-xs text-on-surface-variant mb-1">调用结果</label>
+              <p id="modal-result" class="text-sm text-success font-medium">成功</p>
+            </div>
+            <div>
+              <label class="block text-xs text-on-surface-variant mb-1">是否采纳</label>
+              <p id="modal-adopted" class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-success-bg text-success">已采纳</p>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 调用内容 -->
+        <div>
+          <label class="block text-xs font-medium text-on-surface-variant mb-2">调用内容</label>
+          <div class="bg-surface-container rounded-lg p-4">
+            <div class="mb-3">
+              <span class="text-xs font-medium text-on-surface-variant">输入 Prompt:</span>
+              <p class="text-sm text-on-surface mt-1 leading-relaxed">请解释以下漏洞：CWE-287 认证绕过漏洞，位于 UserController.java 第 156 行，涉及不安全的直接对象引用(IDOR)问题。</p>
+            </div>
+            <div>
+              <span class="text-xs font-medium text-on-surface-variant">AI 输出:</span>
+              <p class="text-sm text-on-surface mt-1 leading-relaxed">该漏洞允许攻击者通过修改用户ID参数来访问其他用户的敏感数据。建议在 Controller 层添加当前用户身份验证校验，确保用户只能访问自己的资源。推荐使用 Spring Security 的 Method Security 或在 Service 层添加权限校验逻辑。</p>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 风险关联 -->
+        <div>
+          <label class="block text-xs font-medium text-on-surface-variant mb-2">关联风险项</label>
+          <div class="bg-surface-container rounded-lg p-3">
+            <div class="flex items-center gap-3">
+              <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-error-bg text-error">High</span>
+              <span class="text-sm text-on-surface font-mono">CWE-287</span>
+              <span class="text-sm text-on-surface-variant">UserController.java:156</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 弹窗底部 -->
+      <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-outline">
+        <button id="btn-modal-close" class="bg-surface-container text-on-surface border-none px-4 py-2 rounded-md text-sm font-medium hover:bg-surface-container-high active:scale-[0.98] transition-all">
+          关闭
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    $(function() {
+      // 高亮当前页面导航
+      const currentPage = window.location.pathname.split('/').pop() || 'home.html';
+      $('.nav-item').each(function() {
+        if ($(this).attr('href') === currentPage) {
+          $(this).addClass('bg-primary/10 text-primary');
+        } else {
+          $(this).addClass('text-on-surface-variant hover:bg-surface-container hover:text-on-surface');
+        }
+      });
+      lucide.createIcons();
+      
+      // 搜索按钮 - 应实现筛选逻辑：
+      // 1. 获取筛选条件（操作类型、项目、开发者、插件ID、风险等级、时间范围）
+      // 2. 调用后端API /api/audit-logs 带上筛选参数
+      // 3. 渲染新的列表数据
+      $('#btn-search').on('click', function() {
+        const filters = {
+          actionType: $('#filter-action-type').val(),
+          project: $('#filter-project').val(),
+          developer: $('#filter-developer').val(),
+          pluginId: $('#filter-plugin-id').val(),
+          riskLevel: $('#filter-risk-level').val(),
+          timeRange: $('#filter-time-range').val()
+        };
+        console.log('搜索审计日志:', filters);
+        alert('已根据筛选条件搜索日志');
+      });
+      
+      // 重置按钮 - 清空所有筛选条件并刷新列表
+      $('#btn-reset').on('click', function() {
+        $('#filter-action-type').val('');
+        $('#filter-project').val('');
+        $('#filter-developer').val('');
+        $('#filter-plugin-id').val('');
+        $('#filter-risk-level').val('');
+        $('#filter-time-range').val('last7days');
+        console.log('重置筛选条件');
+      });
+      
+      // 导出按钮 - 应实现导出逻辑：
+      // 1. 收集当前筛选条件
+      // 2. 调用后端API /api/audit-logs/export
+      // 3. 下载Excel文件
+      $('#btn-export').on('click', function() {
+        console.log('导出审计日志');
+        alert('正在导出日志，请稍候...');
+      });
+      
+      // 日志行点击 - 打开详情弹窗
+      // 应实现详情查询逻辑：
+      // 1. 获取当前行的日志ID
+      // 2. 调用后端API /api/audit-logs/{id} 获取详细信息
+      // 3. 填充弹窗内容
+      $('.log-row, [id^="log-row-"]').on('click', function() {
+        const logId = $(this).attr('id').replace('log-row-', '');
+        console.log('查看日志详情:', logId);
+        $('#modal-detail').removeClass('hidden');
+        lucide.createIcons();
+      });
+      
+      // 关闭弹窗
+      $('#btn-close-modal, #btn-modal-close').on('click', function() {
+        $('#modal-detail').addClass('hidden');
+      });
+      
+      // 点击弹窗外部关闭
+      $('#modal-detail').on('click', function(e) {
+        if (e.target === this) {
+          $(this).addClass('hidden');
+        }
+      });
+      
+      // 消息通知按钮
+      $('#btn-notification').on('click', function() {
+        console.log('打开通知面板');
+      });
+    });
+  </script>
+</body>
+
+</html>

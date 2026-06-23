@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <link href="https://lf-code-agent.coze.cn/obj/x-ai-cn/fonts/google/google-all-fonts.css" rel="stylesheet"/>
+
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/jquery/jquery-3.7.1.min.js"></script>
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/lucide/lucide-1.11.0.min.js"></script>
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/tailwindcss/tailwindcss-browser-4.2.4.min.js"></script>
+
+  <style type="text/tailwindcss">
+    @theme {
+      /* === 品牌色 - 商务稳重蓝色 === */
+      --color-primary:              #2563EB;
+      --color-primary-hover:        #1D4ED8;
+      --color-primary-container:    #DBEAFE;
+      --color-on-primary:           #ffffff;
+      /* === 背景 / 表面 === */
+      --color-background:          #ffffff;
+      --color-surface-container-lowest:   #ffffff;
+      --color-surface:             #F8FAFC;
+      --color-surface-container:   #F1F5F9;
+      --color-surface-container-high:     #E2E8F0;
+      --color-surface-container-highest:  #CBD5E1;
+      --color-sidebar:             #EFF6FF;
+      /* === 文字 === */
+      --color-on-surface:          #1F2937;
+      --color-on-surface-variant:  #6B7280;
+      --color-text-secondary:      #9CA3AF;
+      /* === 功能色 === */
+      --color-success:             #22c55e;
+      --color-success-bg:          #DCFCE7;
+      --color-error:               #ef4444;
+      --color-error-bg:            #FEE2E2;
+      --color-warning:             #f59e0b;
+      --color-warning-bg:         #FEF3C7;
+      --color-info:                #3b82f6;
+      --color-info-bg:             #DBEAFE;
+      /* === 边框 === */
+      --color-outline:             #E5E7EB;
+      --color-outline-variant:     #F3F4F6;
+      /* === 圆角 === */
+      --radius-sm:   0.25rem;
+      --radius-md:   0.375rem;
+      --radius-lg:   0.5rem;
+      --radius-xl:   0.75rem;
+      --radius-2xl:  1rem;
+      --radius-full: 9999px;
+      /* === 阴影 === */
+      --shadow-card:   0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+      --shadow-float:  0 4px 6px rgba(0,0,0,0.1), 0 2px 4px rgba(0,0,0,0.06);
+      --shadow-dialog: 0 25px 50px rgba(0,0,0,0.15);
+      /* === 字体 === */
+      --font-sans: "Inter", "Noto Sans SC", system-ui, sans-serif;
+    }
+  </style>
+
+  <style>
+    /* 滚动条样式 */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+    
+    /* 自定义样式 */
+    .stat-up { color: #ef4444; }
+    .stat-down { color: #22c55e; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+    .status-online { background: #22c55e; }
+    .status-offline { background: #9CA3AF; }
+    .status-error { background: #ef4444; }
+    .status-pending { background: #f59e0b; }
+    
+    /* 表格滚动容器 */
+    .table-container {
+      max-height: calc(100vh - 380px);
+      overflow-y: auto;
+    }
+    
+    /* 标签页激活态 */
+    .tab-btn.active {
+      background: #2563EB;
+      color: #ffffff;
+    }
+    
+    /* 严重等级颜色 */
+    .severity-critical { background: #FEE2E2; color: #DC2626; }
+    .severity-high { background: #FEF3C7; color: #D97706; }
+    .severity-medium { background: #DBEAFE; color: #2563EB; }
+    .severity-low { background: #DCFCE7; color: #16A34A; }
+  </style>
+</head>
+
+<body class="bg-background text-on-surface font-sans">
+
+  <!-- @nav:start 导航组件 -->
+  <div class="flex h-screen">
+    <!-- 侧边栏 -->
+    <aside class="w-64 shrink-0 bg-sidebar flex flex-col border-r border-outline">
+      <!-- Logo区域 -->
+      <div class="h-16 flex items-center px-4 border-b border-outline">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 bg-primary rounded-md flex items-center justify-center">
+            <i data-lucide="shield-check" class="w-5 h-5 text-white"></i>
+          </div>
+          <span class="font-bold text-base text-on-surface">国舜DevSecAI</span>
+        </div>
+      </div>
+      
+      <!-- 导航菜单 -->
+      <nav class="flex-1 overflow-y-auto py-3 px-2">
+        <div class="space-y-0.5">
+          <a href="home.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors" data-page="home">
+            <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+            <span>首页总览</span>
+          </a>
+          <a href="project.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors" data-page="project">
+            <i data-lucide="folder-kanban" class="w-5 h-5"></i>
+            <span>项目管理</span>
+          </a>
+          <a href="plugin.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors" data-page="plugin">
+            <i data-lucide="puzzle" class="w-5 h-5"></i>
+            <span>插件管理</span>
+          </a>
+          <a href="plugin-capability.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors" data-page="plugin-capability">
+            <i data-lucide="sliders" class="w-5 h-5"></i>
+            <span>插件能力配置</span>
+          </a>
+          <a href="policy.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors" data-page="policy">
+            <i data-lucide="shield" class="w-5 h-5"></i>
+            <span>检测策略中心</span>
+          </a>
+          <a href="rules.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors" data-page="rules" aria-current="page">
+            <i data-lucide="scroll-text" class="w-5 h-5"></i>
+            <span>规则管理中心</span>
+          </a>
+          <a href="results.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors" data-page="results">
+            <i data-lucide="scan" class="w-5 h-5"></i>
+            <span>检测结果中心</span>
+          </a>
+          <a href="skill.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors" data-page="skill">
+            <i data-lucide="sparkles" class="w-5 h-5"></i>
+            <span>大模型Skill中心</span>
+          </a>
+          <a href="audit-log.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors" data-page="audit-log">
+            <i data-lucide="file-text" class="w-5 h-5"></i>
+            <span>插件审计日志</span>
+          </a>
+          <a href="settings.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors" data-page="settings">
+            <i data-lucide="settings" class="w-5 h-5"></i>
+            <span>系统设置</span>
+          </a>
+        </div>
+      </nav>
+      
+      <!-- 底部信息 -->
+      <div class="p-3 border-t border-outline">
+        <div class="flex items-center justify-between text-xs text-on-surface-variant">
+          <span>规则包版本: 2026.06.23</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- 右侧主内容区 -->
+    <div class="flex-1 flex flex-col min-w-0">
+      <!-- 顶栏 -->
+      <header class="h-16 bg-surface border-b border-outline flex items-center justify-between px-6">
+        <div class="flex items-center gap-4">
+          <!-- 全局搜索 -->
+          <div class="relative">
+            <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant"></i>
+            <input type="text" placeholder="搜索项目、插件、规则..." class="w-72 h-9 pl-9 pr-4 bg-surface-container border-none rounded-md text-sm focus:ring-2 focus:ring-primary/30 outline-none">
+          </div>
+        </div>
+        
+        <div class="flex items-center gap-4">
+          <!-- 在线插件数 -->
+          <div class="flex items-center gap-2 px-3 py-1.5 bg-success-bg rounded-full">
+            <span class="status-dot status-online"></span>
+            <span class="text-xs font-medium text-on-surface">在线插件 168</span>
+          </div>
+          
+          <!-- 消息通知 -->
+          <button class="relative p-2 hover:bg-surface-container rounded-md transition-colors">
+            <i data-lucide="bell" class="w-5 h-5 text-on-surface-variant"></i>
+            <span class="absolute top-1 right-1 w-2 h-2 bg-error rounded-full"></span>
+          </button>
+          
+          <!-- 用户信息 -->
+          <div class="flex items-center gap-3 pl-4 border-l border-outline">
+            <div class="text-right">
+              <div class="text-sm font-medium text-on-surface">管理员</div>
+              <div class="text-xs text-on-surface-variant">系统管理员</div>
+            </div>
+            <div class="w-9 h-9 bg-primary-container rounded-full flex items-center justify-center">
+              <span class="text-sm font-medium text-primary">管</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- @main-content:start -->
+      <main class="flex-1 min-w-0 overflow-y-auto bg-background p-6">
+        
+        <!-- 页面标题区 -->
+        <div class="mb-6">
+          <h1 class="text-2xl font-bold text-on-surface">规则管理中心</h1>
+          <p class="text-sm text-on-surface-variant mt-1">管理SAST、SCA、Secrets、Baseline等各类安全检测规则</p>
+        </div>
+
+        <!-- 规则包管理卡片 -->
+        <div class="bg-surface rounded-lg shadow-card p-5 mb-6">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-6">
+              <!-- 规则包版本信息 -->
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-primary-container rounded-lg flex items-center justify-center">
+                  <i data-lucide="package" class="w-5 h-5 text-primary"></i>
+                </div>
+                <div>
+                  <div class="text-xs text-on-surface-variant">当前规则包版本</div>
+                  <div class="text-lg font-semibold text-on-surface">v2024.06.23</div>
+                </div>
+              </div>
+              
+              <div class="h-10 w-px bg-outline"></div>
+              
+              <!-- 签名状态 -->
+              <div class="flex items-center gap-2">
+                <i data-lucide="shield-check" class="w-4 h-4 text-success"></i>
+                <span class="text-sm text-on-surface">签名验证通过</span>
+                <span class="text-xs text-on-surface-variant">SHA256: a3f8c...</span>
+              </div>
+              
+              <div class="h-10 w-px bg-outline"></div>
+              
+              <!-- 规则统计 -->
+              <div class="flex items-center gap-4">
+                <div class="text-center">
+                  <div class="text-lg font-semibold text-primary">1,284</div>
+                  <div class="text-xs text-on-surface-variant">SAST</div>
+                </div>
+                <div class="text-center">
+                  <div class="text-lg font-semibold text-success">856</div>
+                  <div class="text-xs text-on-surface-variant">SCA</div>
+                </div>
+                <div class="text-center">
+                  <div class="text-lg font-semibold text-warning">312</div>
+                  <div class="text-xs text-on-surface-variant">Secrets</div>
+                </div>
+                <div class="text-center">
+                  <div class="text-lg font-semibold text-info">156</div>
+                  <div class="text-xs text-on-surface-variant">Baseline</div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- 操作按钮 -->
+            <div class="flex items-center gap-3">
+              <button id="btn-download" class="inline-flex items-center gap-2 px-4 py-2 bg-surface-container text-on-surface rounded-md text-sm font-medium hover:bg-surface-container-high active:scale-[0.98] transition-all">
+                <i data-lucide="download" class="w-4 h-4"></i>
+                下载规则包
+              </button>
+              <button id="btn-rollback" class="inline-flex items-center gap-2 px-4 py-2 bg-surface-container text-on-surface rounded-md text-sm font-medium hover:bg-surface-container-high active:scale-[0.98] transition-all">
+                <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                回滚版本
+              </button>
+              <button id="btn-import" class="inline-flex items-center gap-2 px-4 py-2 bg-primary text-on-primary rounded-md text-sm font-medium hover:bg-primary-hover active:scale-[0.98] transition-all">
+                <i data-lucide="upload" class="w-4 h-4"></i>
+                导入规则
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 规则分类标签 -->
+        <div class="bg-surface rounded-lg shadow-card p-4 mb-6">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <button id="tab-all" class="tab-btn active px-4 py-2 rounded-md text-sm font-medium transition-all">全部 (2,608)</button>
+              <button id="tab-sast" class="tab-btn px-4 py-2 rounded-md text-sm font-medium transition-all text-on-surface-variant hover:bg-surface-container">SAST (1,284)</button>
+              <button id="tab-sca" class="tab-btn px-4 py-2 rounded-md text-sm font-medium transition-all text-on-surface-variant hover:bg-surface-container">SCA (856)</button>
+              <button id="tab-secrets" class="tab-btn px-4 py-2 rounded-md text-sm font-medium transition-all text-on-surface-variant hover:bg-surface-container">Secrets (312)</button>
+              <button id="tab-baseline" class="tab-btn px-4 py-2 rounded-md text-sm font-medium transition-all text-on-surface-variant hover:bg-surface-container">Baseline (156)</button>
+              <button id="tab-custom" class="tab-btn px-4 py-2 rounded-md text-sm font-medium transition-all text-on-surface-variant hover:bg-surface-container">自定义 (48)</button>
+            </div>
+            
+            <!-- 筛选与搜索 -->
+            <div class="flex items-center gap-3">
+              <select id="filter-severity" class="h-9 px-3 bg-surface-container border-none rounded-md text-sm text-on-surface focus:ring-2 focus:ring-primary/30 outline-none cursor-pointer">
+                <option value="">全部严重等级</option>
+                <option value="critical">严重</option>
+                <option value="high">高危</option>
+                <option value="medium">中危</option>
+                <option value="low">低危</option>
+              </select>
+              <select id="filter-status" class="h-9 px-3 bg-surface-container border-none rounded-md text-sm text-on-surface focus:ring-2 focus:ring-primary/30 outline-none cursor-pointer">
+                <option value="">全部状态</option>
+                <option value="enabled">已启用</option>
+                <option value="disabled">已禁用</option>
+              </select>
+              <div class="relative">
+                <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant"></i>
+                <input id="search-rules" type="text" placeholder="搜索规则名称或ID..." class="w-56 h-9 pl-9 pr-4 bg-surface-container border-none rounded-md text-sm focus:ring-2 focus:ring-primary/30 outline-none">
+              </div>
+              <button id="btn-add-rule" class="inline-flex items-center gap-2 px-4 py-2 bg-primary text-on-primary rounded-md text-sm font-medium hover:bg-primary-hover active:scale-[0.98] transition-all">
+                <i data-lucide="plus" class="w-4 h-4"></i>
+                新增规则
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 规则列表表格 -->
+        <div class="bg-surface rounded-lg shadow-card overflow-hidden">
+          <!-- 表头 -->
+          <div class="grid grid-cols-[100px_1fr_100px_90px_100px_100px_1fr_80px_120px] px-4 py-3 bg-surface-container text-xs font-semibold text-on-surface-variant uppercase tracking-wide">
+            <span>规则ID</span>
+            <span>规则名称</span>
+            <span>规则类型</span>
+            <span>严重等级</span>
+            <span>CWE映射</span>
+            <span>OWASP映射</span>
+            <span>修复建议</span>
+            <span>启用状态</span>
+            <span>操作</span>
+          </div>
+          
+          <!-- 表格内容 -->
+          <div class="table-container">
+            <!-- 列表-规则1: SQL注入 -->
+            <div class="grid grid-cols-[100px_1fr_100px_90px_100px_100px_1fr_80px_120px] px-4 py-3.5 hover:bg-surface-container/50 transition-colors border-b border-outline-variant/30">
+              <span class="text-sm font-mono text-primary">SAST-001</span>
+              <span class="text-sm font-medium text-on-surface">SQL注入漏洞</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-primary/10 text-primary">SAST</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-semibold severity-critical">严重</span>
+              <span class="text-sm text-on-surface-variant">CWE-89</span>
+              <span class="text-sm text-on-surface-variant">A03:2021</span>
+              <span class="text-sm text-on-surface-variant truncate pr-4">使用参数化查询替代字符串拼接</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-success/15 text-success">已启用</span>
+              <div class="flex items-center gap-2">
+                <button class="btn-edit text-primary text-sm font-medium hover:underline" data-id="SAST-001">编辑</button>
+                <button class="btn-toggle text-on-surface-variant text-sm hover:text-error" data-id="SAST-001">禁用</button>
+              </div>
+            </div>
+            
+            <!-- 列表-规则2: MyBatis ${}拼接 -->
+            <div class="grid grid-cols-[100px_1fr_100px_90px_100px_100px_1fr_80px_120px] px-4 py-3.5 hover:bg-surface-container/50 transition-colors border-b border-outline-variant/30">
+              <span class="text-sm font-mono text-primary">SAST-002</span>
+              <span class="text-sm font-medium text-on-surface">MyBatis ${}拼接漏洞</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-primary/10 text-primary">SAST</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-semibold severity-critical">严重</span>
+              <span class="text-sm text-on-surface-variant">CWE-89</span>
+              <span class="text-sm text-on-surface-variant">A03:2021</span>
+              <span class="text-sm text-on-surface-variant truncate pr-4">使用 #{} 替代 ${} 进行参数绑定</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-success/15 text-success">已启用</span>
+              <div class="flex items-center gap-2">
+                <button class="btn-edit text-primary text-sm font-medium hover:underline" data-id="SAST-002">编辑</button>
+                <button class="btn-toggle text-on-surface-variant text-sm hover:text-error" data-id="SAST-002">禁用</button>
+              </div>
+            </div>
+            
+            <!-- 列表-规则3: SSRF -->
+            <div class="grid grid-cols-[100px_1fr_100px_90px_100px_100px_1fr_80px_120px] px-4 py-3.5 hover:bg-surface-container/50 transition-colors border-b border-outline-variant/30">
+              <span class="text-sm font-mono text-primary">SAST-003</span>
+              <span class="text-sm font-medium text-on-surface">SSRF服务端请求伪造</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-primary/10 text-primary">SAST</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-semibold severity-high">高危</span>
+              <span class="text-sm text-on-surface-variant">CWE-918</span>
+              <span class="text-sm text-on-surface-variant">A10:2021</span>
+              <span class="text-sm text-on-surface-variant truncate pr-4">限制请求目标地址，校验用户输入</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-success/15 text-success">已启用</span>
+              <div class="flex items-center gap-2">
+                <button class="btn-edit text-primary text-sm font-medium hover:underline" data-id="SAST-003">编辑</button>
+                <button class="btn-toggle text-on-surface-variant text-sm hover:text-error" data-id="SAST-003">禁用</button>
+              </div>
+            </div>
+            
+            <!-- 列表-规则4: XXE -->
+            <div class="grid grid-cols-[100px_1fr_100px_90px_100px_100px_1fr_80px_120px] px-4 py-3.5 hover:bg-surface-container/50 transition-colors border-b border-outline-variant/30">
+              <span class="text-sm font-mono text-primary">SAST-004</span>
+              <span class="text-sm font-medium text-on-surface">XXE XML外部实体注入</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-primary/10 text-primary">SAST</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-semibold severity-critical">严重</span>
+              <span class="text-sm text-on-surface-variant">CWE-611</span>
+              <span class="text-sm text-on-surface-variant">A05:2021</span>
+              <span class="text-sm text-on-surface-variant truncate pr-4">禁用XML外部实体解析，使用安全解析器</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-success/15 text-success">已启用</span>
+              <div class="flex items-center gap-2">
+                <button class="btn-edit text-primary text-sm font-medium hover:underline" data-id="SAST-004">编辑</button>
+                <button class="btn-toggle text-on-surface-variant text-sm hover:text-error" data-id="SAST-004">禁用</button>
+              </div>
+            </div>
+            
+            <!-- 列表-规则5: XSS -->
+            <div class="grid grid-cols-[100px_1fr_100px_90px_100px_100px_1fr_80px_120px] px-4 py-3.5 hover:bg-surface-container/50 transition-colors border-b border-outline-variant/30">
+              <span class="text-sm font-mono text-primary">SAST-005</span>
+              <span class="text-sm font-medium text-on-surface">存储型XSS跨站脚本</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-primary/10 text-primary">SAST</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-semibold severity-high">高危</span>
+              <span class="text-sm text-on-surface-variant">CWE-79</span>
+              <span class="text-sm text-on-surface-variant">A03:2021</span>
+              <span class="text-sm text-on-surface-variant truncate pr-4">对输出内容进行HTML转义</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-success/15 text-success">已启用</span>
+              <div class="flex items-center gap-2">
+                <button class="btn-edit text-primary text-sm font-medium hover:underline" data-id="SAST-005">编辑</button>
+                <button class="btn-toggle text-on-surface-variant text-sm hover:text-error" data-id="SAST-005">禁用</button>
+              </div>
+            </div>
+            
+            <!-- 列表-规则6: 命令注入 -->
+            <div class="grid grid-cols-[100px_1fr_100px_90px_100px_100px_1fr_80px_120px] px-4 py-3.5 hover:bg-surface-container/50 transition-colors border-b border-outline-variant/30">
+              <span class="text-sm font-mono text-primary">SAST-006</span>
+              <span class="text-sm font-medium text-on-surface">命令注入漏洞</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-primary/10 text-primary">SAST</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-semibold severity-critical">严重</span>
+              <span class="text-sm text-on-surface-variant">CWE-78</span>
+              <span class="text-sm text-on-surface-variant">A03:2021</span>
+              <span class="text-sm text-on-surface-variant truncate pr-4">避免使用用户输入执行系统命令</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-success/15 text-success">已启用</span>
+              <div class="flex items-center gap-2">
+                <button class="btn-edit text-primary text-sm font-medium hover:underline" data-id="SAST-006">编辑</button>
+                <button class="btn-toggle text-on-surface-variant text-sm hover:text-error" data-id="SAST-006">禁用</button>
+              </div>
+            </div>
+            
+            <!-- 列表-规则7: 路径遍历 -->
+            <div class="grid grid-cols-[100px_1fr_100px_90px_100px_100px_1fr_80px_120px] px-4 py-3.5 hover:bg-surface-container/50 transition-colors border-b border-outline-variant/30">
+              <span class="text-sm font-mono text-primary">SAST-007</span>
+              <span class="text-sm font-medium text-on-surface">路径遍历漏洞</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-primary/10 text-primary">SAST</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-semibold severity-high">高危</span>
+              <span class="text-sm text-on-surface-variant">CWE-22</span>
+              <span class="text-sm text-on-surface-variant">A01:2021</span>
+              <span class="text-sm text-on-surface-variant truncate pr-4">验证并规范化文件路径，禁止用户控制</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-success/15 text-success">已启用</span>
+              <div class="flex items-center gap-2">
+                <button class="btn-edit text-primary text-sm font-medium hover:underline" data-id="SAST-007">编辑</button>
+                <button class="btn-toggle text-on-surface-variant text-sm hover:text-error" data-id="SAST-007">禁用</button>
+              </div>
+            </div>
+            
+            <!-- 列表-规则8: 敏感信息泄露 -->
+            <div class="grid grid-cols-[100px_1fr_100px_90px_100px_100px_1fr_80px_120px] px-4 py-3.5 hover:bg-surface-container/50 transition-colors border-b border-outline-variant/30">
+              <span class="text-sm font-mono text-primary">SAST-008</span>
+              <span class="text-sm font-medium text-on-surface">硬编码密码/密钥泄露</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-primary/10 text-primary">SAST</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-semibold severity-high">高危</span>
+              <span class="text-sm text-on-surface-variant">CWE-798</span>
+              <span class="text-sm text-on-surface-variant">A02:2021</span>
+              <span class="text-sm text-on-surface-variant truncate pr-4">使用环境变量或密钥管理服务</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-success/15 text-success">已启用</span>
+              <div class="flex items-center gap-2">
+                <button class="btn-edit text-primary text-sm font-medium hover:underline" data-id="SAST-008">编辑</button>
+                <button class="btn-toggle text-on-surface-variant text-sm hover:text-error" data-id="SAST-008">禁用</button>
+              </div>
+            </div>
+            
+            <!-- 列表-规则9: 不安全反序列化 -->
+            <div class="grid grid-cols-[100px_1fr_100px_90px_100px_100px_1fr_80px_120px] px-4 py-3.5 hover:bg-surface-container/50 transition-colors border-b border-outline-variant/30">
+              <span class="text-sm font-mono text-primary">SAST-009</span>
+              <span class="text-sm font-medium text-on-surface">不安全反序列化</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-primary/10 text-primary">SAST</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-semibold severity-critical">严重</span>
+              <span class="text-sm text-on-surface-variant">CWE-502</span>
+              <span class="text-sm text-on-surface-variant">A08:2021</span>
+              <span class="text-sm text-on-surface-variant truncate pr-4">避免反序列化不可信数据</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-success/15 text-success">已启用</span>
+              <div class="flex items-center gap-2">
+                <button class="btn-edit text-primary text-sm font-medium hover:underline" data-id="SAST-009">编辑</button>
+                <button class="btn-toggle text-on-surface-variant text-sm hover:text-error" data-id="SAST-009">禁用</button>
+              </div>
+            </div>
+            
+            <!-- 列表-规则10: 授权问题 -->
+            <div class="grid grid-cols-[100px_1fr_100px_90px_100px_100px_1fr_80px_120px] px-4 py-3.5 hover:bg-surface-container/50 transition-colors border-b border-outline-variant/30">
+              <span class="text-sm font-mono text-primary">SAST-010</span>
+              <span class="text-sm font-medium text-on-surface">水平越权访问</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-primary/10 text-primary">SAST</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-semibold severity-medium">中危</span>
+              <span class="text-sm text-on-surface-variant">CWE-639</span>
+              <span class="text-sm text-on-surface-variant">A01:2021</span>
+              <span class="text-sm text-on-surface-variant truncate pr-4">验证用户对资源的访问权限</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-error/15 text-error">已禁用</span>
+              <div class="flex items-center gap-2">
+                <button class="btn-edit text-primary text-sm font-medium hover:underline" data-id="SAST-010">编辑</button>
+                <button class="btn-toggle text-on-surface-variant text-sm hover:text-success" data-id="SAST-010">启用</button>
+              </div>
+            </div>
+            
+            <!-- 列表-规则11: CSRF -->
+            <div class="grid grid-cols-[100px_1fr_100px_90px_100px_100px_1fr_80px_120px] px-4 py-3.5 hover:bg-surface-container/50 transition-colors border-b border-outline-variant/30">
+              <span class="text-sm font-mono text-primary">SAST-011</span>
+              <span class="text-sm font-medium text-on-surface">CSRF跨站请求伪造</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-primary/10 text-primary">SAST</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-semibold severity-medium">中危</span>
+              <span class="text-sm text-on-surface-variant">CWE-352</span>
+              <span class="text-sm text-on-surface-variant">A01:2021</span>
+              <span class="text-sm text-on-surface-variant truncate pr-4">使用CSRF Token验证请求来源</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-success/15 text-success">已启用</span>
+              <div class="flex items-center gap-2">
+                <button class="btn-edit text-primary text-sm font-medium hover:underline" data-id="SAST-011">编辑</button>
+                <button class="btn-toggle text-on-surface-variant text-sm hover:text-error" data-id="SAST-011">禁用</button>
+              </div>
+            </div>
+            
+            <!-- 列表-规则12: 日志注入 -->
+            <div class="grid grid-cols-[100px_1fr_100px_90px_100px_100px_1fr_80px_120px] px-4 py-3.5 hover:bg-surface-container/50 transition-colors border-b border-outline-variant/30">
+              <span class="text-sm font-mono text-primary">SAST-012</span>
+              <span class="text-sm font-medium text-on-surface">日志注入漏洞</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-primary/10 text-primary">SAST</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-semibold severity-low">低危</span>
+              <span class="text-sm text-on-surface-variant">CWE-117</span>
+              <span class="text-sm text-on-surface-variant">A03:2021</span>
+              <span class="text-sm text-on-surface-variant truncate pr-4">对日志输入进行验证和过滤</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-success/15 text-success">已启用</span>
+              <div class="flex items-center gap-2">
+                <button class="btn-edit text-primary text-sm font-medium hover:underline" data-id="SAST-012">编辑</button>
+                <button class="btn-toggle text-on-surface-variant text-sm hover:text-error" data-id="SAST-012">禁用</button>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 分页 -->
+          <div class="flex items-center justify-between px-4 py-3 border-t border-outline-variant/30">
+            <div class="text-sm text-on-surface-variant">
+              共 <span class="font-medium text-on-surface">2,608</span> 条规则，显示 1-12 条
+            </div>
+            <div class="flex items-center gap-2">
+              <button class="px-3 py-1.5 rounded-md text-sm text-on-surface-variant bg-surface-container hover:bg-surface-container-high disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                <i data-lucide="chevron-left" class="w-4 h-4"></i>
+              </button>
+              <button class="w-9 h-9 rounded-md text-sm font-medium bg-primary text-on-primary">1</button>
+              <button class="w-9 h-9 rounded-md text-sm font-medium text-on-surface-variant hover:bg-surface-container">2</button>
+              <button class="w-9 h-9 rounded-md text-sm font-medium text-on-surface-variant hover:bg-surface-container">3</button>
+              <span class="px-2 text-on-surface-variant">...</span>
+              <button class="w-9 h-9 rounded-md text-sm font-medium text-on-surface-variant hover:bg-surface-container">218</button>
+              <button class="px-3 py-1.5 rounded-md text-sm text-on-surface bg-surface-container hover:bg-surface-container-high">
+                <i data-lucide="chevron-right" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+        
+      </main>
+      <!-- @main-content:end -->
+    </div>
+  </div>
+
+  <script>
+    // 高亮当前页面导航
+    $(document).ready(function() {
+      var currentPage = window.location.pathname.split('/').pop() || 'rules.html';
+      $('.nav-item').each(function() {
+        if ($(this).attr('href') === currentPage) {
+          $(this).addClass('bg-primary/10 text-primary');
+        } else {
+          $(this).addClass('text-on-surface-variant hover:bg-surface-container hover:text-on-surface');
+        }
+      });
+    });
+    
+    $(function() {
+      // 标签页切换
+      $('.tab-btn').on('click', function() {
+        $('.tab-btn').removeClass('active bg-primary text-white').addClass('text-on-surface-variant');
+        $(this).addClass('active bg-primary text-white').removeClass('text-on-surface-variant');
+        var tabId = $(this).attr('id');
+        console.log('切换标签页:', tabId.replace('tab-', '').toUpperCase());
+        // 实际应实现：根据标签筛选规则列表
+      });
+      
+      // 新增规则按钮
+      $('#btn-add-rule').on('click', function() {
+        console.log('新增规则');
+        // 实际应实现：打开新增规则弹窗/页面
+      });
+      
+      // 下载规则包
+      $('#btn-download').on('click', function() {
+        console.log('下载规则包');
+        // 实际应实现：触发规则包下载
+      });
+      
+      // 回滚版本
+      $('#btn-rollback').on('click', function() {
+        console.log('回滚规则包版本');
+        // 实际应实现：打开版本选择弹窗，确认后回滚
+      });
+      
+      // 导入规则
+      $('#btn-import').on('click', function() {
+        console.log('导入规则');
+        // 实际应实现：打开文件选择弹窗，导入规则
+      });
+      
+      // 编辑规则
+      $('.btn-edit').on('click', function() {
+        var ruleId = $(this).data('id');
+        console.log('编辑规则:', ruleId);
+        // 实际应实现：打开编辑规则弹窗/页面
+      });
+      
+      // 启用/禁用切换
+      $('.btn-toggle').on('click', function() {
+        var ruleId = $(this).data('id');
+        var action = $(this).text().trim();
+        console.log('切换规则状态:', ruleId, action);
+        // 实际应实现：调用API切换启用状态
+      });
+      
+      // 严重等级筛选
+      $('#filter-severity').on('change', function() {
+        var severity = $(this).val();
+        console.log('筛选严重等级:', severity || '全部');
+        // 实际应实现：根据严重等级筛选规则列表
+      });
+      
+      // 状态筛选
+      $('#filter-status').on('change', function() {
+        var status = $(this).val();
+        console.log('筛选状态:', status || '全部');
+        // 实际应实现：根据状态筛选规则列表
+      });
+      
+      // 搜索规则
+      $('#search-rules').on('input', function() {
+        var keyword = $(this).val();
+        console.log('搜索关键词:', keyword);
+        // 实际应实现：根据关键词搜索规则列表（防抖处理）
+      });
+    });
+  </script>
+  <script>lucide.createIcons();</script>
+</body>
+
+</html>

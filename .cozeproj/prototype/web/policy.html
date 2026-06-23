@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <link href="https://lf-code-agent.coze.cn/obj/x-ai-cn/fonts/google/google-all-fonts.css" rel="stylesheet"/>
+
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/jquery/jquery-3.7.1.min.js"></script>
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/lucide/lucide-1.11.0.min.js"></script>
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/tailwindcss/tailwindcss-browser-4.2.4.min.js"></script>
+
+  <style type="text/tailwindcss">
+    @theme {
+      /* === 品牌色 - 商务稳重蓝色 === */
+      --color-primary:              #2563EB;
+      --color-primary-hover:        #1D4ED8;
+      --color-primary-container:    #DBEAFE;
+      --color-on-primary:           #ffffff;
+      /* === 背景 / 表面 === */
+      --color-background:          #ffffff;
+      --color-surface-container-lowest:   #ffffff;
+      --color-surface:             #F8FAFC;
+      --color-surface-container:   #F1F5F9;
+      --color-surface-container-high:     #E2E8F0;
+      --color-surface-container-highest:  #CBD5E1;
+      --color-sidebar:             #EFF6FF;
+      /* === 文字 === */
+      --color-on-surface:          #1F2937;
+      --color-on-surface-variant:  #6B7280;
+      --color-text-secondary:      #9CA3AF;
+      /* === 功能色 === */
+      --color-success:             #22c55e;
+      --color-success-bg:          #DCFCE7;
+      --color-error:               #ef4444;
+      --color-error-bg:            #FEE2E2;
+      --color-warning:             #f59e0b;
+      --color-warning-bg:         #FEF3C7;
+      --color-info:                #3b82f6;
+      --color-info-bg:             #DBEAFE;
+      /* === 边框 === */
+      --color-outline:             #E5E7EB;
+      --color-outline-variant:     #F3F4F6;
+      /* === 圆角 === */
+      --radius-sm:   0.25rem;
+      --radius-md:   0.375rem;
+      --radius-lg:   0.5rem;
+      --radius-xl:   0.75rem;
+      --radius-2xl:  1rem;
+      --radius-full: 9999px;
+      /* === 阴影 === */
+      --shadow-card:   0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+      --shadow-float:  0 4px 6px rgba(0,0,0,0.1), 0 2px 4px rgba(0,0,0,0.06);
+      --shadow-dialog: 0 25px 50px rgba(0,0,0,0.15);
+      /* === 字体 === */
+      --font-sans: "Inter", "Noto Sans SC", system-ui, sans-serif;
+    }
+  </style>
+
+  <style>
+    /* 滚动条样式 */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+    
+    /* 自定义样式 */
+    .stat-up { color: #ef4444; }
+    .stat-down { color: #22c55e; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+    .status-online { background: #22c55e; }
+    .status-offline { background: #9CA3AF; }
+    .status-error { background: #ef4444; }
+    .status-pending { background: #f59e0b; }
+    
+    /* 模态框动画 */
+    .modal-overlay { transition: opacity 0.2s ease; }
+    .modal-content { transition: transform 0.2s ease, opacity 0.2s ease; }
+    .modal-overlay.hidden { opacity: 0; pointer-events: none; }
+    .modal-overlay.hidden .modal-content { transform: scale(0.95); opacity: 0; }
+  </style>
+</head>
+
+<body class="bg-background text-on-surface font-sans">
+
+  <!-- @nav:start 导航组件 -->
+  <div class="flex h-screen">
+    <!-- 侧边栏 -->
+    <aside class="w-64 shrink-0 bg-sidebar flex flex-col border-r border-outline">
+      <!-- Logo区域 -->
+      <div class="h-16 flex items-center px-4 border-b border-outline">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 bg-primary rounded-md flex items-center justify-center">
+            <i data-lucide="shield-check" class="w-5 h-5 text-white"></i>
+          </div>
+          <span class="font-bold text-base text-on-surface">国舜DevSecAI</span>
+        </div>
+      </div>
+      
+      <!-- 导航菜单 -->
+      <nav class="flex-1 overflow-y-auto py-3 px-2">
+        <div class="space-y-0.5">
+          <a href="home.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors" data-page="home">
+            <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+            <span>首页总览</span>
+          </a>
+          <a href="project.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors" data-page="project">
+            <i data-lucide="folder-kanban" class="w-5 h-5"></i>
+            <span>项目管理</span>
+          </a>
+          <a href="plugin.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors" data-page="plugin">
+            <i data-lucide="puzzle" class="w-5 h-5"></i>
+            <span>插件管理</span>
+          </a>
+          <a href="plugin-capability.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors" data-page="plugin-capability">
+            <i data-lucide="sliders" class="w-5 h-5"></i>
+            <span>插件能力配置</span>
+          </a>
+          <a href="policy.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors" data-page="policy" aria-current="page">
+            <i data-lucide="shield" class="w-5 h-5"></i>
+            <span>检测策略中心</span>
+          </a>
+          <a href="rules.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors" data-page="rules">
+            <i data-lucide="scroll-text" class="w-5 h-5"></i>
+            <span>规则管理中心</span>
+          </a>
+          <a href="results.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors" data-page="results">
+            <i data-lucide="scan" class="w-5 h-5"></i>
+            <span>检测结果中心</span>
+          </a>
+          <a href="skill.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors" data-page="skill">
+            <i data-lucide="sparkles" class="w-5 h-5"></i>
+            <span>大模型Skill中心</span>
+          </a>
+          <a href="audit-log.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors" data-page="audit-log">
+            <i data-lucide="file-text" class="w-5 h-5"></i>
+            <span>插件审计日志</span>
+          </a>
+          <a href="settings.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors" data-page="settings">
+            <i data-lucide="settings" class="w-5 h-5"></i>
+            <span>系统设置</span>
+          </a>
+        </div>
+      </nav>
+      
+      <!-- 底部信息 -->
+      <div class="p-3 border-t border-outline">
+        <div class="flex items-center justify-between text-xs text-on-surface-variant">
+          <span>规则包版本: 2026.06.23</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- 右侧主内容区 -->
+    <div class="flex-1 flex flex-col min-w-0">
+      <!-- 顶栏 -->
+      <header class="h-16 bg-surface border-b border-outline flex items-center justify-between px-6">
+        <div class="flex items-center gap-4">
+          <!-- 全局搜索 -->
+          <div class="relative">
+            <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant"></i>
+            <input type="text" placeholder="搜索项目、插件、规则..." class="w-72 h-9 pl-9 pr-4 bg-surface-container border-none rounded-md text-sm focus:ring-2 focus:ring-primary/30 outline-none">
+          </div>
+        </div>
+        
+        <div class="flex items-center gap-4">
+          <!-- 在线插件数 -->
+          <div class="flex items-center gap-2 px-3 py-1.5 bg-success-bg rounded-full">
+            <span class="status-dot status-online"></span>
+            <span class="text-xs font-medium text-on-surface">在线插件 168</span>
+          </div>
+          
+          <!-- 消息通知 -->
+          <button class="relative p-2 hover:bg-surface-container rounded-md transition-colors">
+            <i data-lucide="bell" class="w-5 h-5 text-on-surface-variant"></i>
+            <span class="absolute top-1 right-1 w-2 h-2 bg-error rounded-full"></span>
+          </button>
+          
+          <!-- 用户信息 -->
+          <div class="flex items-center gap-3 pl-4 border-l border-outline">
+            <div class="text-right">
+              <div class="text-sm font-medium text-on-surface">管理员</div>
+              <div class="text-xs text-on-surface-variant">系统管理员</div>
+            </div>
+            <div class="w-9 h-9 bg-primary-container rounded-full flex items-center justify-center">
+              <span class="text-sm font-medium text-primary">管</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- @main-content:start -->
+      <main class="flex-1 min-w-0 overflow-y-auto bg-background p-6">
+        
+        <!-- 页面标题区 -->
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h1 class="text-2xl font-bold text-on-surface">检测策略中心</h1>
+            <p class="text-sm text-on-surface-variant mt-1">配置和管理扫描策略，控制检测触发方式和阻断规则</p>
+          </div>
+          <button id="btn-create-policy" class="bg-primary text-on-primary px-4 py-2 rounded-md text-sm font-medium hover:opacity-90 active:scale-[0.98] transition-all inline-flex items-center gap-2">
+            <i data-lucide="plus" class="w-4 h-4"></i>
+            新建策略
+          </button>
+        </div>
+
+        <!-- 统计卡片 -->
+        <div class="grid grid-cols-4 gap-4 mb-6">
+          <div class="bg-surface rounded-lg shadow-card p-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-xs font-medium text-on-surface-variant uppercase tracking-wide">策略总数</p>
+                <p class="text-2xl font-bold text-on-surface mt-1">8</p>
+              </div>
+              <div class="w-10 h-10 bg-info-bg rounded-lg flex items-center justify-center">
+                <i data-lucide="shield" class="w-5 h-5 text-info"></i>
+              </div>
+            </div>
+          </div>
+          <div class="bg-surface rounded-lg shadow-card p-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-xs font-medium text-on-surface-variant uppercase tracking-wide">已启用</p>
+                <p class="text-2xl font-bold text-success mt-1">6</p>
+              </div>
+              <div class="w-10 h-10 bg-success-bg rounded-lg flex items-center justify-center">
+                <i data-lucide="check-circle" class="w-5 h-5 text-success"></i>
+              </div>
+            </div>
+          </div>
+          <div class="bg-surface rounded-lg shadow-card p-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-xs font-medium text-on-surface-variant uppercase tracking-wide">已绑定项目</p>
+                <p class="text-2xl font-bold text-on-surface mt-1">24</p>
+              </div>
+              <div class="w-10 h-10 bg-primary-container rounded-lg flex items-center justify-center">
+                <i data-lucide="folder" class="w-5 h-5 text-primary"></i>
+              </div>
+            </div>
+          </div>
+          <div class="bg-surface rounded-lg shadow-card p-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-xs font-medium text-on-surface-variant uppercase tracking-wide">策略版本</p>
+                <p class="text-2xl font-bold text-on-surface mt-1">v3.2</p>
+              </div>
+              <div class="w-10 h-10 bg-warning-bg rounded-lg flex items-center justify-center">
+                <i data-lucide="git-branch" class="w-5 h-5 text-warning"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 策略列表表格 -->
+        <div class="bg-surface rounded-lg shadow-card overflow-hidden">
+          <!-- 表头 -->
+          <div class="grid grid-cols-7 px-4 py-3 bg-surface-container text-xs font-semibold text-on-surface-variant uppercase tracking-wide">
+            <span>策略名称</span>
+            <span>适用范围</span>
+            <span>扫描方式</span>
+            <span>阻断等级</span>
+            <span>规则包版本</span>
+            <span>最近更新</span>
+            <span>操作</span>
+          </div>
+          
+          <!-- 表格内容 -->
+          <div class="divide-y divide-outline-variant/50">
+            <!-- 列表-策略1：高安全性项目策略 -->
+            <div class="grid grid-cols-7 px-4 py-3 hover:bg-surface-container/50 transition-colors items-center">
+              <div class="flex items-center gap-2">
+                <span class="w-2 h-2 bg-success rounded-full"></span>
+                <span class="text-sm font-medium text-on-surface">高安全性项目策略</span>
+              </div>
+              <span class="text-sm text-on-surface-variant">金融、政务系统</span>
+              <div class="flex items-center gap-1">
+                <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-info-bg text-info">提交前</span>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-warning-bg text-warning">定时</span>
+              </div>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-error-bg text-error w-fit">高危阻断</span>
+              <span class="text-sm text-on-surface-variant">v2024.06.23</span>
+              <span class="text-sm text-on-surface-variant">2024-06-20 14:32</span>
+              <div class="flex items-center gap-3">
+                <button class="btn-edit text-primary text-sm font-medium hover:underline" data-id="1">编辑</button>
+                <button class="btn-version text-on-surface-variant text-sm font-medium hover:text-on-surface" data-id="1">版本</button>
+                <button class="btn-delete text-error text-sm font-medium hover:underline" data-id="1">删除</button>
+              </div>
+            </div>
+            
+            <!-- 列表-策略2：常规开发策略 -->
+            <div class="grid grid-cols-7 px-4 py-3 hover:bg-surface-container/50 transition-colors items-center">
+              <div class="flex items-center gap-2">
+                <span class="w-2 h-2 bg-success rounded-full"></span>
+                <span class="text-sm font-medium text-on-surface">常规开发策略</span>
+              </div>
+              <span class="text-sm text-on-surface-variant">通用项目</span>
+              <div class="flex items-center gap-1">
+                <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-info-bg text-info">保存时</span>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-surface-container text-on-surface-variant">手动</span>
+              </div>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-warning-bg text-warning w-fit">中危阻断</span>
+              <span class="text-sm text-on-surface-variant">v2024.06.23</span>
+              <span class="text-sm text-on-surface-variant">2024-06-18 09:15</span>
+              <div class="flex items-center gap-3">
+                <button class="btn-edit text-primary text-sm font-medium hover:underline" data-id="2">编辑</button>
+                <button class="btn-version text-on-surface-variant text-sm font-medium hover:text-on-surface" data-id="2">版本</button>
+                <button class="btn-delete text-error text-sm font-medium hover:underline" data-id="2">删除</button>
+              </div>
+            </div>
+            
+            <!-- 列表-策略3：快速扫描策略 -->
+            <div class="grid grid-cols-7 px-4 py-3 hover:bg-surface-container/50 transition-colors items-center">
+              <div class="flex items-center gap-2">
+                <span class="w-2 h-2 bg-warning rounded-full"></span>
+                <span class="text-sm font-medium text-on-surface">快速扫描策略</span>
+              </div>
+              <span class="text-sm text-on-surface-variant">个人开发、测试项目</span>
+              <div class="flex items-center gap-1">
+                <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-surface-container text-on-surface-variant">手动</span>
+              </div>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-success-bg text-success w-fit">仅提醒</span>
+              <span class="text-sm text-on-surface-variant">v2024.06.20</span>
+              <span class="text-sm text-on-surface-variant">2024-06-15 16:45</span>
+              <div class="flex items-center gap-3">
+                <button class="btn-edit text-primary text-sm font-medium hover:underline" data-id="3">编辑</button>
+                <button class="btn-version text-on-surface-variant text-sm font-medium hover:text-on-surface" data-id="3">版本</button>
+                <button class="btn-delete text-error text-sm font-medium hover:underline" data-id="3">删除</button>
+              </div>
+            </div>
+            
+            <!-- 列表-策略4：CI/CD集成策略 -->
+            <div class="grid grid-cols-7 px-4 py-3 hover:bg-surface-container/50 transition-colors items-center">
+              <div class="flex items-center gap-2">
+                <span class="w-2 h-2 bg-success rounded-full"></span>
+                <span class="text-sm font-medium text-on-surface">CI/CD集成策略</span>
+              </div>
+              <span class="text-sm text-on-surface-variant">流水线集成</span>
+              <div class="flex items-center gap-1">
+                <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-success-bg text-success">依赖变更</span>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-warning-bg text-warning">定时</span>
+              </div>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-error-bg text-error w-fit">高危阻断</span>
+              <span class="text-sm text-on-surface-variant">v2024.06.23</span>
+              <span class="text-sm text-on-surface-variant">2024-06-19 11:20</span>
+              <div class="flex items-center gap-3">
+                <button class="btn-edit text-primary text-sm font-medium hover:underline" data-id="4">编辑</button>
+                <button class="btn-version text-on-surface-variant text-sm font-medium hover:text-on-surface" data-id="4">版本</button>
+                <button class="btn-delete text-error text-sm font-medium hover:underline" data-id="4">删除</button>
+              </div>
+            </div>
+            
+            <!-- 列表-策略5：移动端专项策略 -->
+            <div class="grid grid-cols-7 px-4 py-3 hover:bg-surface-container/50 transition-colors items-center">
+              <div class="flex items-center gap-2">
+                <span class="w-2 h-2 bg-success rounded-full"></span>
+                <span class="text-sm font-medium text-on-surface">移动端专项策略</span>
+              </div>
+              <span class="text-sm text-on-surface-variant">Android/iOS应用</span>
+              <div class="flex items-center gap-1">
+                <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-info-bg text-info">提交前</span>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-info-bg text-info">保存时</span>
+              </div>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-warning-bg text-warning w-fit">中危阻断</span>
+              <span class="text-sm text-on-surface-variant">v2024.05.15</span>
+              <span class="text-sm text-on-surface-variant">2024-06-10 08:30</span>
+              <div class="flex items-center gap-3">
+                <button class="btn-edit text-primary text-sm font-medium hover:underline" data-id="5">编辑</button>
+                <button class="btn-version text-on-surface-variant text-sm font-medium hover:text-on-surface" data-id="5">版本</button>
+                <button class="btn-delete text-error text-sm font-medium hover:underline" data-id="5">删除</button>
+              </div>
+            </div>
+            
+            <!-- 列表-策略6：前端项目策略 -->
+            <div class="grid grid-cols-7 px-4 py-3 hover:bg-surface-container/50 transition-colors items-center">
+              <div class="flex items-center gap-2">
+                <span class="w-2 h-2 bg-on-surface-variant/30 rounded-full"></span>
+                <span class="text-sm font-medium text-on-surface">前端项目策略</span>
+              </div>
+              <span class="text-sm text-on-surface-variant">Vue/React项目</span>
+              <div class="flex items-center gap-1">
+                <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-surface-container text-on-surface-variant">手动</span>
+              </div>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-success-bg text-success w-fit">仅提醒</span>
+              <span class="text-sm text-on-surface-variant">v2024.04.10</span>
+              <span class="text-sm text-on-surface-variant">2024-06-05 14:00</span>
+              <div class="flex items-center gap-3">
+                <button class="btn-edit text-primary text-sm font-medium hover:underline" data-id="6">编辑</button>
+                <button class="btn-version text-on-surface-variant text-sm font-medium hover:text-on-surface" data-id="6">版本</button>
+                <button class="btn-delete text-error text-sm font-medium hover:underline" data-id="6">删除</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </main>
+      <!-- @main-content:end -->
+    </div>
+  </div>
+
+  <!-- 新建/编辑策略模态框 -->
+  <div id="modal-policy" class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 modal-overlay hidden">
+    <div class="bg-surface rounded-xl shadow-dialog max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <!-- 模态框头部 -->
+      <div class="flex items-center justify-between p-4 border-b border-outline">
+        <h2 id="modal-title" class="text-lg font-semibold text-on-surface">新建策略</h2>
+        <button id="btn-close-modal" class="p-1 hover:bg-surface-container rounded-md transition-colors">
+          <i data-lucide="x" class="w-5 h-5 text-on-surface-variant"></i>
+        </button>
+      </div>
+      
+      <!-- 模态框内容 -->
+      <div class="p-4 space-y-5">
+        <!-- 策略名称 -->
+        <div>
+          <label class="block text-sm font-medium text-on-surface mb-1.5">策略名称 <span class="text-error">*</span></label>
+          <input id="input-policy-name" type="text" placeholder="请输入策略名称" class="w-full bg-surface-container border-none rounded-md px-3 py-2 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none focus:ring-2 focus:ring-primary/30">
+        </div>
+        
+        <!-- 适用范围 -->
+        <div>
+          <label class="block text-sm font-medium text-on-surface mb-1.5">适用范围</label>
+          <input id="input-policy-scope" type="text" placeholder="如：金融、政务系统" class="w-full bg-surface-container border-none rounded-md px-3 py-2 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none focus:ring-2 focus:ring-primary/30">
+        </div>
+        
+        <!-- 扫描触发方式 -->
+        <div>
+          <label class="block text-sm font-medium text-on-surface mb-1.5">扫描触发方式</label>
+          <div class="flex flex-wrap gap-2">
+            <label class="inline-flex items-center gap-2 px-3 py-2 bg-surface-container rounded-md cursor-pointer hover:bg-surface-container-high transition-colors">
+              <input type="checkbox" name="scan-trigger" value="manual" class="w-4 h-4 rounded border-outline text-primary focus:ring-primary/30">
+              <span class="text-sm text-on-surface">手动触发</span>
+            </label>
+            <label class="inline-flex items-center gap-2 px-3 py-2 bg-surface-container rounded-md cursor-pointer hover:bg-surface-container-high transition-colors">
+              <input type="checkbox" name="scan-trigger" value="save" class="w-4 h-4 rounded border-outline text-primary focus:ring-primary/30">
+              <span class="text-sm text-on-surface">保存时</span>
+            </label>
+            <label class="inline-flex items-center gap-2 px-3 py-2 bg-surface-container rounded-md cursor-pointer hover:bg-surface-container-high transition-colors">
+              <input type="checkbox" name="scan-trigger" value="dependency" class="w-4 h-4 rounded border-outline text-primary focus:ring-primary/30">
+              <span class="text-sm text-on-surface">依赖变更</span>
+            </label>
+            <label class="inline-flex items-center gap-2 px-3 py-2 bg-surface-container rounded-md cursor-pointer hover:bg-surface-container-high transition-colors">
+              <input type="checkbox" name="scan-trigger" value="pre-commit" class="w-4 h-4 rounded border-outline text-primary focus:ring-primary/30">
+              <span class="text-sm text-on-surface">提交前</span>
+            </label>
+            <label class="inline-flex items-center gap-2 px-3 py-2 bg-surface-container rounded-md cursor-pointer hover:bg-surface-container-high transition-colors">
+              <input type="checkbox" name="scan-trigger" value="scheduled" class="w-4 h-4 rounded border-outline text-primary focus:ring-primary/30">
+              <span class="text-sm text-on-surface">定时扫描</span>
+            </label>
+          </div>
+        </div>
+        
+        <!-- 扫描范围 -->
+        <div>
+          <label class="block text-sm font-medium text-on-surface mb-1.5">扫描范围</label>
+          <select id="select-scan-scope" class="w-full bg-surface-container border-none rounded-md px-3 py-2 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/30">
+            <option value="current-file">当前文件</option>
+            <option value="current-module" selected>当前模块</option>
+            <option value="current-project">当前项目</option>
+          </select>
+        </div>
+        
+        <!-- 排除目录 -->
+        <div>
+          <label class="block text-sm font-medium text-on-surface mb-1.5">排除目录</label>
+          <textarea id="input-exclude-paths" rows="2" placeholder="每行一个目录，如：node_modules&#10;dist&#10;build" class="w-full bg-surface-container border-none rounded-md px-3 py-2 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none"></textarea>
+        </div>
+        
+        <!-- 阻断规则 -->
+        <div>
+          <label class="block text-sm font-medium text-on-surface mb-2">阻断规则（按风险等级）</label>
+          <div class="grid grid-cols-4 gap-3">
+            <label class="inline-flex items-center gap-2 px-3 py-2 bg-error-bg rounded-md cursor-pointer hover:bg-error/20 transition-colors">
+              <input type="checkbox" name="block-level" value="critical" checked class="w-4 h-4 rounded border-outline text-error focus:ring-error/30">
+              <span class="text-sm font-medium text-error">严重</span>
+            </label>
+            <label class="inline-flex items-center gap-2 px-3 py-2 bg-error-bg rounded-md cursor-pointer hover:bg-error/20 transition-colors">
+              <input type="checkbox" name="block-level" value="high" checked class="w-4 h-4 rounded border-outline text-error focus:ring-error/30">
+              <span class="text-sm font-medium text-error">高危</span>
+            </label>
+            <label class="inline-flex items-center gap-2 px-3 py-2 bg-warning-bg rounded-md cursor-pointer hover:bg-warning/20 transition-colors">
+              <input type="checkbox" name="block-level" value="medium" class="w-4 h-4 rounded border-outline text-warning focus:ring-warning/30">
+              <span class="text-sm font-medium text-warning">中危</span>
+            </label>
+            <label class="inline-flex items-center gap-2 px-3 py-2 bg-surface-container rounded-md cursor-pointer hover:bg-surface-container-high transition-colors">
+              <input type="checkbox" name="block-level" value="low" class="w-4 h-4 rounded border-outline text-on-surface-variant focus:ring-primary/30">
+              <span class="text-sm text-on-surface-variant">低危</span>
+            </label>
+          </div>
+        </div>
+        
+        <!-- AI调用策略 -->
+        <div>
+          <label class="block text-sm font-medium text-on-surface mb-2">AI调用策略</label>
+          <div class="space-y-3">
+            <div class="flex items-center gap-4">
+              <span class="text-sm text-on-surface w-24">漏洞解释</span>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" name="ai-feature" value="explain" checked class="sr-only peer">
+                <div class="w-11 h-6 bg-surface-container-high peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+              </label>
+            </div>
+            <div class="flex items-center gap-4">
+              <span class="text-sm text-on-surface w-24">修复建议</span>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" name="ai-feature" value="fix" checked class="sr-only peer">
+                <div class="w-11 h-6 bg-surface-container-high peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+              </label>
+            </div>
+            <div class="flex items-center gap-4">
+              <span class="text-sm text-on-surface w-24">Patch生成</span>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" name="ai-feature" value="patch" class="sr-only peer">
+                <div class="w-11 h-6 bg-surface-container-high peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+              </label>
+            </div>
+            <div class="flex items-center gap-4">
+              <span class="text-sm text-on-surface w-24">误报分析</span>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" name="ai-feature" value="analyze" class="sr-only peer">
+                <div class="w-11 h-6 bg-surface-container-high peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+              </label>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 策略描述 -->
+        <div>
+          <label class="block text-sm font-medium text-on-surface mb-1.5">策略描述</label>
+          <textarea id="input-policy-desc" rows="3" placeholder="请输入策略描述" class="w-full bg-surface-container border-none rounded-md px-3 py-2 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none"></textarea>
+        </div>
+      </div>
+      
+      <!-- 模态框底部 -->
+      <div class="flex items-center justify-end gap-3 p-4 border-t border-outline">
+        <button id="btn-cancel" class="bg-surface-container text-on-surface border-none px-4 py-2 rounded-md text-sm font-medium hover:bg-surface-container-high active:scale-[0.98] transition-all">取消</button>
+        <button id="btn-save" class="bg-primary text-on-primary px-4 py-2 rounded-md text-sm font-medium hover:opacity-90 active:scale-[0.98] transition-all inline-flex items-center gap-2">
+          <i data-lucide="check" class="w-4 h-4"></i>
+          保存策略
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 删除确认模态框 -->
+  <div id="modal-delete" class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 modal-overlay hidden">
+    <div class="bg-surface rounded-xl shadow-dialog max-w-md w-full">
+      <div class="p-6">
+        <div class="flex items-center gap-4 mb-4">
+          <div class="w-12 h-12 bg-error-bg rounded-full flex items-center justify-center">
+            <i data-lucide="alert-triangle" class="w-6 h-6 text-error"></i>
+          </div>
+          <div>
+            <h3 class="text-lg font-semibold text-on-surface">确认删除</h3>
+            <p id="delete-message" class="text-sm text-on-surface-variant mt-1">确定要删除该策略吗？此操作不可撤销。</p>
+          </div>
+        </div>
+        <div class="flex justify-end gap-3 mt-6">
+          <button id="btn-delete-cancel" class="bg-surface-container text-on-surface border-none px-4 py-2 rounded-md text-sm font-medium hover:bg-surface-container-high active:scale-[0.98] transition-all">取消</button>
+          <button id="btn-delete-confirm" class="bg-error text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-error/90 active:scale-[0.98] transition-all">确认删除</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 版本历史模态框 -->
+  <div id="modal-version" class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 modal-overlay hidden">
+    <div class="bg-surface rounded-xl shadow-dialog max-w-lg w-full max-h-[80vh] overflow-y-auto">
+      <div class="flex items-center justify-between p-4 border-b border-outline">
+        <h2 class="text-lg font-semibold text-on-surface">策略版本历史</h2>
+        <button id="btn-close-version" class="p-1 hover:bg-surface-container rounded-md transition-colors">
+          <i data-lucide="x" class="w-5 h-5 text-on-surface-variant"></i>
+        </button>
+      </div>
+      <div class="p-4">
+        <div class="space-y-3">
+          <!-- 版本1 -->
+          <div class="p-3 bg-surface-container rounded-lg border border-primary/30">
+            <div class="flex items-center justify-between mb-2">
+              <div class="flex items-center gap-2">
+                <span class="text-sm font-semibold text-primary">v3.2</span>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-success/15 text-success">当前版本</span>
+              </div>
+              <span class="text-xs text-on-surface-variant">2024-06-20 14:32</span>
+            </div>
+            <p class="text-sm text-on-surface-variant">新增定时扫描功能，支持Cron表达式配置</p>
+          </div>
+          <!-- 版本2 -->
+          <div class="p-3 bg-surface-container rounded-lg hover:bg-surface-container-high transition-colors">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-sm font-semibold text-on-surface">v3.1</span>
+              <span class="text-xs text-on-surface-variant">2024-06-15 10:20</span>
+            </div>
+            <p class="text-sm text-on-surface-variant">优化阻断规则配置界面</p>
+            <button class="mt-2 text-xs text-primary hover:underline">回滚到此版本</button>
+          </div>
+          <!-- 版本3 -->
+          <div class="p-3 bg-surface-container rounded-lg hover:bg-surface-container-high transition-colors">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-sm font-semibold text-on-surface">v3.0</span>
+              <span class="text-xs text-on-surface-variant">2024-06-01 09:00</span>
+            </div>
+            <p class="text-sm text-on-surface-variant">重构扫描引擎，支持多语言并行扫描</p>
+            <button class="mt-2 text-xs text-primary hover:underline">回滚到此版本</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 高亮当前页面导航
+    $(function() {
+      var currentPage = window.location.pathname.split('/').pop() || 'home.html';
+      $('.nav-item').each(function() {
+        if ($(this).attr('href') === currentPage) {
+          $(this).addClass('bg-primary/10 text-primary');
+        } else {
+          $(this).addClass('text-on-surface-variant hover:bg-surface-container hover:text-on-surface');
+        }
+      });
+      lucide.createIcons();
+    });
+
+    $(function() {
+      var currentEditId = null;
+      var currentDeleteId = null;
+
+      // 打开新建策略模态框
+      $('#btn-create-policy').on('click', function() {
+        currentEditId = null;
+        $('#modal-title').text('新建策略');
+        $('#input-policy-name').val('');
+        $('#input-policy-scope').val('');
+        $('#select-scan-scope').val('current-module');
+        $('#input-exclude-paths').val('node_modules\ndist\nbuild');
+        $('#input-policy-desc').val('');
+        $('input[name="scan-trigger"]').prop('checked', false);
+        $('input[name="block-level"]').prop('checked', false);
+        $('input[name="ai-feature"]').prop('checked', false);
+        $('#modal-policy').removeClass('hidden');
+        lucide.createIcons();
+      });
+
+      // 关闭模态框
+      $('#btn-close-modal, #btn-cancel').on('click', function() {
+        $('#modal-policy').addClass('hidden');
+      });
+
+      // 编辑策略按钮
+      $('.btn-edit').on('click', function() {
+        currentEditId = $(this).data('id');
+        $('#modal-title').text('编辑策略');
+        // 模拟加载数据 - 实际应从后端获取
+        $('#input-policy-name').val('高安全性项目策略');
+        $('#input-policy-scope').val('金融、政务系统');
+        $('#select-scan-scope').val('current-module');
+        $('#input-exclude-paths').val('node_modules\nvendor\nbuild');
+        $('#input-policy-desc').val('适用于高安全要求的金融和政务项目，启用全部阻断规则');
+        $('input[name="scan-trigger"][value="pre-commit"]').prop('checked', true);
+        $('input[name="scan-trigger"][value="scheduled"]').prop('checked', true);
+        $('input[name="block-level"][value="critical"]').prop('checked', true);
+        $('input[name="block-level"][value="high"]').prop('checked', true);
+        $('input[name="ai-feature"]').prop('checked', true);
+        $('#modal-policy').removeClass('hidden');
+        lucide.createIcons();
+      });
+
+      // 保存策略
+      $('#btn-save').on('click', function() {
+        var name = $('#input-policy-name').val();
+        if (!name) {
+          alert('请输入策略名称');
+          return;
+        }
+        // 实际应调用后端API保存
+        console.log('保存策略:', {
+          id: currentEditId,
+          name: name,
+          scope: $('#input-policy-scope').val(),
+          scanScope: $('#select-scan-scope').val(),
+          excludePaths: $('#input-exclude-paths').val(),
+          triggers: $('input[name="scan-trigger"]:checked').map(function() { return this.value; }).get(),
+          blockLevels: $('input[name="block-level"]:checked').map(function() { return this.value; }).get(),
+          aiFeatures: $('input[name="ai-feature"]:checked').map(function() { return this.value; }).get(),
+          description: $('#input-policy-desc').val()
+        });
+        $('#modal-policy').addClass('hidden');
+        // 刷新列表或显示成功提示
+      });
+
+      // 删除按钮
+      $('.btn-delete').on('click', function() {
+        currentDeleteId = $(this).data('id');
+        $('#delete-message').text('确定要删除策略 #' + currentDeleteId + ' 吗？此操作不可撤销。');
+        $('#modal-delete').removeClass('hidden');
+        lucide.createIcons();
+      });
+
+      // 取消删除
+      $('#btn-delete-cancel').on('click', function() {
+        $('#modal-delete').addClass('hidden');
+      });
+
+      // 确认删除
+      $('#btn-delete-confirm').on('click', function() {
+        console.log('删除策略:', currentDeleteId);
+        $('#modal-delete').addClass('hidden');
+        currentDeleteId = null;
+        // 实际应调用后端API删除并刷新列表
+      });
+
+      // 版本历史按钮
+      $('.btn-version').on('click', function() {
+        var policyId = $(this).data('id');
+        console.log('查看策略版本历史:', policyId);
+        $('#modal-version').removeClass('hidden');
+        lucide.createIcons();
+      });
+
+      // 关闭版本历史模态框
+      $('#btn-close-version').on('click', function() {
+        $('#modal-version').addClass('hidden');
+      });
+
+      // 点击模态框外部关闭
+      $('#modal-policy, #modal-delete, #modal-version').on('click', function(e) {
+        if (e.target === this) {
+          $(this).addClass('hidden');
+        }
+      });
+      
+      // 策略版本回滚按钮
+      $('#modal-version').on('click', '.btn-rollback', function() {
+        var version = $(this).data('version');
+        console.log('回滚到版本:', version);
+        // 实际应调用后端API回滚
+      });
+    });
+  </script>
+</body>
+
+</html>

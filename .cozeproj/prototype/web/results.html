@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <link href="https://lf-code-agent.coze.cn/obj/x-ai-cn/fonts/google/google-all-fonts.css" rel="stylesheet"/>
+
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/jquery/jquery-3.7.1.min.js"></script>
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/lucide/lucide-1.11.0.min.js"></script>
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/tailwindcss/tailwindcss-browser-4.2.4.min.js"></script>
+
+  <style type="text/tailwindcss">
+    @theme {
+      /* === 品牌色 - 商务稳重蓝色 === */
+      --color-primary:              #2563EB;
+      --color-primary-hover:        #1D4ED8;
+      --color-primary-container:    #DBEAFE;
+      --color-on-primary:           #ffffff;
+      /* === 背景 / 表面 === */
+      --color-background:          #ffffff;
+      --color-surface-container-lowest:   #ffffff;
+      --color-surface:             #F8FAFC;
+      --color-surface-container:   #F1F5F9;
+      --color-surface-container-high:     #E2E8F0;
+      --color-surface-container-highest:  #CBD5E1;
+      --color-sidebar:             #EFF6FF;
+      /* === 文字 === */
+      --color-on-surface:          #1F2937;
+      --color-on-surface-variant:  #6B7280;
+      --color-text-secondary:      #9CA3AF;
+      /* === 功能色 === */
+      --color-success:             #22c55e;
+      --color-success-bg:          #DCFCE7;
+      --color-error:               #ef4444;
+      --color-error-bg:            #FEE2E2;
+      --color-warning:             #f59e0b;
+      --color-warning-bg:         #FEF3C7;
+      --color-info:                #3b82f6;
+      --color-info-bg:             #DBEAFE;
+      /* === 边框 === */
+      --color-outline:             #E5E7EB;
+      --color-outline-variant:     #F3F4F6;
+      /* === 圆角 === */
+      --radius-sm:   0.25rem;
+      --radius-md:   0.375rem;
+      --radius-lg:   0.5rem;
+      --radius-xl:   0.75rem;
+      --radius-2xl:  1rem;
+      --radius-full: 9999px;
+      /* === 阴影 === */
+      --shadow-card:   0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+      --shadow-float:  0 4px 6px rgba(0,0,0,0.1), 0 2px 4px rgba(0,0,0,0.06);
+      --shadow-dialog: 0 25px 50px rgba(0,0,0,0.15);
+      /* === 字体 === */
+      --font-sans: "Inter", "Noto Sans SC", system-ui, sans-serif;
+    }
+  </style>
+
+  <style>
+    /* 滚动条样式 */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+    
+    /* 自定义样式 */
+    .stat-up { color: #ef4444; }
+    .stat-down { color: #22c55e; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+    .status-online { background: #22c55e; }
+    .status-offline { background: #9CA3AF; }
+    .status-error { background: #ef4444; }
+    .status-pending { background: #f59e0b; }
+    
+    /* 严重等级颜色 */
+    .severity-critical { background: #FEE2E2; color: #DC2626; }
+    .severity-high { background: #FFEDD5; color: #EA580C; }
+    .severity-medium { background: #FEF3C7; color: #D97706; }
+    .severity-low { background: #DBEAFE; color: #2563EB; }
+    
+    /* 表格滚动 */
+    .table-container { max-height: calc(100vh - 340px); overflow-y: auto; }
+  </style>
+</head>
+
+<body class="bg-background text-on-surface font-sans">
+
+  <!-- @nav:start 导航组件 -->
+  <div class="flex h-screen">
+    <!-- 侧边栏 -->
+    <aside class="w-64 shrink-0 bg-sidebar flex flex-col border-r border-outline">
+      <!-- Logo区域 -->
+      <div class="h-16 flex items-center px-4 border-b border-outline">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 bg-primary rounded-md flex items-center justify-center">
+            <i data-lucide="shield-check" class="w-5 h-5 text-white"></i>
+          </div>
+          <span class="font-bold text-base text-on-surface">国舜DevSecAI</span>
+        </div>
+      </div>
+      
+      <!-- 导航菜单 -->
+      <nav class="flex-1 overflow-y-auto py-3 px-2">
+        <div class="space-y-0.5">
+          <a href="home.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors" data-page="home">
+            <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+            <span>首页总览</span>
+          </a>
+          <a href="project.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors" data-page="project">
+            <i data-lucide="folder-kanban" class="w-5 h-5"></i>
+            <span>项目管理</span>
+          </a>
+          <a href="plugin.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors" data-page="plugin">
+            <i data-lucide="puzzle" class="w-5 h-5"></i>
+            <span>插件管理</span>
+          </a>
+          <a href="plugin-capability.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors" data-page="plugin-capability">
+            <i data-lucide="sliders" class="w-5 h-5"></i>
+            <span>插件能力配置</span>
+          </a>
+          <a href="policy.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors" data-page="policy">
+            <i data-lucide="shield" class="w-5 h-5"></i>
+            <span>检测策略中心</span>
+          </a>
+          <a href="rules.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors" data-page="rules">
+            <i data-lucide="scroll-text" class="w-5 h-5"></i>
+            <span>规则管理中心</span>
+          </a>
+          <a href="results.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors" data-page="results" aria-current="page">
+            <i data-lucide="scan" class="w-5 h-5"></i>
+            <span>检测结果中心</span>
+          </a>
+          <a href="skill.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors" data-page="skill">
+            <i data-lucide="sparkles" class="w-5 h-5"></i>
+            <span>大模型Skill中心</span>
+          </a>
+          <a href="audit-log.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors" data-page="audit-log">
+            <i data-lucide="file-text" class="w-5 h-5"></i>
+            <span>插件审计日志</span>
+          </a>
+          <a href="settings.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors" data-page="settings">
+            <i data-lucide="settings" class="w-5 h-5"></i>
+            <span>系统设置</span>
+          </a>
+        </div>
+      </nav>
+      
+      <!-- 底部信息 -->
+      <div class="p-3 border-t border-outline">
+        <div class="flex items-center justify-between text-xs text-on-surface-variant">
+          <span>规则包版本: 2026.06.23</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- 右侧主内容区 -->
+    <div class="flex-1 flex flex-col min-w-0">
+      <!-- 顶栏 -->
+      <header class="h-16 bg-surface border-b border-outline flex items-center justify-between px-6">
+        <div class="flex items-center gap-4">
+          <!-- 全局搜索 -->
+          <div class="relative">
+            <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant"></i>
+            <input type="text" placeholder="搜索项目、插件、规则..." class="w-72 h-9 pl-9 pr-4 bg-surface-container border-none rounded-md text-sm focus:ring-2 focus:ring-primary/30 outline-none">
+          </div>
+        </div>
+        
+        <div class="flex items-center gap-4">
+          <!-- 在线插件数 -->
+          <div class="flex items-center gap-2 px-3 py-1.5 bg-success-bg rounded-full">
+            <span class="status-dot status-online"></span>
+            <span class="text-xs font-medium text-on-surface">在线插件 168</span>
+          </div>
+          
+          <!-- 消息通知 -->
+          <button class="relative p-2 hover:bg-surface-container rounded-md transition-colors">
+            <i data-lucide="bell" class="w-5 h-5 text-on-surface-variant"></i>
+            <span class="absolute top-1 right-1 w-2 h-2 bg-error rounded-full"></span>
+          </button>
+          
+          <!-- 用户信息 -->
+          <div class="flex items-center gap-3 pl-4 border-l border-outline">
+            <div class="text-right">
+              <div class="text-sm font-medium text-on-surface">管理员</div>
+              <div class="text-xs text-on-surface-variant">系统管理员</div>
+            </div>
+            <div class="w-9 h-9 bg-primary-container rounded-full flex items-center justify-center">
+              <span class="text-sm font-medium text-primary">管</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- @main-content:start -->
+      <main class="flex-1 min-w-0 overflow-y-auto bg-background p-6">
+        
+        <!-- 页面标题 -->
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h1 class="text-2xl font-bold text-on-surface">检测结果中心</h1>
+            <p class="text-sm text-on-surface-variant mt-1">管理和追踪所有安全检测风险</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <button id="btn-export" class="inline-flex items-center gap-2 px-4 py-2 bg-surface text-on-surface border border-outline rounded-md text-sm font-medium hover:bg-surface-container transition-colors">
+              <i data-lucide="download" class="w-4 h-4"></i>
+              导出报表
+            </button>
+          </div>
+        </div>
+        
+        <!-- 统计卡片 -->
+        <div class="grid grid-cols-5 gap-4 mb-6">
+          <!-- 待修复 -->
+          <div class="bg-surface rounded-lg shadow-card p-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-xs font-medium text-on-surface-variant uppercase tracking-wide">待修复</p>
+                <p class="text-2xl font-bold text-error mt-1">128</p>
+              </div>
+              <div class="w-10 h-10 bg-error/10 rounded-lg flex items-center justify-center">
+                <i data-lucide="alert-circle" class="w-5 h-5 text-error"></i>
+              </div>
+            </div>
+            <p class="text-xs text-on-surface-variant mt-2">较昨日 <span class="text-error">+12</span></p>
+          </div>
+          
+          <!-- 修复中 -->
+          <div class="bg-surface rounded-lg shadow-card p-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-xs font-medium text-on-surface-variant uppercase tracking-wide">修复中</p>
+                <p class="text-2xl font-bold text-warning mt-1">45</p>
+              </div>
+              <div class="w-10 h-10 bg-warning/10 rounded-lg flex items-center justify-center">
+                <i data-lucide="loader-2" class="w-5 h-5 text-warning"></i>
+              </div>
+            </div>
+            <p class="text-xs text-on-surface-variant mt-2">处理中</p>
+          </div>
+          
+          <!-- 已修复 -->
+          <div class="bg-surface rounded-lg shadow-card p-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-xs font-medium text-on-surface-variant uppercase tracking-wide">已修复</p>
+                <p class="text-2xl font-bold text-success mt-1">892</p>
+              </div>
+              <div class="w-10 h-10 bg-success/10 rounded-lg flex items-center justify-center">
+                <i data-lucide="check-circle-2" class="w-5 h-5 text-success"></i>
+              </div>
+            </div>
+            <p class="text-xs text-on-surface-variant mt-2">较昨日 <span class="text-success">+28</span></p>
+          </div>
+          
+          <!-- 已忽略 -->
+          <div class="bg-surface rounded-lg shadow-card p-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-xs font-medium text-on-surface-variant uppercase tracking-wide">已忽略</p>
+                <p class="text-2xl font-bold text-on-surface-variant mt-1">156</p>
+              </div>
+              <div class="w-10 h-10 bg-surface-container rounded-lg flex items-center justify-center">
+                <i data-lucide="x-circle" class="w-5 h-5 text-on-surface-variant"></i>
+              </div>
+            </div>
+            <p class="text-xs text-on-surface-variant mt-2">确认误报</p>
+          </div>
+          
+          <!-- 高危风险 -->
+          <div class="bg-surface rounded-lg shadow-card p-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-xs font-medium text-on-surface-variant uppercase tracking-wide">高危风险</p>
+                <p class="text-2xl font-bold text-on-surface mt-1">36</p>
+              </div>
+              <div class="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                <i data-lucide="shield-alert" class="w-5 h-5 text-primary"></i>
+              </div>
+            </div>
+            <p class="text-xs text-on-surface-variant mt-2">Critical + High</p>
+          </div>
+        </div>
+        
+        <!-- 筛选区域 -->
+        <div class="bg-surface rounded-lg shadow-card p-4 mb-6">
+          <div class="flex items-center gap-4 flex-wrap">
+            <!-- 项目筛选 -->
+            <div class="flex items-center gap-2">
+              <label class="text-sm font-medium text-on-surface-variant">项目:</label>
+              <select id="filter-project" class="h-9 bg-surface-container border-none rounded-md px-3 text-sm focus:ring-2 focus:ring-primary/30 outline-none min-w-[140px]">
+                <option value="">全部项目</option>
+                <option value="proj-1">用户中心</option>
+                <option value="proj-2">支付网关</option>
+                <option value="proj-3">订单系统</option>
+                <option value="proj-4">数据分析平台</option>
+                <option value="proj-5">内容管理系统</option>
+              </select>
+            </div>
+            
+            <!-- 风险类型筛选 -->
+            <div class="flex items-center gap-2">
+              <label class="text-sm font-medium text-on-surface-variant">风险类型:</label>
+              <select id="filter-type" class="h-9 bg-surface-container border-none rounded-md px-3 text-sm focus:ring-2 focus:ring-primary/30 outline-none min-w-[120px]">
+                <option value="">全部类型</option>
+                <option value="SAST">SAST</option>
+                <option value="SCA">SCA</option>
+                <option value="Secrets">Secrets</option>
+                <option value="Baseline">Baseline</option>
+              </select>
+            </div>
+            
+            <!-- 严重等级筛选 -->
+            <div class="flex items-center gap-2">
+              <label class="text-sm font-medium text-on-surface-variant">严重等级:</label>
+              <select id="filter-severity" class="h-9 bg-surface-container border-none rounded-md px-3 text-sm focus:ring-2 focus:ring-primary/30 outline-none min-w-[120px]">
+                <option value="">全部等级</option>
+                <option value="Critical">Critical</option>
+                <option value="High">High</option>
+                <option value="Medium">Medium</option>
+                <option value="Low">Low</option>
+              </select>
+            </div>
+            
+            <!-- 规则筛选 -->
+            <div class="flex items-center gap-2">
+              <label class="text-sm font-medium text-on-surface-variant">规则:</label>
+              <select id="filter-rule" class="h-9 bg-surface-container border-none rounded-md px-3 text-sm focus:ring-2 focus:ring-primary/30 outline-none min-w-[140px]">
+                <option value="">全部规则</option>
+                <option value="rule-001">SQL注入检测</option>
+                <option value="rule-002">XSS跨站脚本</option>
+                <option value="rule-003">敏感信息泄露</option>
+                <option value="rule-004">不安全的反序列化</option>
+                <option value="rule-005">硬编码凭证</option>
+                <option value="rule-006">弱加密算法</option>
+              </select>
+            </div>
+            
+            <!-- 状态筛选 -->
+            <div class="flex items-center gap-2">
+              <label class="text-sm font-medium text-on-surface-variant">状态:</label>
+              <select id="filter-status" class="h-9 bg-surface-container border-none rounded-md px-3 text-sm focus:ring-2 focus:ring-primary/30 outline-none min-w-[120px]">
+                <option value="">全部状态</option>
+                <option value="pending">待修复</option>
+                <option value="fixing">修复中</option>
+                <option value="fixed">已修复</option>
+                <option value="ignored">已忽略</option>
+                <option value="false-positive">误报确认</option>
+              </select>
+            </div>
+            
+            <!-- 重置按钮 -->
+            <button id="btn-reset" class="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded-md transition-colors">
+              <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+              重置
+            </button>
+          </div>
+        </div>
+        
+        <!-- 风险列表表格 -->
+        <div class="bg-surface rounded-lg shadow-card overflow-hidden">
+          <!-- 表头 -->
+          <div class="grid grid-cols-[80px_120px_180px_90px_200px_100px_80px_120px_120px_100px] px-4 py-3 bg-surface-container text-xs font-semibold text-on-surface-variant uppercase tracking-wide">
+            <span>风险ID</span>
+            <span>所属项目</span>
+            <span>规则名称</span>
+            <span>严重等级</span>
+            <span>文件路径</span>
+            <span>行号</span>
+            <span>首次发现</span>
+            <span>最近发现</span>
+            <span>修复状态</span>
+            <span>操作</span>
+          </div>
+          
+          <!-- 表格内容 -->
+          <div class="table-container">
+            <!-- 列表-风险1: Critical级别 SQL注入 -->
+            <div class="grid grid-cols-[80px_120px_180px_90px_200px_100px_80px_120px_120px_100px] px-4 py-3 items-center border-t border-outline-variant/50 hover:bg-surface-container/50 transition-colors risk-row" data-severity="Critical" data-status="pending" data-type="SAST">
+              <span class="text-sm font-medium text-primary">RSK-001</span>
+              <span class="text-sm text-on-surface">用户中心</span>
+              <span class="text-sm text-on-surface">SQL注入检测</span>
+              <span><span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-semibold severity-critical">Critical</span></span>
+              <span class="text-sm text-on-surface-variant truncate" title="src/main/java/com/example/user/service/UserService.java">src/main/java/com/example/user/service/UserService.java</span>
+              <span class="text-sm text-on-surface-variant">128</span>
+              <span class="text-xs text-on-surface-variant">2024-01-10</span>
+              <span class="text-xs text-on-surface-variant">2024-06-18</span>
+              <span><span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-error/15 text-error">待修复</span></span>
+              <button class="text-primary text-sm font-medium hover:underline w-fit btn-detail">详情</button>
+            </div>
+            
+            <!-- 列表-风险2: High级别 XSS跨站脚本 -->
+            <div class="grid grid-cols-[80px_120px_180px_90px_200px_100px_80px_120px_120px_100px] px-4 py-3 items-center border-t border-outline-variant/50 hover:bg-surface-container/50 transition-colors risk-row" data-severity="High" data-status="fixing" data-type="SAST">
+              <span class="text-sm font-medium text-primary">RSK-002</span>
+              <span class="text-sm text-on-surface">支付网关</span>
+              <span class="text-sm text-on-surface">XSS跨站脚本</span>
+              <span><span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-semibold severity-high">High</span></span>
+              <span class="text-sm text-on-surface-variant truncate" title="src/views/payment/checkout.html">src/views/payment/checkout.html</span>
+              <span class="text-sm text-on-surface-variant">56</span>
+              <span class="text-xs text-on-surface-variant">2024-02-15</span>
+              <span class="text-xs text-on-surface-variant">2024-06-17</span>
+              <span><span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-warning/15 text-warning">修复中</span></span>
+              <button class="text-primary text-sm font-medium hover:underline w-fit btn-detail">详情</button>
+            </div>
+            
+            <!-- 列表-风险3: Medium级别 敏感信息泄露 -->
+            <div class="grid grid-cols-[80px_120px_180px_90px_200px_100px_80px_120px_120px_100px] px-4 py-3 items-center border-t border-outline-variant/50 hover:bg-surface-container/50 transition-colors risk-row" data-severity="Medium" data-status="fixed" data-type="Secrets">
+              <span class="text-sm font-medium text-primary">RSK-003</span>
+              <span class="text-sm text-on-surface">订单系统</span>
+              <span class="text-sm text-on-surface">敏感信息泄露</span>
+              <span><span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-semibold severity-medium">Medium</span></span>
+              <span class="text-sm text-on-surface-variant truncate" title="config/database.yml">config/database.yml</span>
+              <span class="text-sm text-on-surface-variant">23</span>
+              <span class="text-xs text-on-surface-variant">2024-03-08</span>
+              <span class="text-xs text-on-surface-variant">2024-06-15</span>
+              <span><span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-success/15 text-success">已修复</span></span>
+              <button class="text-primary text-sm font-medium hover:underline w-fit btn-detail">详情</button>
+            </div>
+            
+            <!-- 列表-风险4: Critical级别 硬编码凭证 -->
+            <div class="grid grid-cols-[80px_120px_180px_90px_200px_100px_80px_120px_120px_100px] px-4 py-3 items-center border-t border-outline-variant/50 hover:bg-surface-container/50 transition-colors risk-row" data-severity="Critical" data-status="pending" data-type="Secrets">
+              <span class="text-sm font-medium text-primary">RSK-004</span>
+              <span class="text-sm text-on-surface">数据分析平台</span>
+              <span class="text-sm text-on-surface">硬编码凭证</span>
+              <span><span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-semibold severity-critical">Critical</span></span>
+              <span class="text-sm text-on-surface-variant truncate" title="src/utils/api-client.ts">src/utils/api-client.ts</span>
+              <span class="text-sm text-on-surface-variant">42</span>
+              <span class="text-xs text-on-surface-variant">2024-04-12</span>
+              <span class="text-xs text-on-surface-variant">2024-06-18</span>
+              <span><span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-error/15 text-error">待修复</span></span>
+              <button class="text-primary text-sm font-medium hover:underline w-fit btn-detail">详情</button>
+            </div>
+            
+            <!-- 列表-风险5: Low级别 弱加密算法 -->
+            <div class="grid grid-cols-[80px_120px_180px_90px_200px_100px_80px_120px_120px_100px] px-4 py-3 items-center border-t border-outline-variant/50 hover:bg-surface-container/50 transition-colors risk-row" data-severity="Low" data-status="ignored" data-type="SAST">
+              <span class="text-sm font-medium text-primary">RSK-005</span>
+              <span class="text-sm text-on-surface">内容管理系统</span>
+              <span class="text-sm text-on-surface">弱加密算法</span>
+              <span><span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-semibold severity-low">Low</span></span>
+              <span class="text-sm text-on-surface-variant truncate" title="src/modules/auth/encryption.js">src/modules/auth/encryption.js</span>
+              <span class="text-sm text-on-surface-variant">88</span>
+              <span class="text-xs text-on-surface-variant">2024-05-20</span>
+              <span class="text-xs text-on-surface-variant">2024-06-10</span>
+              <span><span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-surface-container-high text-on-surface-variant">已忽略</span></span>
+              <button class="text-primary text-sm font-medium hover:underline w-fit btn-detail">详情</button>
+            </div>
+            
+            <!-- 列表-风险6: High级别 不安全反序列化 -->
+            <div class="grid grid-cols-[80px_120px_180px_90px_200px_100px_80px_120px_120px_100px] px-4 py-3 items-center border-t border-outline-variant/50 hover:bg-surface-container/50 transition-colors risk-row" data-severity="High" data-status="pending" data-type="SAST">
+              <span class="text-sm font-medium text-primary">RSK-006</span>
+              <span class="text-sm text-on-surface">用户中心</span>
+              <span class="text-sm text-on-surface">不安全的反序列化</span>
+              <span><span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-semibold severity-high">High</span></span>
+              <span class="text-sm text-on-surface-variant truncate" title="src/core/serializer/Handler.java">src/core/serializer/Handler.java</span>
+              <span class="text-sm text-on-surface-variant">201</span>
+              <span class="text-xs text-on-surface-variant">2024-05-28</span>
+              <span class="text-xs text-on-surface-variant">2024-06-17</span>
+              <span><span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-error/15 text-error">待修复</span></span>
+              <button class="text-primary text-sm font-medium hover:underline w-fit btn-detail">详情</button>
+            </div>
+            
+            <!-- 列表-风险7: Medium级别 敏感依赖 -->
+            <div class="grid grid-cols-[80px_120px_180px_90px_200px_100px_80px_120px_120px_100px] px-4 py-3 items-center border-t border-outline-variant/50 hover:bg-surface-container/50 transition-colors risk-row" data-severity="Medium" data-status="false-positive" data-type="SCA">
+              <span class="text-sm font-medium text-primary">RSK-007</span>
+              <span class="text-sm text-on-surface">支付网关</span>
+              <span class="text-sm text-on-surface">敏感依赖漏洞</span>
+              <span><span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-semibold severity-medium">Medium</span></span>
+              <span class="text-sm text-on-surface-variant truncate" title="pom.xml">pom.xml</span>
+              <span class="text-sm text-on-surface-variant">156</span>
+              <span class="text-xs text-on-surface-variant">2024-06-01</span>
+              <span class="text-xs text-on-surface-variant">2024-06-12</span>
+              <span><span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-info/15 text-info">误报确认</span></span>
+              <button class="text-primary text-sm font-medium hover:underline w-fit btn-detail">详情</button>
+            </div>
+            
+            <!-- 列表-风险8: Low级别 配置问题 -->
+            <div class="grid grid-cols-[80px_120px_180px_90px_200px_100px_80px_120px_120px_100px] px-4 py-3 items-center border-t border-outline-variant/50 hover:bg-surface-container/50 transition-colors risk-row" data-severity="Low" data-status="fixing" data-type="Baseline">
+              <span class="text-sm font-medium text-primary">RSK-008</span>
+              <span class="text-sm text-on-surface">订单系统</span>
+              <span class="text-sm text-on-surface">安全基线违规</span>
+              <span><span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-semibold severity-low">Low</span></span>
+              <span class="text-sm text-on-surface-variant truncate" title="config/security.conf">config/security.conf</span>
+              <span class="text-sm text-on-surface-variant">34</span>
+              <span class="text-xs text-on-surface-variant">2024-06-05</span>
+              <span class="text-xs text-on-surface-variant">2024-06-16</span>
+              <span><span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-warning/15 text-warning">修复中</span></span>
+              <button class="text-primary text-sm font-medium hover:underline w-fit btn-detail">详情</button>
+            </div>
+          </div>
+          
+          <!-- 分页 -->
+          <div class="flex items-center justify-between px-4 py-3 border-t border-outline-variant/50 bg-surface-container/30">
+            <div class="text-sm text-on-surface-variant">
+              共 <span id="total-count" class="font-medium text-on-surface">8</span> 条记录
+            </div>
+            <div class="flex items-center gap-2">
+              <button class="px-3 py-1.5 text-sm font-medium text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                <i data-lucide="chevron-left" class="w-4 h-4"></i>
+              </button>
+              <button class="w-8 h-8 text-sm font-medium bg-primary text-white rounded-md">1</button>
+              <button class="px-3 py-1.5 text-sm font-medium text-on-surface hover:bg-surface-container rounded-md transition-colors">2</button>
+              <button class="px-3 py-1.5 text-sm font-medium text-on-surface hover:bg-surface-container rounded-md transition-colors">3</button>
+              <span class="text-sm text-on-surface-variant px-2">...</span>
+              <button class="px-3 py-1.5 text-sm font-medium text-on-surface hover:bg-surface-container rounded-md transition-colors">12</button>
+              <button class="px-3 py-1.5 text-sm font-medium text-on-surface hover:bg-surface-container rounded-md transition-colors">
+                <i data-lucide="chevron-right" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+        
+      </main>
+      <!-- @main-content:end -->
+    </div>
+  </div>
+
+  <!-- 风险详情弹窗 -->
+  <div id="detail-modal" class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 hidden">
+    <div class="bg-surface rounded-xl shadow-dialog max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <!-- 弹窗头部 -->
+      <div class="flex items-center justify-between px-6 py-4 border-b border-outline">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 bg-error/10 rounded-lg flex items-center justify-center">
+            <i data-lucide="alert-triangle" class="w-5 h-5 text-error"></i>
+          </div>
+          <div>
+            <h3 class="text-lg font-semibold text-on-surface">风险详情</h3>
+            <p class="text-sm text-on-surface-variant">RSK-001</p>
+          </div>
+        </div>
+        <button id="btn-close-modal" class="p-2 hover:bg-surface-container rounded-md transition-colors">
+          <i data-lucide="x" class="w-5 h-5 text-on-surface-variant"></i>
+        </button>
+      </div>
+      
+      <!-- 弹窗内容 -->
+      <div class="p-6 space-y-6">
+        <!-- 基本信息 -->
+        <div>
+          <h4 class="text-sm font-semibold text-on-surface mb-3">基本信息</h4>
+          <div class="grid grid-cols-2 gap-4">
+            <div class="bg-surface-container/50 rounded-md p-3">
+              <p class="text-xs text-on-surface-variant mb-1">所属项目</p>
+              <p class="text-sm font-medium text-on-surface">用户中心</p>
+            </div>
+            <div class="bg-surface-container/50 rounded-md p-3">
+              <p class="text-xs text-on-surface-variant mb-1">风险类型</p>
+              <p class="text-sm font-medium text-on-surface">SAST</p>
+            </div>
+            <div class="bg-surface-container/50 rounded-md p-3">
+              <p class="text-xs text-on-surface-variant mb-1">严重等级</p>
+              <p class="text-sm font-medium"><span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-semibold severity-critical">Critical</span></p>
+            </div>
+            <div class="bg-surface-container/50 rounded-md p-3">
+              <p class="text-xs text-on-surface-variant mb-1">当前状态</p>
+              <p class="text-sm font-medium"><span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-error/15 text-error">待修复</span></p>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 位置信息 -->
+        <div>
+          <h4 class="text-sm font-semibold text-on-surface mb-3">位置信息</h4>
+          <div class="bg-surface-container/50 rounded-md p-3 space-y-2">
+            <div class="flex items-center gap-2">
+              <i data-lucide="file-code" class="w-4 h-4 text-on-surface-variant"></i>
+              <span class="text-sm text-on-surface">src/main/java/com/example/user/service/UserService.java</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <i data-lucide="hash" class="w-4 h-4 text-on-surface-variant"></i>
+              <span class="text-sm text-on-surface">第 128 行</span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 问题代码 -->
+        <div>
+          <h4 class="text-sm font-semibold text-on-surface mb-3">问题代码</h4>
+          <div class="bg-[#1e293b] rounded-md p-4 overflow-x-auto">
+            <pre class="text-sm text-slate-300 font-mono"><code>123: String query = "SELECT * FROM users WHERE 
+124:            username = '" + username + "'";
+125: Statement stmt = conn.createStatement();
+126: ResultSet rs = stmt.executeQuery(query);</code></pre>
+          </div>
+        </div>
+        
+        <!-- 规则说明 -->
+        <div>
+          <h4 class="text-sm font-semibold text-on-surface mb-3">规则说明</h4>
+          <p class="text-sm text-on-surface-variant leading-relaxed">检测到在SQL查询中直接拼接用户输入，可能导致SQL注入攻击。攻击者可利用此漏洞获取数据库敏感信息或执行恶意操作。</p>
+        </div>
+        
+        <!-- 修复建议 -->
+        <div>
+          <h4 class="text-sm font-semibold text-on-surface mb-3">修复建议</h4>
+          <div class="bg-surface-container/50 rounded-md p-3 space-y-2">
+            <p class="text-sm text-on-surface-variant">1. 使用参数化查询替代字符串拼接</p>
+            <p class="text-sm text-on-surface-variant">2. 对用户输入进行严格的输入验证</p>
+            <p class="text-sm text-on-surface-variant">3. 使用ORM框架的安全查询方法</p>
+          </div>
+        </div>
+        
+        <!-- AI调用记录 -->
+        <div>
+          <h4 class="text-sm font-semibold text-on-surface mb-3">AI调用记录</h4>
+          <div class="bg-surface-container/50 rounded-md p-3">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="status-dot status-online"></span>
+                <span class="text-sm text-on-surface">漏洞解释 已调用</span>
+              </div>
+              <span class="text-xs text-on-surface-variant">2024-06-18 14:32</span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 时间线 -->
+        <div>
+          <h4 class="text-sm font-semibold text-on-surface mb-3">时间线</h4>
+          <div class="space-y-3">
+            <div class="flex items-start gap-3">
+              <div class="w-2 h-2 mt-1.5 bg-primary rounded-full"></div>
+              <div>
+                <p class="text-sm text-on-surface">首次发现</p>
+                <p class="text-xs text-on-surface-variant">2024-01-10 09:15:23</p>
+              </div>
+            </div>
+            <div class="flex items-start gap-3">
+              <div class="w-2 h-2 mt-1.5 bg-error rounded-full"></div>
+              <div>
+                <p class="text-sm text-on-surface">最近发现</p>
+                <p class="text-xs text-on-surface-variant">2024-06-18 10:45:12</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 弹窗底部 -->
+      <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-outline">
+        <button id="btn-mark-false-positive" class="px-4 py-2 text-sm font-medium text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded-md transition-colors">
+          标记为误报
+        </button>
+        <button id="btn-ignore" class="px-4 py-2 text-sm font-medium text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded-md transition-colors">
+          忽略风险
+        </button>
+        <button id="btn-request-fix" class="px-4 py-2 bg-primary text-white rounded-md text-sm font-medium hover:bg-primary-hover transition-colors">
+          请求AI修复
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 高亮当前页面导航
+    $(document).ready(function() {
+      var currentPage = window.location.pathname.split('/').pop() || 'home.html';
+      $('.nav-item').each(function() {
+        if ($(this).attr('href') === currentPage) {
+          $(this).addClass('bg-primary/10 text-primary');
+        } else {
+          $(this).addClass('text-on-surface-variant hover:bg-surface-container hover:text-on-surface');
+        }
+      });
+      lucide.createIcons();
+    });
+    
+    $(function() {
+      // 筛选重置
+      $('#btn-reset').on('click', function() {
+        $('#filter-project').val('');
+        $('#filter-type').val('');
+        $('#filter-severity').val('');
+        $('#filter-rule').val('');
+        $('#filter-status').val('');
+        $('.risk-row').show();
+        $('#total-count').text($('.risk-row:visible').length);
+      });
+      
+      // 筛选联动
+      $('#filter-project, #filter-type, #filter-severity, #filter-rule, #filter-status').on('change', function() {
+        var project = $('#filter-project').val();
+        var type = $('#filter-type').val();
+        var severity = $('#filter-severity').val();
+        var rule = $('#filter-rule').val();
+        var status = $('#filter-status').val();
+        
+        $('.risk-row').each(function() {
+          var row = $(this);
+          var show = true;
+          
+          if (project && row.data('project') !== project && !row.find('span').eq(1).text().includes($('#filter-project option:selected').text())) {
+            show = false;
+          }
+          if (type && !row.data('type') && row.find('span').eq(2).text().indexOf(type) === -1) {
+            // 检查当前行的规则名称是否匹配类型
+            var ruleText = row.find('span').eq(2).text();
+            if (type === 'SAST' && ruleText.indexOf('SQL注入') === -1 && ruleText.indexOf('XSS') === -1 && ruleText.indexOf('反序列化') === -1 && ruleText.indexOf('加密') === -1) {
+              if (ruleText.indexOf('基线') !== -1 || ruleText.indexOf('敏感') !== -1 || ruleText.indexOf('依赖') !== -1) {
+                // 非SAST类型
+              } else {
+                // 默认认为SAST
+              }
+            }
+          }
+          
+          row.toggle(show);
+        });
+        
+        // 简单计数
+        var visibleCount = $('.risk-row:visible').length;
+        $('#total-count').text(visibleCount);
+      });
+      
+      // 导出按钮
+      $('#btn-export').on('click', function() {
+        console.log('导出风险报表');
+        alert('正在导出风险报表，请稍候...');
+      });
+      
+      // 详情按钮 - 打开弹窗
+      $('.btn-detail').on('click', function() {
+        $('#detail-modal').removeClass('hidden');
+      });
+      
+      // 关闭弹窗
+      $('#btn-close-modal').on('click', function() {
+        $('#detail-modal').addClass('hidden');
+      });
+      
+      // 点击遮罩关闭
+      $('#detail-modal').on('click', function(e) {
+        if (e.target === this) {
+          $(this).addClass('hidden');
+        }
+      });
+      
+      // 标记误报
+      $('#btn-mark-false-positive').on('click', function() {
+        console.log('标记为误报');
+        alert('已标记为误报');
+        $('#detail-modal').addClass('hidden');
+      });
+      
+      // 忽略风险
+      $('#btn-ignore').on('click', function() {
+        console.log('忽略风险');
+        alert('已忽略该风险');
+        $('#detail-modal').addClass('hidden');
+      });
+      
+      // 请求AI修复
+      $('#btn-request-fix').on('click', function() {
+        console.log('请求AI修复');
+        alert('正在调用AI修复建议...');
+      });
+      
+      // 分页按钮
+      $('.pagination button').on('click', function() {
+        if (!$(this).attr('disabled')) {
+          console.log('切换到第', $(this).text(), '页');
+        }
+      });
+    });
+  </script>
+</body>
+
+</html>

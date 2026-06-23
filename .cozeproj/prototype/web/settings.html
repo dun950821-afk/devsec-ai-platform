@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <link href="https://lf-code-agent.coze.cn/obj/x-ai-cn/fonts/google/google-all-fonts.css" rel="stylesheet"/>
+
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/jquery/jquery-3.7.1.min.js"></script>
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/lucide/lucide-1.11.0.min.js"></script>
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/tailwindcss/tailwindcss-browser-4.2.4.min.js"></script>
+
+  <style type="text/tailwindcss">
+    @theme {
+      /* === 品牌色 - 商务稳重蓝色 === */
+      --color-primary:              #2563EB;
+      --color-primary-hover:        #1D4ED8;
+      --color-primary-container:    #DBEAFE;
+      --color-on-primary:           #ffffff;
+      /* === 背景 / 表面 === */
+      --color-background:          #ffffff;
+      --color-surface-container-lowest:   #ffffff;
+      --color-surface:             #F8FAFC;
+      --color-surface-container:   #F1F5F9;
+      --color-surface-container-high:     #E2E8F0;
+      --color-surface-container-highest:  #CBD5E1;
+      --color-sidebar:             #EFF6FF;
+      /* === 文字 === */
+      --color-on-surface:          #1F2937;
+      --color-on-surface-variant:  #6B7280;
+      --color-text-secondary:      #9CA3AF;
+      /* === 功能色 === */
+      --color-success:             #22c55e;
+      --color-success-bg:          #DCFCE7;
+      --color-error:               #ef4444;
+      --color-error-bg:            #FEE2E2;
+      --color-warning:             #f59e0b;
+      --color-warning-bg:         #FEF3C7;
+      --color-info:                #3b82f6;
+      --color-info-bg:             #DBEAFE;
+      /* === 边框 === */
+      --color-outline:             #E5E7EB;
+      --color-outline-variant:     #F3F4F6;
+      /* === 圆角 === */
+      --radius-sm:   0.25rem;
+      --radius-md:   0.375rem;
+      --radius-lg:   0.5rem;
+      --radius-xl:   0.75rem;
+      --radius-2xl:  1rem;
+      --radius-full: 9999px;
+      /* === 阴影 === */
+      --shadow-card:   0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+      --shadow-float:  0 4px 6px rgba(0,0,0,0.1), 0 2px 4px rgba(0,0,0,0.06);
+      --shadow-dialog: 0 25px 50px rgba(0,0,0,0.15);
+      /* === 字体 === */
+      --font-sans: "Inter", "Noto Sans SC", system-ui, sans-serif;
+    }
+  </style>
+
+  <style>
+    /* 滚动条样式 */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+    
+    /* 自定义样式 */
+    .stat-up { color: #ef4444; }
+    .stat-down { color: #22c55e; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+    .status-online { background: #22c55e; }
+    .status-offline { background: #9CA3AF; }
+    .status-error { background: #ef4444; }
+    .status-pending { background: #f59e0b; }
+    
+    /* Tab切换样式 */
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .tab-btn { 
+      padding: 0.75rem 1.25rem; 
+      border-bottom: 2px solid transparent; 
+      color: #6B7280; 
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    .tab-btn:hover { color: #2563EB; }
+    .tab-btn.active { 
+      color: #2563EB; 
+      border-bottom-color: #2563EB;
+    }
+    
+    /* 表格行悬停 */
+    .table-row:hover { background-color: #F8FAFC; }
+    
+    /* 模态框 */
+    .modal-overlay { 
+      display: none; 
+      position: fixed; 
+      inset: 0; 
+      background: rgba(0,0,0,0.5); 
+      z-index: 50;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.show { display: flex; }
+  </style>
+</head>
+
+<body class="bg-background text-on-surface font-sans">
+
+  <!-- @nav:start 导航组件 -->
+  <div class="flex h-screen">
+    <!-- 侧边栏 -->
+    <aside class="w-64 shrink-0 bg-sidebar flex flex-col border-r border-outline">
+      <!-- Logo区域 -->
+      <div class="h-16 flex items-center px-4 border-b border-outline">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 bg-primary rounded-md flex items-center justify-center">
+            <i data-lucide="shield-check" class="w-5 h-5 text-white"></i>
+          </div>
+          <span class="font-bold text-base text-on-surface">国舜DevSecAI</span>
+        </div>
+      </div>
+      
+      <!-- 导航菜单 -->
+      <nav class="flex-1 overflow-y-auto py-3 px-2">
+        <div class="space-y-0.5">
+          <a href="home.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors" data-page="home">
+            <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+            <span>首页总览</span>
+          </a>
+          <a href="project.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors" data-page="project">
+            <i data-lucide="folder-kanban" class="w-5 h-5"></i>
+            <span>项目管理</span>
+          </a>
+          <a href="plugin.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors" data-page="plugin">
+            <i data-lucide="puzzle" class="w-5 h-5"></i>
+            <span>插件管理</span>
+          </a>
+          <a href="plugin-capability.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors" data-page="plugin-capability">
+            <i data-lucide="sliders" class="w-5 h-5"></i>
+            <span>插件能力配置</span>
+          </a>
+          <a href="policy.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors" data-page="policy">
+            <i data-lucide="shield" class="w-5 h-5"></i>
+            <span>检测策略中心</span>
+          </a>
+          <a href="rules.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors" data-page="rules">
+            <i data-lucide="scroll-text" class="w-5 h-5"></i>
+            <span>规则管理中心</span>
+          </a>
+          <a href="results.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors" data-page="results">
+            <i data-lucide="scan" class="w-5 h-5"></i>
+            <span>检测结果中心</span>
+          </a>
+          <a href="skill.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors" data-page="skill">
+            <i data-lucide="sparkles" class="w-5 h-5"></i>
+            <span>大模型Skill中心</span>
+          </a>
+          <a href="audit-log.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors" data-page="audit-log">
+            <i data-lucide="file-text" class="w-5 h-5"></i>
+            <span>插件审计日志</span>
+          </a>
+          <a href="settings.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors" data-page="settings">
+            <i data-lucide="settings" class="w-5 h-5"></i>
+            <span>系统设置</span>
+          </a>
+        </div>
+      </nav>
+      
+      <!-- 底部信息 -->
+      <div class="p-3 border-t border-outline">
+        <div class="flex items-center justify-between text-xs text-on-surface-variant">
+          <span>规则包版本: 2026.06.23</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- 右侧主内容区 -->
+    <div class="flex-1 flex flex-col min-w-0">
+      <!-- 顶栏 -->
+      <header class="h-16 bg-surface border-b border-outline flex items-center justify-between px-6">
+        <div class="flex items-center gap-4">
+          <!-- 全局搜索 -->
+          <div class="relative">
+            <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant"></i>
+            <input type="text" placeholder="搜索项目、插件、规则..." class="w-72 h-9 pl-9 pr-4 bg-surface-container border-none rounded-md text-sm focus:ring-2 focus:ring-primary/30 outline-none">
+          </div>
+        </div>
+        
+        <div class="flex items-center gap-4">
+          <!-- 在线插件数 -->
+          <div class="flex items-center gap-2 px-3 py-1.5 bg-success-bg rounded-full">
+            <span class="status-dot status-online"></span>
+            <span class="text-xs font-medium text-on-surface">在线插件 168</span>
+          </div>
+          
+          <!-- 消息通知 -->
+          <button class="relative p-2 hover:bg-surface-container rounded-md transition-colors">
+            <i data-lucide="bell" class="w-5 h-5 text-on-surface-variant"></i>
+            <span class="absolute top-1 right-1 w-2 h-2 bg-error rounded-full"></span>
+          </button>
+          
+          <!-- 用户信息 -->
+          <div class="flex items-center gap-3 pl-4 border-l border-outline">
+            <div class="text-right">
+              <div class="text-sm font-medium text-on-surface">管理员</div>
+              <div class="text-xs text-on-surface-variant">系统管理员</div>
+            </div>
+            <div class="w-9 h-9 bg-primary-container rounded-full flex items-center justify-center">
+              <span class="text-sm font-medium text-primary">管</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- @main-content:start -->
+      <main class="flex-1 min-w-0 overflow-y-auto bg-background p-6">
+        <!-- 页面标题 -->
+        <div class="mb-6">
+          <h1 class="text-2xl font-bold text-on-surface">系统设置</h1>
+          <p class="text-sm text-on-surface-variant mt-1">管理用户、角色、权限和组织机构等系统配置</p>
+        </div>
+        
+        <!-- Tab切换 -->
+        <div class="bg-surface rounded-lg shadow-card mb-6">
+          <div class="flex border-b border-outline overflow-x-auto">
+            <button class="tab-btn active" data-tab="user-management">用户管理</button>
+            <button class="tab-btn" data-tab="role-management">角色管理</button>
+            <button class="tab-btn" data-tab="permission-management">权限管理</button>
+            <button class="tab-btn" data-tab="organization">组织机构</button>
+            <button class="tab-btn" data-tab="api-token">API Token</button>
+            <button class="tab-btn" data-tab="login-log">登录日志</button>
+          </div>
+          
+          <!-- 用户管理 Tab -->
+          <div id="tab-user-management" class="tab-content active p-5">
+            <!-- 操作栏 -->
+            <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center gap-3">
+                <input type="text" placeholder="搜索用户名、邮箱..." class="w-64 h-9 pl-3 pr-4 bg-surface-container border-none rounded-md text-sm focus:ring-2 focus:ring-primary/30 outline-none">
+                <select class="h-9 px-3 bg-surface-container border-none rounded-md text-sm text-on-surface focus:ring-2 focus:ring-primary/30 outline-none">
+                  <option value="">全部角色</option>
+                  <option value="admin">系统管理员</option>
+                  <option value="security">安全管理员</option>
+                  <option value="project">项目负责人</option>
+                  <option value="developer">开发人员</option>
+                  <option value="auditor">审计人员</option>
+                  <option value="readonly">只读用户</option>
+                </select>
+                <select class="h-9 px-3 bg-surface-container border-none rounded-md text-sm text-on-surface focus:ring-2 focus:ring-primary/30 outline-none">
+                  <option value="">全部状态</option>
+                  <option value="active">启用</option>
+                  <option value="disabled">禁用</option>
+                </select>
+              </div>
+              <button id="btn-add-user" class="bg-primary text-on-primary px-4 py-2 rounded-md text-sm font-medium hover:opacity-90 active:scale-[0.98] transition-all inline-flex items-center gap-2">
+                <i data-lucide="plus" class="w-4 h-4"></i>新增用户
+              </button>
+            </div>
+            
+            <!-- 用户列表表格 -->
+            <div class="bg-surface rounded-lg shadow-card overflow-hidden">
+              <div class="grid grid-cols-6 px-4 py-3 bg-surface-container text-xs font-semibold text-on-surface-variant uppercase tracking-wide">
+                <span>用户名</span>
+                <span>邮箱</span>
+                <span>手机</span>
+                <span>角色</span>
+                <span>状态</span>
+                <span>创建时间</span>
+              </div>
+              <div class="divide-y divide-outline-variant/50">
+                <!-- 列表-用户1 -->
+                <div class="grid grid-cols-6 px-4 py-3 table-row transition-colors items-center">
+                  <span class="text-sm font-medium text-on-surface">张小明</span>
+                  <span class="text-sm text-on-surface-variant">zhangxiaoming@guoshun.com</span>
+                  <span class="text-sm text-on-surface-variant">138****1234</span>
+                  <span class="text-sm text-on-surface-variant">系统管理员</span>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-success/15 text-success w-fit">启用</span>
+                  <span class="text-sm text-on-surface-variant">2024-03-15</span>
+                </div>
+                <!-- 列表-用户2 -->
+                <div class="grid grid-cols-6 px-4 py-3 table-row transition-colors items-center">
+                  <span class="text-sm font-medium text-on-surface">李晓华</span>
+                  <span class="text-sm text-on-surface-variant">lixiaohua@guoshun.com</span>
+                  <span class="text-sm text-on-surface-variant">139****5678</span>
+                  <span class="text-sm text-on-surface-variant">安全管理员</span>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-success/15 text-success w-fit">启用</span>
+                  <span class="text-sm text-on-surface-variant">2024-03-10</span>
+                </div>
+                <!-- 列表-用户3 -->
+                <div class="grid grid-cols-6 px-4 py-3 table-row transition-colors items-center">
+                  <span class="text-sm font-medium text-on-surface">王建国</span>
+                  <span class="text-sm text-on-surface-variant">wangjianguo@guoshun.com</span>
+                  <span class="text-sm text-on-surface-variant">137****9012</span>
+                  <span class="text-sm text-on-surface-variant">项目负责人</span>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-success/15 text-success w-fit">启用</span>
+                  <span class="text-sm text-on-surface-variant">2024-02-28</span>
+                </div>
+                <!-- 列表-用户4 -->
+                <div class="grid grid-cols-6 px-4 py-3 table-row transition-colors items-center">
+                  <span class="text-sm font-medium text-on-surface">陈思思</span>
+                  <span class="text-sm text-on-surface-variant">chensisi@guoshun.com</span>
+                  <span class="text-sm text-on-surface-variant">136****3456</span>
+                  <span class="text-sm text-on-surface-variant">开发人员</span>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-success/15 text-success w-fit">启用</span>
+                  <span class="text-sm text-on-surface-variant">2024-02-20</span>
+                </div>
+                <!-- 列表-用户5 -->
+                <div class="grid grid-cols-6 px-4 py-3 table-row transition-colors items-center">
+                  <span class="text-sm font-medium text-on-surface">刘审计</span>
+                  <span class="text-sm text-on-surface-variant">liushenji@guoshun.com</span>
+                  <span class="text-sm text-on-surface-variant">135****7890</span>
+                  <span class="text-sm text-on-surface-variant">审计人员</span>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-error/15 text-error w-fit">禁用</span>
+                  <span class="text-sm text-on-surface-variant">2024-01-15</span>
+                </div>
+                <!-- 列表-用户6 -->
+                <div class="grid grid-cols-6 px-4 py-3 table-row transition-colors items-center">
+                  <span class="text-sm font-medium text-on-surface">赵readonly</span>
+                  <span class="text-sm text-on-surface-variant">zhaoreadonly@guoshun.com</span>
+                  <span class="text-sm text-on-surface-variant">158****2345</span>
+                  <span class="text-sm text-on-surface-variant">只读用户</span>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-success/15 text-success w-fit">启用</span>
+                  <span class="text-sm text-on-surface-variant">2024-01-10</span>
+                </div>
+              </div>
+            </div>
+            
+            <!-- 分页 -->
+            <div class="flex items-center justify-between mt-4">
+              <span class="text-sm text-on-surface-variant">共 6 条记录</span>
+              <div class="flex items-center gap-2">
+                <button class="px-3 py-1.5 text-sm text-on-surface-variant hover:bg-surface-container rounded-md transition-colors">上一页</button>
+                <button class="px-3 py-1.5 text-sm bg-primary text-white rounded-md">1</button>
+                <button class="px-3 py-1.5 text-sm text-on-surface-variant hover:bg-surface-container rounded-md transition-colors">2</button>
+                <button class="px-3 py-1.5 text-sm text-on-surface-variant hover:bg-surface-container rounded-md transition-colors">下一页</button>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 角色管理 Tab -->
+          <div id="tab-role-management" class="tab-content p-5">
+            <!-- 操作栏 -->
+            <div class="flex items-center justify-end mb-4">
+              <button id="btn-add-role" class="bg-primary text-on-primary px-4 py-2 rounded-md text-sm font-medium hover:opacity-90 active:scale-[0.98] transition-all inline-flex items-center gap-2">
+                <i data-lucide="plus" class="w-4 h-4"></i>新增角色
+              </button>
+            </div>
+            
+            <!-- 角色列表 -->
+            <div class="grid grid-cols-2 gap-4">
+              <!-- 角色卡片-系统管理员 -->
+              <div class="bg-surface border border-outline rounded-lg p-4 hover:shadow-card transition-shadow">
+                <div class="flex items-start justify-between mb-3">
+                  <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-error/10 rounded-md flex items-center justify-center">
+                      <i data-lucide="shield-alert" class="w-5 h-5 text-error"></i>
+                    </div>
+                    <div>
+                      <h3 class="text-base font-semibold text-on-surface">系统管理员</h3>
+                      <p class="text-xs text-on-surface-variant">system_admin</p>
+                    </div>
+                  </div>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-warning/15 text-warning">内置角色</span>
+                </div>
+                <p class="text-sm text-on-surface-variant mb-3">拥有系统全部权限，可管理所有用户、角色和系统配置</p>
+                <div class="flex items-center justify-between text-xs text-on-surface-variant">
+                  <span>用户数：2</span>
+                  <div class="flex gap-2">
+                    <button class="text-primary hover:underline">编辑</button>
+                    <button class="text-on-surface-variant hover:text-on-surface" disabled>删除</button>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- 角色卡片-安全管理员 -->
+              <div class="bg-surface border border-outline rounded-lg p-4 hover:shadow-card transition-shadow">
+                <div class="flex items-start justify-between mb-3">
+                  <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-warning/10 rounded-md flex items-center justify-center">
+                      <i data-lucide="shield-check" class="w-5 h-5 text-warning"></i>
+                    </div>
+                    <div>
+                      <h3 class="text-base font-semibold text-on-surface">安全管理员</h3>
+                      <p class="text-xs text-on-surface-variant">security_admin</p>
+                    </div>
+                  </div>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-warning/15 text-warning">内置角色</span>
+                </div>
+                <p class="text-sm text-on-surface-variant mb-3">负责安全策略配置、规则管理和安全审计</p>
+                <div class="flex items-center justify-between text-xs text-on-surface-variant">
+                  <span>用户数：1</span>
+                  <div class="flex gap-2">
+                    <button class="text-primary hover:underline">编辑</button>
+                    <button class="text-on-surface-variant hover:text-on-surface" disabled>删除</button>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- 角色卡片-项目负责人 -->
+              <div class="bg-surface border border-outline rounded-lg p-4 hover:shadow-card transition-shadow">
+                <div class="flex items-start justify-between mb-3">
+                  <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-info/10 rounded-md flex items-center justify-center">
+                      <i data-lucide="folder-check" class="w-5 h-5 text-info"></i>
+                    </div>
+                    <div>
+                      <h3 class="text-base font-semibold text-on-surface">项目负责人</h3>
+                      <p class="text-xs text-on-surface-variant">project_manager</p>
+                    </div>
+                  </div>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-warning/15 text-warning">内置角色</span>
+                </div>
+                <p class="text-sm text-on-surface-variant mb-3">管理项目配置、查看项目风险和安全报告</p>
+                <div class="flex items-center justify-between text-xs text-on-surface-variant">
+                  <span>用户数：3</span>
+                  <div class="flex gap-2">
+                    <button class="text-primary hover:underline">编辑</button>
+                    <button class="text-on-surface-variant hover:text-on-surface" disabled>删除</button>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- 角色卡片-开发人员 -->
+              <div class="bg-surface border border-outline rounded-lg p-4 hover:shadow-card transition-shadow">
+                <div class="flex items-start justify-between mb-3">
+                  <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-primary/10 rounded-md flex items-center justify-center">
+                      <i data-lucide="code-2" class="w-5 h-5 text-primary"></i>
+                    </div>
+                    <div>
+                      <h3 class="text-base font-semibold text-on-surface">开发人员</h3>
+                      <p class="text-xs text-on-surface-variant">developer</p>
+                    </div>
+                  </div>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-warning/15 text-warning">内置角色</span>
+                </div>
+                <p class="text-sm text-on-surface-variant mb-3">使用IDE插件进行代码安全检测和修复</p>
+                <div class="flex items-center justify-between text-xs text-on-surface-variant">
+                  <span>用户数：15</span>
+                  <div class="flex gap-2">
+                    <button class="text-primary hover:underline">编辑</button>
+                    <button class="text-on-surface-variant hover:text-on-surface" disabled>删除</button>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- 角色卡片-审计人员 -->
+              <div class="bg-surface border border-outline rounded-lg p-4 hover:shadow-card transition-shadow">
+                <div class="flex items-start justify-between mb-3">
+                  <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-success/10 rounded-md flex items-center justify-center">
+                      <i data-lucide="clipboard-check" class="w-5 h-5 text-success"></i>
+                    </div>
+                    <div>
+                      <h3 class="text-base font-semibold text-on-surface">审计人员</h3>
+                      <p class="text-xs text-on-surface-variant">auditor</p>
+                    </div>
+                  </div>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-warning/15 text-warning">内置角色</span>
+                </div>
+                <p class="text-sm text-on-surface-variant mb-3">查看审计日志、安全报告和分析统计数据</p>
+                <div class="flex items-center justify-between text-xs text-on-surface-variant">
+                  <span>用户数：2</span>
+                  <div class="flex gap-2">
+                    <button class="text-primary hover:underline">编辑</button>
+                    <button class="text-on-surface-variant hover:text-on-surface" disabled>删除</button>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- 角色卡片-只读用户 -->
+              <div class="bg-surface border border-outline rounded-lg p-4 hover:shadow-card transition-shadow">
+                <div class="flex items-start justify-between mb-3">
+                  <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-on-surface-variant/10 rounded-md flex items-center justify-center">
+                      <i data-lucide="eye" class="w-5 h-5 text-on-surface-variant"></i>
+                    </div>
+                    <div>
+                      <h3 class="text-base font-semibold text-on-surface">只读用户</h3>
+                      <p class="text-xs text-on-surface-variant">readonly</p>
+                    </div>
+                  </div>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-warning/15 text-warning">内置角色</span>
+                </div>
+                <p class="text-sm text-on-surface-variant mb-3">仅可查看系统数据，无修改权限</p>
+                <div class="flex items-center justify-between text-xs text-on-surface-variant">
+                  <span>用户数：5</span>
+                  <div class="flex gap-2">
+                    <button class="text-primary hover:underline">编辑</button>
+                    <button class="text-on-surface-variant hover:text-on-surface" disabled>删除</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 权限管理 Tab -->
+          <div id="tab-permission-management" class="tab-content p-5">
+            <!-- 操作栏 -->
+            <div class="flex items-center justify-end mb-4">
+              <button id="btn-add-permission" class="bg-primary text-on-primary px-4 py-2 rounded-md text-sm font-medium hover:opacity-90 active:scale-[0.98] transition-all inline-flex items-center gap-2">
+                <i data-lucide="plus" class="w-4 h-4"></i>新增权限
+              </button>
+            </div>
+            
+            <!-- 权限树 -->
+            <div class="bg-surface rounded-lg shadow-card p-4">
+              <div class="space-y-4">
+                <!-- 菜单权限 -->
+                <div class="border-b border-outline pb-4">
+                  <div class="flex items-center gap-2 mb-3">
+                    <i data-lucide="layout-grid" class="w-4 h-4 text-primary"></i>
+                    <span class="text-sm font-semibold text-on-surface">菜单权限</span>
+                  </div>
+                  <div class="grid grid-cols-3 gap-3 pl-6">
+                    <label class="flex items-center gap-2 text-sm cursor-pointer">
+                      <input type="checkbox" checked class="w-4 h-4 rounded border-outline text-primary focus:ring-primary">
+                      <span class="text-on-surface">首页总览</span>
+                    </label>
+                    <label class="flex items-center gap-2 text-sm cursor-pointer">
+                      <input type="checkbox" checked class="w-4 h-4 rounded border-outline text-primary focus:ring-primary">
+                      <span class="text-on-surface">项目管理</span>
+                    </label>
+                    <label class="flex items-center gap-2 text-sm cursor-pointer">
+                      <input type="checkbox" checked class="w-4 h-4 rounded border-outline text-primary focus:ring-primary">
+                      <span class="text-on-surface">插件管理</span>
+                    </label>
+                    <label class="flex items-center gap-2 text-sm cursor-pointer">
+                      <input type="checkbox" checked class="w-4 h-4 rounded border-outline text-primary focus:ring-primary">
+                      <span class="text-on-surface">插件能力配置</span>
+                    </label>
+                    <label class="flex items-center gap-2 text-sm cursor-pointer">
+                      <input type="checkbox" checked class="w-4 h-4 rounded border-outline text-primary focus:ring-primary">
+                      <span class="text-on-surface">检测策略中心</span>
+                    </label>
+                    <label class="flex items-center gap-2 text-sm cursor-pointer">
+                      <input type="checkbox" checked class="w-4 h-4 rounded border-outline text-primary focus:ring-primary">
+                      <span class="text-on-surface">规则管理中心</span>
+                    </label>
+                    <label class="flex items-center gap-2 text-sm cursor-pointer">
+                      <input type="checkbox" checked class="w-4 h-4 rounded border-outline text-primary focus:ring-primary">
+                      <span class="text-on-surface">检测结果中心</span>
+                    </label>
+                    <label class="flex items-center gap-2 text-sm cursor-pointer">
+                      <input type="checkbox" checked class="w-4 h-4 rounded border-outline text-primary focus:ring-primary">
+                      <span class="text-on-surface">大模型Skill中心</span>
+                    </label>
+                    <label class="flex items-center gap-2 text-sm cursor-pointer">
+                      <input type="checkbox" checked class="w-4 h-4 rounded border-outline text-primary focus:ring-primary">
+                      <span class="text-on-surface">插件审计日志</span>
+                    </label>
+                    <label class="flex items-center gap-2 text-sm cursor-pointer">
+                      <input type="checkbox" checked class="w-4 h-4 rounded border-outline text-primary focus:ring-primary">
+                      <span class="text-on-surface">系统设置</span>
+                    </label>
+                  </div>
+                </div>
+                
+                <!-- 数据权限 -->
+                <div class="border-b border-outline pb-4">
+                  <div class="flex items-center gap-2 mb-3">
+                    <i data-lucide="database" class="w-4 h-4 text-primary"></i>
+                    <span class="text-sm font-semibold text-on-surface">数据权限</span>
+                  </div>
+                  <div class="grid grid-cols-3 gap-3 pl-6">
+                    <label class="flex items-center gap-2 text-sm cursor-pointer">
+                      <input type="checkbox" checked class="w-4 h-4 rounded border-outline text-primary focus:ring-primary">
+                      <span class="text-on-surface">查看全部数据</span>
+                    </label>
+                    <label class="flex items-center gap-2 text-sm cursor-pointer">
+                      <input type="checkbox" class="w-4 h-4 rounded border-outline text-primary focus:ring-primary">
+                      <span class="text-on-surface">仅查看本部门数据</span>
+                    </label>
+                    <label class="flex items-center gap-2 text-sm cursor-pointer">
+                      <input type="checkbox" class="w-4 h-4 rounded border-outline text-primary focus:ring-primary">
+                      <span class="text-on-surface">仅查看本人数据</span>
+                    </label>
+                  </div>
+                </div>
+                
+                <!-- 操作权限 -->
+                <div>
+                  <div class="flex items-center gap-2 mb-3">
+                    <i data-lucide="settings-2" class="w-4 h-4 text-primary"></i>
+                    <span class="text-sm font-semibold text-on-surface">操作权限</span>
+                  </div>
+                  <div class="grid grid-cols-3 gap-3 pl-6">
+                    <label class="flex items-center gap-2 text-sm cursor-pointer">
+                      <input type="checkbox" checked class="w-4 h-4 rounded border-outline text-primary focus:ring-primary">
+                      <span class="text-on-surface">新增</span>
+                    </label>
+                    <label class="flex items-center gap-2 text-sm cursor-pointer">
+                      <input type="checkbox" checked class="w-4 h-4 rounded border-outline text-primary focus:ring-primary">
+                      <span class="text-on-surface">编辑</span>
+                    </label>
+                    <label class="flex items-center gap-2 text-sm cursor-pointer">
+                      <input type="checkbox" checked class="w-4 h-4 rounded border-outline text-primary focus:ring-primary">
+                      <span class="text-on-surface">删除</span>
+                    </label>
+                    <label class="flex items-center gap-2 text-sm cursor-pointer">
+                      <input type="checkbox" checked class="w-4 h-4 rounded border-outline text-primary focus:ring-primary">
+                      <span class="text-on-surface">导出</span>
+                    </label>
+                    <label class="flex items-center gap-2 text-sm cursor-pointer">
+                      <input type="checkbox" class="w-4 h-4 rounded border-outline text-primary focus:ring-primary">
+                      <span class="text-on-surface">批量操作</span>
+                    </label>
+                    <label class="flex items-center gap-2 text-sm cursor-pointer">
+                      <input type="checkbox" checked class="w-4 h-4 rounded border-outline text-primary focus:ring-primary">
+                      <span class="text-on-surface">查看详情</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 组织机构 Tab -->
+          <div id="tab-organization" class="tab-content p-5">
+            <!-- 操作栏 -->
+            <div class="flex items-center justify-end mb-4">
+              <button id="btn-add-org" class="bg-primary text-on-primary px-4 py-2 rounded-md text-sm font-medium hover:opacity-90 active:scale-[0.98] transition-all inline-flex items-center gap-2">
+                <i data-lucide="plus" class="w-4 h-4"></i>新增部门
+              </button>
+            </div>
+            
+            <!-- 组织架构树 -->
+            <div class="bg-surface rounded-lg shadow-card p-4">
+              <div class="space-y-2">
+                <!-- 根部门 -->
+                <div class="border border-outline rounded-lg p-3">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                      <i data-lucide="building-2" class="w-5 h-5 text-primary"></i>
+                      <span class="text-sm font-medium text-on-surface">国舜科技</span>
+                      <span class="text-xs text-on-surface-variant bg-surface-container px-2 py-0.5 rounded">总公司</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <button class="text-primary text-sm hover:underline">编辑</button>
+                      <button class="text-primary text-sm hover:underline">添加子部门</button>
+                    </div>
+                  </div>
+                  
+                  <!-- 子部门1 -->
+                  <div class="ml-8 mt-3 border-l-2 border-outline pl-4 space-y-2">
+                    <div class="border border-outline rounded-lg p-3 bg-surface-container/50">
+                      <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                          <i data-lucide="building" class="w-4 h-4 text-info"></i>
+                          <span class="text-sm font-medium text-on-surface">研发中心</span>
+                          <span class="text-xs text-on-surface-variant bg-surface-container px-2 py-0.5 rounded">部门</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                          <button class="text-primary text-sm hover:underline">编辑</button>
+                          <button class="text-primary text-sm hover:underline">添加子部门</button>
+                        </div>
+                      </div>
+                      
+                      <!-- 孙部门 -->
+                      <div class="ml-6 mt-3 border-l-2 border-outline pl-4 space-y-2">
+                        <div class="flex items-center justify-between border border-outline rounded-lg p-3 bg-surface-container/30">
+                          <div class="flex items-center gap-3">
+                            <i data-lucide="users" class="w-4 h-4 text-on-surface-variant"></i>
+                            <span class="text-sm text-on-surface">前端开发组</span>
+                          </div>
+                          <button class="text-primary text-sm hover:underline">编辑</button>
+                        </div>
+                        <div class="flex items-center justify-between border border-outline rounded-lg p-3 bg-surface-container/30">
+                          <div class="flex items-center gap-3">
+                            <i data-lucide="users" class="w-4 h-4 text-on-surface-variant"></i>
+                            <span class="text-sm text-on-surface">后端开发组</span>
+                          </div>
+                          <button class="text-primary text-sm hover:underline">编辑</button>
+                        </div>
+                        <div class="flex items-center justify-between border border-outline rounded-lg p-3 bg-surface-container/30">
+                          <div class="flex items-center gap-3">
+                            <i data-lucide="users" class="w-4 h-4 text-on-surface-variant"></i>
+                            <span class="text-sm text-on-surface">安全测试组</span>
+                          </div>
+                          <button class="text-primary text-sm hover:underline">编辑</button>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <!-- 子部门2 -->
+                    <div class="border border-outline rounded-lg p-3 bg-surface-container/50">
+                      <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                          <i data-lucide="building" class="w-4 h-4 text-info"></i>
+                          <span class="text-sm font-medium text-on-surface">产品部</span>
+                          <span class="text-xs text-on-surface-variant bg-surface-container px-2 py-0.5 rounded">部门</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                          <button class="text-primary text-sm hover:underline">编辑</button>
+                          <button class="text-primary text-sm hover:underline">添加子部门</button>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <!-- 子部门3 -->
+                    <div class="border border-outline rounded-lg p-3 bg-surface-container/50">
+                      <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                          <i data-lucide="building" class="w-4 h-4 text-info"></i>
+                          <span class="text-sm font-medium text-on-surface">市场部</span>
+                          <span class="text-xs text-on-surface-variant bg-surface-container px-2 py-0.5 rounded">部门</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                          <button class="text-primary text-sm hover:underline">编辑</button>
+                          <button class="text-primary text-sm hover:underline">添加子部门</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- API Token Tab -->
+          <div id="tab-api-token" class="tab-content p-5">
+            <!-- 操作栏 -->
+            <div class="flex items-center justify-between mb-4">
+              <p class="text-sm text-on-surface-variant">API Token 用于程序化访问平台接口，请妥善保管</p>
+              <button id="btn-create-token" class="bg-primary text-on-primary px-4 py-2 rounded-md text-sm font-medium hover:opacity-90 active:scale-[0.98] transition-all inline-flex items-center gap-2">
+                <i data-lucide="plus" class="w-4 h-4"></i>创建Token
+              </button>
+            </div>
+            
+            <!-- Token列表 -->
+            <div class="space-y-3">
+              <!-- Token卡片1 -->
+              <div class="bg-surface border border-outline rounded-lg p-4">
+                <div class="flex items-start justify-between mb-3">
+                  <div>
+                    <h3 class="text-base font-semibold text-on-surface">CI/CD集成Token</h3>
+                    <p class="text-xs text-on-surface-variant mt-1">用于Jenkins/GitLab CI/CD流水线</p>
+                  </div>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-success/15 text-success">启用</span>
+                </div>
+                <div class="bg-surface-container rounded-md p-3 mb-3 font-mono text-sm text-on-surface break-all">
+                  gsk_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6
+                </div>
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-4 text-xs text-on-surface-variant">
+                    <span>创建时间：2024-03-01</span>
+                    <span>最后使用：2024-06-20 14:30</span>
+                    <span>过期时间：2025-03-01</span>
+                  </div>
+                  <div class="flex items-center gap-3">
+                    <button class="text-warning text-sm hover:underline">禁用</button>
+                    <button class="text-error text-sm hover:underline">删除</button>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Token卡片2 -->
+              <div class="bg-surface border border-outline rounded-lg p-4">
+                <div class="flex items-start justify-between mb-3">
+                  <div>
+                    <h3 class="text-base font-semibold text-on-surface">监控系统Token</h3>
+                    <p class="text-xs text-on-surface-variant mt-1">用于Prometheus/Grafana监控集成</p>
+                  </div>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-success/15 text-success">启用</span>
+                </div>
+                <div class="bg-surface-container rounded-md p-3 mb-3 font-mono text-sm text-on-surface break-all">
+                  gsk_q1w2e3r4t5y6u7i8o9p0a1s2d3f4g5h6
+                </div>
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-4 text-xs text-on-surface-variant">
+                    <span>创建时间：2024-02-15</span>
+                    <span>最后使用：2024-06-20 10:15</span>
+                    <span>过期时间：2025-02-15</span>
+                  </div>
+                  <div class="flex items-center gap-3">
+                    <button class="text-warning text-sm hover:underline">禁用</button>
+                    <button class="text-error text-sm hover:underline">删除</button>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Token卡片3 -->
+              <div class="bg-surface border border-outline rounded-lg p-4">
+                <div class="flex items-start justify-between mb-3">
+                  <div>
+                    <h3 class="text-base font-semibold text-on-surface">测试环境Token</h3>
+                    <p class="text-xs text-on-surface-variant mt-1">开发测试使用，不应用于生产环境</p>
+                  </div>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-warning/15 text-warning">已禁用</span>
+                </div>
+                <div class="bg-surface-container rounded-md p-3 mb-3 font-mono text-sm text-on-surface break-all">
+                  gsk_z9x8c7v6b5n4m3q2w1e0r9t8y7u6i5o4
+                </div>
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-4 text-xs text-on-surface-variant">
+                    <span>创建时间：2024-01-20</span>
+                    <span>最后使用：2024-04-10 09:00</span>
+                    <span>过期时间：2024-07-20</span>
+                  </div>
+                  <div class="flex items-center gap-3">
+                    <button class="text-success text-sm hover:underline">启用</button>
+                    <button class="text-error text-sm hover:underline">删除</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 登录日志 Tab -->
+          <div id="tab-login-log" class="tab-content p-5">
+            <!-- 操作栏 -->
+            <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center gap-3">
+                <select class="h-9 px-3 bg-surface-container border-none rounded-md text-sm text-on-surface focus:ring-2 focus:ring-primary/30 outline-none">
+                  <option value="">全部类型</option>
+                  <option value="login">登录</option>
+                  <option value="logout">登出</option>
+                  <option value="failed">登录失败</option>
+                </select>
+                <input type="date" class="h-9 px-3 bg-surface-container border-none rounded-md text-sm text-on-surface focus:ring-2 focus:ring-primary/30 outline-none">
+                <span class="text-on-surface-variant">至</span>
+                <input type="date" class="h-9 px-3 bg-surface-container border-none rounded-md text-sm text-on-surface focus:ring-2 focus:ring-primary/30 outline-none">
+              </div>
+              <button class="bg-surface-container text-on-surface px-4 py-2 rounded-md text-sm font-medium hover:bg-surface-container-high transition-colors inline-flex items-center gap-2">
+                <i data-lucide="download" class="w-4 h-4"></i>导出
+              </button>
+            </div>
+            
+            <!-- 日志列表表格 -->
+            <div class="bg-surface rounded-lg shadow-card overflow-hidden">
+              <div class="grid grid-cols-6 px-4 py-3 bg-surface-container text-xs font-semibold text-on-surface-variant uppercase tracking-wide">
+                <span>时间</span>
+                <span>用户</span>
+                <span>类型</span>
+                <span>IP地址</span>
+                <span>浏览器</span>
+                <span>状态</span>
+              </div>
+              <div class="divide-y divide-outline-variant/50">
+                <!-- 日志1 -->
+                <div class="grid grid-cols-6 px-4 py-3 table-row transition-colors items-center">
+                  <span class="text-sm text-on-surface-variant">2024-06-20 14:30:25</span>
+                  <span class="text-sm font-medium text-on-surface">张小明</span>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-info/15 text-info">登录</span>
+                  <span class="text-sm text-on-surface-variant">192.168.1.100</span>
+                  <span class="text-sm text-on-surface-variant">Chrome 125.0</span>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-success/15 text-success">成功</span>
+                </div>
+                <!-- 日志2 -->
+                <div class="grid grid-cols-6 px-4 py-3 table-row transition-colors items-center">
+                  <span class="text-sm text-on-surface-variant">2024-06-20 14:28:10</span>
+                  <span class="text-sm font-medium text-on-surface">刘审计</span>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-error/15 text-error">登录失败</span>
+                  <span class="text-sm text-on-surface-variant">10.0.0.55</span>
+                  <span class="text-sm text-on-surface-variant">Firefox 127.0</span>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-error/15 text-error">失败</span>
+                </div>
+                <!-- 日志3 -->
+                <div class="grid grid-cols-6 px-4 py-3 table-row transition-colors items-center">
+                  <span class="text-sm text-on-surface-variant">2024-06-20 13:45:00</span>
+                  <span class="text-sm font-medium text-on-surface">李晓华</span>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-warning/15 text-warning">登出</span>
+                  <span class="text-sm text-on-surface-variant">192.168.1.105</span>
+                  <span class="text-sm text-on-surface-variant">Edge 125.0</span>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-success/15 text-success">成功</span>
+                </div>
+                <!-- 日志4 -->
+                <div class="grid grid-cols-6 px-4 py-3 table-row transition-colors items-center">
+                  <span class="text-sm text-on-surface-variant">2024-06-20 11:20:15</span>
+                  <span class="text-sm font-medium text-on-surface">王建国</span>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-info/15 text-info">登录</span>
+                  <span class="text-sm text-on-surface-variant">192.168.1.110</span>
+                  <span class="text-sm text-on-surface-variant">Chrome 125.0</span>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-success/15 text-success">成功</span>
+                </div>
+                <!-- 日志5 -->
+                <div class="grid grid-cols-6 px-4 py-3 table-row transition-colors items-center">
+                  <span class="text-sm text-on-surface-variant">2024-06-20 10:05:30</span>
+                  <span class="text-sm font-medium text-on-surface">陈思思</span>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-info/15 text-info">登录</span>
+                  <span class="text-sm text-on-surface-variant">172.16.0.50</span>
+                  <span class="text-sm text-on-surface-variant">Safari 17.5</span>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-success/15 text-success">成功</span>
+                </div>
+                <!-- 日志6 -->
+                <div class="grid grid-cols-6 px-4 py-3 table-row transition-colors items-center">
+                  <span class="text-sm text-on-surface-variant">2024-06-20 09:15:42</span>
+                  <span class="text-sm font-medium text-on-surface">赵readonly</span>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-error/15 text-error">登录失败</span>
+                  <span class="text-sm text-on-surface-variant">203.0.113.10</span>
+                  <span class="text-sm text-on-surface-variant">Chrome 124.0</span>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-error/15 text-error">失败</span>
+                </div>
+              </div>
+            </div>
+            
+            <!-- 分页 -->
+            <div class="flex items-center justify-between mt-4">
+              <span class="text-sm text-on-surface-variant">共 128 条记录</span>
+              <div class="flex items-center gap-2">
+                <button class="px-3 py-1.5 text-sm text-on-surface-variant hover:bg-surface-container rounded-md transition-colors">上一页</button>
+                <button class="px-3 py-1.5 text-sm bg-primary text-white rounded-md">1</button>
+                <button class="px-3 py-1.5 text-sm text-on-surface-variant hover:bg-surface-container rounded-md transition-colors">2</button>
+                <button class="px-3 py-1.5 text-sm text-on-surface-variant hover:bg-surface-container rounded-md transition-colors">3</button>
+                <button class="px-3 py-1.5 text-sm text-on-surface-variant hover:bg-surface-container rounded-md transition-colors">...</button>
+                <button class="px-3 py-1.5 text-sm text-on-surface-variant hover:bg-surface-container rounded-md transition-colors">13</button>
+                <button class="px-3 py-1.5 text-sm text-on-surface-variant hover:bg-surface-container rounded-md transition-colors">下一页</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+      <!-- @main-content:end -->
+    </div>
+  </div>
+
+  <!-- 新增用户模态框 -->
+  <div id="modal-add-user" class="modal-overlay">
+    <div class="bg-surface rounded-xl shadow-dialog max-w-lg w-full max-h-[90vh] overflow-y-auto p-6">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-lg font-semibold text-on-surface">新增用户</h2>
+        <button id="btn-close-user-modal" class="p-1 hover:bg-surface-container rounded-md transition-colors">
+          <i data-lucide="x" class="w-5 h-5 text-on-surface-variant"></i>
+        </button>
+      </div>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-on-surface mb-1.5">用户名</label>
+          <input type="text" class="w-full h-10 pl-3 pr-4 bg-surface-container border-none rounded-md text-sm focus:ring-2 focus:ring-primary/30 outline-none" placeholder="请输入用户名">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-on-surface mb-1.5">邮箱</label>
+          <input type="email" class="w-full h-10 pl-3 pr-4 bg-surface-container border-none rounded-md text-sm focus:ring-2 focus:ring-primary/30 outline-none" placeholder="请输入邮箱">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-on-surface mb-1.5">手机</label>
+          <input type="tel" class="w-full h-10 pl-3 pr-4 bg-surface-container border-none rounded-md text-sm focus:ring-2 focus:ring-primary/30 outline-none" placeholder="请输入手机号">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-on-surface mb-1.5">角色</label>
+          <select class="w-full h-10 px-3 bg-surface-container border-none rounded-md text-sm text-on-surface focus:ring-2 focus:ring-primary/30 outline-none">
+            <option value="">请选择角色</option>
+            <option value="admin">系统管理员</option>
+            <option value="security">安全管理员</option>
+            <option value="project">项目负责人</option>
+            <option value="developer">开发人员</option>
+            <option value="auditor">审计人员</option>
+            <option value="readonly">只读用户</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-on-surface mb-1.5">部门</label>
+          <select class="w-full h-10 px-3 bg-surface-container border-none rounded-md text-sm text-on-surface focus:ring-2 focus:ring-primary/30 outline-none">
+            <option value="">请选择部门</option>
+            <option value="rd">研发中心</option>
+            <option value="product">产品部</option>
+            <option value="market">市场部</option>
+          </select>
+        </div>
+      </div>
+      <div class="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-outline">
+        <button id="btn-cancel-user" class="bg-surface-container text-on-surface px-4 py-2 rounded-md text-sm font-medium hover:bg-surface-container-high transition-colors">取消</button>
+        <button id="btn-confirm-add-user" class="bg-primary text-on-primary px-4 py-2 rounded-md text-sm font-medium hover:opacity-90 transition-all">确认创建</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 创建Token模态框 -->
+  <div id="modal-create-token" class="modal-overlay">
+    <div class="bg-surface rounded-xl shadow-dialog max-w-lg w-full max-h-[90vh] overflow-y-auto p-6">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-lg font-semibold text-on-surface">创建API Token</h2>
+        <button id="btn-close-token-modal" class="p-1 hover:bg-surface-container rounded-md transition-colors">
+          <i data-lucide="x" class="w-5 h-5 text-on-surface-variant"></i>
+        </button>
+      </div>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-on-surface mb-1.5">Token名称</label>
+          <input type="text" class="w-full h-10 pl-3 pr-4 bg-surface-container border-none rounded-md text-sm focus:ring-2 focus:ring-primary/30 outline-none" placeholder="请输入Token名称">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-on-surface mb-1.5">过期时间</label>
+          <select class="w-full h-10 px-3 bg-surface-container border-none rounded-md text-sm text-on-surface focus:ring-2 focus:ring-primary/30 outline-none">
+            <option value="30">30天</option>
+            <option value="90" selected>90天</option>
+            <option value="180">180天</option>
+            <option value="365">1年</option>
+            <option value="never">永不过期</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-on-surface mb-1.5">权限范围</label>
+          <div class="space-y-2">
+            <label class="flex items-center gap-2 text-sm cursor-pointer">
+              <input type="checkbox" checked class="w-4 h-4 rounded border-outline text-primary focus:ring-primary">
+              <span class="text-on-surface">读取权限</span>
+            </label>
+            <label class="flex items-center gap-2 text-sm cursor-pointer">
+              <input type="checkbox" class="w-4 h-4 rounded border-outline text-primary focus:ring-primary">
+              <span class="text-on-surface">写入权限</span>
+            </label>
+            <label class="flex items-center gap-2 text-sm cursor-pointer">
+              <input type="checkbox" class="w-4 h-4 rounded border-outline text-primary focus:ring-primary">
+              <span class="text-on-surface">删除权限</span>
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-outline">
+        <button id="btn-cancel-token" class="bg-surface-container text-on-surface px-4 py-2 rounded-md text-sm font-medium hover:bg-surface-container-high transition-colors">取消</button>
+        <button id="btn-confirm-create-token" class="bg-primary text-on-primary px-4 py-2 rounded-md text-sm font-medium hover:opacity-90 transition-all">创建</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 高亮当前页面导航
+    $(function() {
+      const currentPage = window.location.pathname.split('/').pop() || 'settings.html';
+      $('.nav-item').each(function() {
+        if ($(this).attr('href') === currentPage) {
+          $(this).addClass('bg-primary/10 text-primary');
+        } else {
+          $(this).addClass('text-on-surface-variant hover:bg-surface-container hover:text-on-surface');
+        }
+      });
+      lucide.createIcons();
+      
+      // Tab切换
+      $('.tab-btn').on('click', function() {
+        const tabId = $(this).data('tab');
+        $('.tab-btn').removeClass('active');
+        $(this).addClass('active');
+        $('.tab-content').removeClass('active');
+        $('#tab-' + tabId).addClass('active');
+      });
+      
+      // 新增用户模态框
+      $('#btn-add-user').on('click', function() {
+        $('#modal-add-user').addClass('show');
+      });
+      $('#btn-close-user-modal, #btn-cancel-user').on('click', function() {
+        $('#modal-add-user').removeClass('show');
+      });
+      $('#btn-confirm-add-user').on('click', function() {
+        // 确认创建用户 - 后续实现：
+        // 1. 收集表单数据
+        // 2. 调用用户创建API
+        // 3. 成功后关闭模态框并刷新列表
+        console.log('创建新用户');
+        $('#modal-add-user').removeClass('show');
+      });
+      
+      // 创建Token模态框
+      $('#btn-create-token').on('click', function() {
+        $('#modal-create-token').addClass('show');
+      });
+      $('#btn-close-token-modal, #btn-cancel-token').on('click', function() {
+        $('#modal-create-token').removeClass('show');
+      });
+      $('#btn-confirm-create-token').on('click', function() {
+        // 确认创建Token - 后续实现：
+        // 1. 收集表单数据（名称、过期时间、权限范围）
+        // 2. 调用Token创建API
+        // 3. 成功后显示生成的Token并刷新列表
+        console.log('创建API Token');
+        $('#modal-create-token').removeClass('show');
+      });
+      
+      // 点击模态框外部关闭
+      $('.modal-overlay').on('click', function(e) {
+        if (e.target === this) {
+          $(this).removeClass('show');
+        }
+      });
+    });
+  </script>
+</body>
+
+</html>
