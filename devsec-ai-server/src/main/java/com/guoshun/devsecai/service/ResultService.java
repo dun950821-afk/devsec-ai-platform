@@ -55,4 +55,11 @@ public class ResultService {
         result.setEndTime(java.time.LocalDateTime.now());
         resultMapper.updateById(result);
     }
+    
+    public void updateStatus(Long id, Integer status) {
+        ScanResult result = new ScanResult();
+        result.setId(id);
+        result.setStatus(status);
+        resultMapper.updateById(result);
+    }
 }

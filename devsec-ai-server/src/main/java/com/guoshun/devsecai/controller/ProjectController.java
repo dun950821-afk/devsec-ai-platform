@@ -33,16 +33,16 @@ public class ProjectController {
     }
     
     @PostMapping
-    public Result<Void> create(@RequestBody Project project, @AuthenticationPrincipal User user) {
-        projectService.create(project, user.getId());
-        return Result.success("创建成功", null);
+    public Result<Project> create(@RequestBody Project project, @AuthenticationPrincipal User user) {
+        Project created = projectService.create(project, user.getId());
+        return Result.success(created);
     }
     
     @PutMapping("/{id}")
-    public Result<Void> update(@PathVariable Long id, @RequestBody Project project) {
+    public Result<Project> update(@PathVariable Long id, @RequestBody Project project) {
         project.setId(id);
         projectService.update(project);
-        return Result.success("更新成功", null);
+        return Result.success(projectService.getById(id));
     }
     
     @DeleteMapping("/{id}")

@@ -32,10 +32,11 @@ public class ProjectService {
         return projectMapper.selectById(id);
     }
     
-    public void create(Project project, Long userId) {
+    public Project create(Project project, Long userId) {
         project.setUserId(userId);
         project.setStatus(0);
         projectMapper.insert(project);
+        return project;
     }
     
     public void update(Project project) {

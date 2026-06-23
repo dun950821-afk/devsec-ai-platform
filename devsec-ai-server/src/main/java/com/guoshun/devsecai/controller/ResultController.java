@@ -43,4 +43,10 @@ public class ResultController {
             result.getInfoCount(), result.getSummary());
         return Result.success("扫描完成", null);
     }
+    
+    @PutMapping("/{id}/status")
+    public Result<Void> updateStatus(@PathVariable Long id, @RequestParam Integer status) {
+        resultService.updateStatus(id, status);
+        return Result.success("状态更新成功", null);
+    }
 }

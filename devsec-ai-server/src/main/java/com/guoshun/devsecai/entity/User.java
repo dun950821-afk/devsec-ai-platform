@@ -20,9 +20,10 @@ public class User {
     
     private String phone;
     
-    private Integer status;  // 0-禁用 1-启用
+    @TableField("status")
+    private Integer status = 1;  // 0-禁用 1-启用，默认启用
     
-    private String role;     // admin-管理员 user-普通用户
+    private String role = "user";     // admin-管理员 user-普通用户
     
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;

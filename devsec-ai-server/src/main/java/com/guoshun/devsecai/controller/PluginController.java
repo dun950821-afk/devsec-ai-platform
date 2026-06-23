@@ -37,9 +37,9 @@ public class PluginController {
     }
     
     @PostMapping
-    public Result<Void> create(@RequestBody Plugin plugin) {
-        pluginService.create(plugin);
-        return Result.success("创建成功", null);
+    public Result<Plugin> create(@RequestBody Plugin plugin) {
+        Plugin created = pluginService.create(plugin);
+        return Result.success("创建成功", created);
     }
     
     @PutMapping("/{id}")

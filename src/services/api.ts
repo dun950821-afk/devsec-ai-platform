@@ -117,7 +117,7 @@ export const resultApi = {
   list: (params: { current?: number; size?: number; keyword?: string; severity?: string; status?: string }) =>
     request<any>('/result/list', { method: 'GET', body: params }),
   getById: (id: string) => request<any>(`/result/${id}`),
-  updateStatus: (id: string, status: string) =>
+  updateStatus: (id: string, status: number) =>
     request(`/result/${id}/status?status=${status}`, { method: 'PUT' }),
   getByProject: (projectId: string) =>
     request<any>(`/result/project/${projectId}`),

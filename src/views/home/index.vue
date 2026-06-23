@@ -11,7 +11,7 @@
           end-placeholder="结束日期"
           size="default"
         />
-        <el-button type="primary">
+        <el-button type="primary" @click="loadDashboard">
           <el-icon><Refresh /></el-icon>
           刷新数据
         </el-button>
@@ -25,12 +25,12 @@
           <el-icon style="color: #2563EB;"><Folder /></el-icon>
         </div>
         <div class="stat-content">
-          <div class="stat-value">42</div>
+          <div class="stat-value">{{ dashboardData.totalProjects }}</div>
           <div class="stat-label">接入项目</div>
         </div>
-        <div class="stat-trend up">
+        <div class="stat-trend" :class="dashboardData.activeProjects > 0 ? 'up' : ''">
           <el-icon><Top /></el-icon>
-          <span>12%</span>
+          <span>{{ dashboardData.activeProjects }} 活跃</span>
         </div>
       </div>
 
@@ -39,12 +39,12 @@
           <el-icon style="color: #22c55e;"><Connection /></el-icon>
         </div>
         <div class="stat-content">
-          <div class="stat-value">168</div>
+          <div class="stat-value">{{ dashboardData.totalPlugins }}</div>
           <div class="stat-label">在线插件</div>
         </div>
-        <div class="stat-trend up">
+        <div class="stat-trend" :class="dashboardData.activePlugins > 0 ? 'up' : ''">
           <el-icon><Top /></el-icon>
-          <span>8%</span>
+          <span>{{ dashboardData.activePlugins }} 在线</span>
         </div>
       </div>
 
@@ -53,12 +53,8 @@
           <el-icon style="color: #f59e0b;"><Search /></el-icon>
         </div>
         <div class="stat-content">
-          <div class="stat-value">1,268</div>
+          <div class="stat-value">{{ dashboardData.todayScans }}</div>
           <div class="stat-label">今日扫描</div>
-        </div>
-        <div class="stat-trend down">
-          <el-icon><Bottom /></el-icon>
-          <span>5%</span>
         </div>
       </div>
 
@@ -67,12 +63,39 @@
           <el-icon style="color: #ef4444;"><WarningFilled /></el-icon>
         </div>
         <div class="stat-content">
-          <div class="stat-value">23</div>
+          <div class="stat-value">{{ dashboardData.highIssues + dashboardData.criticalIssues }}</div>
           <div class="stat-label">高危风险</div>
         </div>
-        <div class="stat-trend down">
-          <el-icon><Bottom /></el-icon>
-          <span>15%</span>
+        <div class="stat-trend down" v-if="dashboardData.criticalIssues > 0">
+          <span>{{ dashboardData.criticalIssues }} 严重</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 问题分布卡片 -->
+    <div class="stats-grid secondary">
+      <div class="stat-card small" style="border-left: 3px solid #ef4444;">
+        <div class="stat-content">
+          <div class="stat-value" style="color: #ef4444;">{{ dashboardData.criticalIssues }}</div>
+          <div class="stat-label">严重</div>
+        </div>
+      </div>
+      <div class="stat-card small" style="border-left: 3px solid #f97316;">
+        <div class="stat-content">
+          <div class="stat-value" style="color: #f97316;">{{ dashboardData.highIssues }}</div>
+          <div class="stat-label">高危</div>
+        </div>
+      </div>
+      <div class="stat-card small" style="border-left: 3px solid #eab308;">
+        <div class="stat-content">
+          <div class="stat-value" style="color: #eab308;">{{ dashboardData.mediumIssues }}</div>
+          <div class="stat-label">中危</div>
+        </div>
+      </div>
+      <div class="stat-card small" style="border-left: 3px solid #22c55e;">
+        <div class="stat-content">
+          <div class="stat-value" style="color: #22c55e;">{{ dashboardData.lowIssues }}</div>
+          <div class="stat-label">低危</div>
         </div>
       </div>
     </div>
@@ -87,7 +110,6 @@
             <span class="legend-item"><i class="dot" style="background: #8B5CF6;"></i>SCA</span>
             <span class="legend-item"><i class="dot" style="background: #3B82F6;"></i>SAST</span>
             <span class="legend-item"><i class="dot" style="background: #EF4444;"></i>Secrets</span>
-            <span class="legend-item"><i class="dot" style="background: #F59E0B;"></i>Baseline</span>
           </div>
         </div>
         <div ref="trendChartRef" class="chart-container"></div>
@@ -110,37 +132,31 @@
       </div>
     </div>
 
-    <!-- Top 风险项目 -->
-    <div class="risk-projects">
+    <!-- 最近检测结果 -->
+    <div class="recent-results">
       <div class="section-header">
-        <h3>Top 风险项目</h3>
-        <el-button text type="primary" @click="goToPage('/project')">
+        <h3>最近检测结果</h3>
+        <el-button text type="primary" @click="goToPage('/results')">
           查看全部
           <el-icon><ArrowRight /></el-icon>
         </el-button>
       </div>
-      <el-table :data="topProjects" stripe style="width: 100%">
-        <el-table-column prop="name" label="项目名称" min-width="200" />
-        <el-table-column prop="owner" label="负责人" width="120" />
-        <el-table-column prop="critical" label="高危" width="80">
+      <el-table :data="recentResults" stripe style="width: 100%">
+        <el-table-column prop="id" label="ID" width="80" />
+        <el-table-column prop="projectName" label="项目名称" min-width="150" />
+        <el-table-column prop="policyName" label="策略名称" width="150" />
+        <el-table-column prop="status" label="状态" width="100">
           <template #default="{ row }">
-            <el-tag type="danger" size="small">{{ row.critical }}</el-tag>
+            <el-tag :type="getStatusType(row.status)" size="small">
+              {{ getStatusText(row.status) }}
+            </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="high" label="中危" width="80">
-          <template #default="{ row }">
-            <el-tag type="warning" size="small">{{ row.high }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="low" label="低危" width="80">
-          <template #default="{ row }">
-            <el-tag size="small">{{ row.low }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="lastScan" label="最近扫描" width="160" />
+        <el-table-column prop="totalIssues" label="问题数" width="80" />
+        <el-table-column prop="createTime" label="扫描时间" width="160" />
         <el-table-column label="操作" width="100" fixed="right">
-          <template #default>
-            <el-button link type="primary" size="small">详情</el-button>
+          <template #default="{ row }">
+            <el-button link type="primary" size="small" @click="viewDetail(row)">详情</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -149,9 +165,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted, reactive } from 'vue';
 import { useRouter } from 'vue-router';
 import * as echarts from 'echarts';
+import { ElMessage } from 'element-plus';
 import {
   Folder,
   Connection,
@@ -162,27 +179,116 @@ import {
   Bottom,
   ArrowRight
 } from '@element-plus/icons-vue';
+import { dashboardApi } from '@/services/api';
 
 const router = useRouter();
 const dateRange = ref<[Date, Date] | null>(null);
 const trendChartRef = ref<HTMLElement>();
 const pieChartRef = ref<HTMLElement>();
 const barChartRef = ref<HTMLElement>();
+const recentResults = ref<any[]>([]);
 
 let trendChart: echarts.ECharts | null = null;
 let pieChart: echarts.ECharts | null = null;
 let barChart: echarts.ECharts | null = null;
 
-const topProjects = ref([
-  { name: '金融支付核心系统', owner: '张明', critical: 5, high: 12, low: 28, lastScan: '2024-01-15 14:32' },
-  { name: '用户中心服务', owner: '李华', critical: 3, high: 8, low: 15, lastScan: '2024-01-15 13:20' },
-  { name: '交易网关系统', owner: '王芳', critical: 2, high: 6, low: 10, lastScan: '2024-01-15 12:45' },
-  { name: '风控引擎服务', owner: '赵强', critical: 1, high: 4, low: 8, lastScan: '2024-01-15 11:30' },
-  { name: '账户管理模块', owner: '钱伟', critical: 1, high: 3, low: 6, lastScan: '2024-01-15 10:15' }
-]);
+const dashboardData = reactive({
+  totalProjects: 0,
+  activeProjects: 0,
+  totalPlugins: 0,
+  activePlugins: 0,
+  todayScans: 0,
+  totalIssues: 0,
+  criticalIssues: 0,
+  highIssues: 0,
+  mediumIssues: 0,
+  lowIssues: 0
+});
+
+async function loadDashboard() {
+  try {
+    const data = await dashboardApi.getStats();
+    Object.assign(dashboardData, data);
+    updateCharts();
+  } catch (error) {
+    console.error('Failed to load dashboard:', error);
+    ElMessage.error('加载仪表盘数据失败');
+  }
+}
+
+async function loadRecentResults() {
+  try {
+    const { resultApi } = await import('@/services/api');
+    const data = await resultApi.list({ current: 1, size: 5 });
+    if (data.records) {
+      recentResults.value = data.records.map((item: any) => ({
+        id: item.id,
+        projectName: item.projectId ? `项目 #${item.projectId}` : '-',
+        policyName: item.policyId ? `策略 #${item.policyId}` : '-',
+        status: item.status,
+        totalIssues: item.totalIssues || 0,
+        createTime: item.createTime || '-'
+      }));
+    }
+  } catch (error) {
+    console.error('Failed to load recent results:', error);
+  }
+}
+
+function updateCharts() {
+  // 更新饼图数据
+  if (pieChart) {
+    pieChart.setOption({
+      series: [{
+        data: [
+          { value: dashboardData.activePlugins, name: '在线', itemStyle: { color: '#22c55e' } },
+          { value: Math.max(0, dashboardData.totalPlugins - dashboardData.activePlugins), name: '离线', itemStyle: { color: '#9CA3AF' } }
+        ]
+      }]
+    });
+  }
+
+  // 更新柱状图数据
+  if (barChart) {
+    barChart.setOption({
+      series: [{
+        data: [
+          dashboardData.todayScans,
+          dashboardData.totalIssues,
+          dashboardData.criticalIssues,
+          dashboardData.highIssues
+        ]
+      }]
+    });
+  }
+}
 
 function goToPage(path: string) {
   router.push(path);
+}
+
+function viewDetail(row: any) {
+  router.push(`/results?id=${row.id}`);
+}
+
+function getStatusType(status: number) {
+  const types: Record<number, string> = {
+    0: 'info',
+    1: 'success',
+    2: 'warning',
+    3: 'danger'
+  };
+  return types[status] || 'info';
+}
+
+function getStatusText(status: number) {
+  const texts: Record<number, string> = {
+    0: '待扫描',
+    1: '扫描中',
+    2: '已完成',
+    3: '失败'
+  };
+  return texts[status] || '未知';
 }
 
 function initTrendChart() {
@@ -206,8 +312,7 @@ function initTrendChart() {
     series: [
       { name: 'SCA', type: 'line', data: [45, 52, 48, 60, 55, 42, 38], smooth: true, color: '#8B5CF6' },
       { name: 'SAST', type: 'line', data: [28, 35, 42, 38, 45, 52, 48], smooth: true, color: '#3B82F6' },
-      { name: 'Secrets', type: 'line', data: [12, 15, 18, 14, 20, 16, 12], smooth: true, color: '#EF4444' },
-      { name: 'Baseline', type: 'line', data: [20, 25, 22, 28, 30, 26, 24], smooth: true, color: '#F59E0B' }
+      { name: 'Secrets', type: 'line', data: [12, 15, 18, 14, 20, 16, 12], smooth: true, color: '#EF4444' }
     ]
   };
   trendChart.setOption(option);
@@ -230,9 +335,8 @@ function initPieChart() {
         label: { show: true, fontSize: 14, fontWeight: 'bold' }
       },
       data: [
-        { value: 168, name: '在线', itemStyle: { color: '#22c55e' } },
-        { value: 6, name: '离线', itemStyle: { color: '#9CA3AF' } },
-        { value: 2, name: '异常', itemStyle: { color: '#EF4444' } }
+        { value: dashboardData.activePlugins || 0, name: '在线', itemStyle: { color: '#22c55e' } },
+        { value: Math.max(0, (dashboardData.totalPlugins || 0) - (dashboardData.activePlugins || 0)), name: '离线', itemStyle: { color: '#9CA3AF' } }
       ]
     }]
   };
@@ -248,7 +352,7 @@ function initBarChart() {
     grid: { left: 80, right: 20, top: 20, bottom: 30 },
     xAxis: {
       type: 'category',
-      data: ['1/9', '1/10', '1/11', '1/12', '1/13', '1/14', '1/15'],
+      data: ['今日扫描', '总问题', '严重', '高危'],
       axisLine: { lineStyle: { color: '#E5E7EB' } }
     },
     yAxis: {
@@ -259,16 +363,18 @@ function initBarChart() {
     series: [{
       type: 'bar',
       data: [
-        { value: 120, itemStyle: { color: '#8B5CF6' } },
-        { value: 145, itemStyle: { color: '#3B82F6' } },
-        { value: 98, itemStyle: { color: '#22c55e' } },
-        { value: 156, itemStyle: { color: '#F59E0B' } },
-        { value: 132, itemStyle: { color: '#EF4444' } },
-        { value: 168, itemStyle: { color: '#EC4899' } },
-        { value: 142, itemStyle: { color: '#06B6D4' } }
+        dashboardData.todayScans,
+        dashboardData.totalIssues,
+        dashboardData.criticalIssues,
+        dashboardData.highIssues
       ],
-      barWidth: '40%',
-      itemStyle: { borderRadius: [4, 4, 0, 0] }
+      itemStyle: {
+        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+          { offset: 0, color: '#3B82F6' },
+          { offset: 1, color: '#60A5FA' }
+        ])
+      },
+      barWidth: 40
     }]
   };
   barChart.setOption(option);
@@ -280,10 +386,14 @@ function handleResize() {
   barChart?.resize();
 }
 
-onMounted(() => {
+onMounted(async () => {
+  await loadDashboard();
+  loadRecentResults();
+  
   initTrendChart();
   initPieChart();
   initBarChart();
+  
   window.addEventListener('resize', handleResize);
 });
 
@@ -297,7 +407,7 @@ onUnmounted(() => {
 
 <style scoped>
 .home-page {
-  padding: 0;
+  padding: 24px;
 }
 
 .page-header {
@@ -308,7 +418,7 @@ onUnmounted(() => {
 }
 
 .page-title {
-  font-size: 20px;
+  font-size: 24px;
   font-weight: 600;
   margin: 0;
 }
@@ -318,38 +428,48 @@ onUnmounted(() => {
   gap: 12px;
 }
 
-/* 统计卡片 */
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 20px;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
+}
+
+.stats-grid.secondary {
+  grid-template-columns: repeat(4, 1fr);
+  margin-bottom: 20px;
 }
 
 .stat-card {
   background: white;
-  border-radius: 8px;
+  border-radius: 12px;
   padding: 20px;
   display: flex;
   align-items: center;
-  gap: 16px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
   cursor: pointer;
-  transition: box-shadow 0.2s;
+  transition: all 0.3s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .stat-card:hover {
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.stat-card.small {
+  padding: 16px;
+  cursor: default;
 }
 
 .stat-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 8px;
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 24px;
+  margin-right: 16px;
 }
 
 .stat-content {
@@ -359,13 +479,13 @@ onUnmounted(() => {
 .stat-value {
   font-size: 28px;
   font-weight: 700;
-  color: var(--color-on-surface);
+  color: #1f2937;
   line-height: 1.2;
 }
 
 .stat-label {
   font-size: 14px;
-  color: var(--color-on-surface-variant);
+  color: #6b7280;
   margin-top: 4px;
 }
 
@@ -374,7 +494,7 @@ onUnmounted(() => {
   align-items: center;
   gap: 4px;
   font-size: 12px;
-  font-weight: 500;
+  color: #9ca3af;
 }
 
 .stat-trend.up {
@@ -385,23 +505,22 @@ onUnmounted(() => {
   color: #ef4444;
 }
 
-/* 图表区域 */
 .charts-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, 1fr);
   gap: 20px;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 .chart-card {
   background: white;
-  border-radius: 8px;
+  border-radius: 12px;
   padding: 20px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .chart-card.full-width {
-  grid-column: 1 / -1;
+  grid-column: span 2;
 }
 
 .chart-header {
@@ -427,7 +546,7 @@ onUnmounted(() => {
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: var(--color-on-surface-variant);
+  color: #6b7280;
 }
 
 .dot {
@@ -441,15 +560,14 @@ onUnmounted(() => {
 }
 
 .chart-container.small {
-  height: 240px;
+  height: 220px;
 }
 
-/* Top 风险项目 */
-.risk-projects {
+.recent-results {
   background: white;
-  border-radius: 8px;
+  border-radius: 12px;
   padding: 20px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .section-header {

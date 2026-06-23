@@ -42,7 +42,7 @@ public class PluginService {
         return pluginMapper.selectOne(new LambdaQueryWrapper<Plugin>().eq(Plugin::getPluginKey, pluginKey));
     }
     
-    public void create(Plugin plugin) {
+    public Plugin create(Plugin plugin) {
         if (plugin.getPluginKey() == null || plugin.getPluginKey().isEmpty()) {
             plugin.setPluginKey("PLUGIN_" + System.currentTimeMillis());
         }
@@ -50,6 +50,7 @@ public class PluginService {
             plugin.setStatus(1);
         }
         pluginMapper.insert(plugin);
+        return plugin;
     }
     
     public void update(Plugin plugin) {
