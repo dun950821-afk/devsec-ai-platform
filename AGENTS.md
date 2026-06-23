@@ -3,12 +3,9 @@
 ## 技术栈
 
 ### 前端
-- **框架**: Vue 3 + Vite
-- **语言**: TypeScript
-- **UI组件**: Element Plus
-- **图表库**: ECharts
-- **状态管理**: Pinia
-- **路由**: Vue Router
+- **框架**: 纯 HTML5 + CSS3 + Vanilla JavaScript (已修改)
+- **语言**: 原生 JavaScript ES6+
+- **样式**: 内联 CSS
 - **HTTP客户端**: Fetch API
 
 ### 后端
@@ -23,29 +20,11 @@
 
 ### 前端 (/workspace/projects)
 ```
-├── src/
-│   ├── main.ts              # 应用入口
-│   ├── App.vue               # 根组件
-│   ├── router/index.ts       # 路由配置
-│   ├── stores/user.ts        # 用户状态管理
-│   ├── services/api.ts       # API 服务层
-│   ├── layouts/              # 布局组件
-│   ├── views/                # 页面组件
-│   │   ├── login/            # 登录页
-│   │   ├── home/             # 首页总览
-│   │   ├── plugin/           # 插件管理
-│   │   ├── plugin-capability/# 插件能力配置
-│   │   ├── project/          # 项目管理
-│   │   ├── policy/           # 检测策略中心
-│   │   ├── rules/            # 规则管理中心
-│   │   ├── results/          # 检测结果中心
-│   │   ├── skill/            # 大模型Skill中心
-│   │   ├── audit-log/        # 审计日志
-│   │   └── settings/         # 系统设置
-│   └── styles/               # 样式文件
-├── index.html
-├── vite.config.ts
-└── package.json
+/
+├── index.html            # 主入口页面（单页应用）
+├── server.cjs            # Node.js 静态服务器（含API代理）
+├── .coze                 # Coze 部署配置
+└── public/               # 静态资源目录
 ```
 
 ### 后端 (/workspace/projects/devsec-ai-server)
@@ -151,11 +130,10 @@
 
 ## 启动命令
 
-### 前端
+### 前端（静态服务器 + API代理）
 ```bash
 cd /workspace/projects
-pnpm install
-pnpm dev
+node server.cjs
 ```
 
 ### 后端
@@ -164,10 +142,27 @@ cd /workspace/projects/devsec-ai-server
 mvn spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
-## 默认账户
+### 默认账户
 - 用户名: admin
 - 密码: admin123
 
-## 端口配置
+### 端口配置
 - 前端: 5000
 - 后端: 8080
+
+## 功能模块
+
+### 已实现的功能
+
+| 模块 | 状态 | 说明 |
+|-----|------|------|
+| 用户登录 | ✅ | JWT认证，支持登录/登出 |
+| 工作台 | ✅ | 统计数据仪表盘 + 最近检测结果 |
+| 插件管理 | ✅ | CRUD、启用/禁用、心跳检测 |
+| 项目管理 | ✅ | CRUD、项目配置 |
+| 检测策略 | ✅ | CRUD、策略配置 |
+| 规则管理 | ✅ | CRUD、严重性分级 |
+| 检测结果 | ✅ | 列表展示、状态筛选 |
+| AI Skill | ✅ | CRUD、Skill配置 |
+| 审计日志 | ✅ | 操作日志记录 |
+| 系统设置 | ✅ | 基本信息展示 |
