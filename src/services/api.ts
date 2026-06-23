@@ -12,6 +12,17 @@ interface ApiResponse<T = any> {
   data: T;
 }
 
+function buildQueryString(params: Record<string, any>): string {
+  const searchParams = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== null && value !== '') {
+      searchParams.append(key, String(value));
+    }
+  }
+  const str = searchParams.toString();
+  return str ? `?${str}` : '';
+}
+
 async function request<T>(url: string, options: RequestOptions = {}): Promise<T> {
   const token = localStorage.getItem('token');
   const headers: Record<string, string> = {
@@ -23,10 +34,16 @@ async function request<T>(url: string, options: RequestOptions = {}): Promise<T>
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const response = await fetch(`${API_BASE_URL}${url}`, {
+  let finalUrl = url;
+  // For GET requests, build query string from body
+  if (options.method === 'GET' && options.body) {
+    finalUrl = url + buildQueryString(options.body);
+  }
+
+  const response = await fetch(`${API_BASE_URL}${finalUrl}`, {
     method: options.method || 'GET',
     headers,
-    body: options.body ? JSON.stringify(options.body) : undefined,
+    body: options.method !== 'GET' && options.body ? JSON.stringify(options.body) : undefined,
   });
 
   if (!response.ok) {
@@ -114,13 +131,11 @@ export const ruleApi = {
 
 // Result API
 export const resultApi = {
-  list: (params: { current?: number; size?: number; keyword?: string; severity?: string; status?: string }) =>
+  list: (params: { current?: number; size?: number; projectId?: string; status?: string }) =>
     request<any>('/result/list', { method: 'GET', body: params }),
   getById: (id: string) => request<any>(`/result/${id}`),
   updateStatus: (id: string, status: number) =>
     request(`/result/${id}/status?status=${status}`, { method: 'PUT' }),
-  getByProject: (projectId: string) =>
-    request<any>(`/result/project/${projectId}`),
 };
 
 // Skill API
@@ -135,17 +150,18 @@ export const skillApi = {
     request(`/skill/${id}/status?status=${status}`, { method: 'PUT' }),
 };
 
-// Audit Log API
-export const auditApi = {
-  list: (params: { current?: number; size?: number; keyword?: string; module?: string }) =>
-    request<any>('/audit/list', { method: 'GET', body: params }),
-};
-
 // User API
 export const userApi = {
   list: () => request<any[]>('/user/list'),
   getById: (id: string) => request<any>(`/user/${id}`),
   create: (data: any) => request('/user', { method: 'POST', body: data }),
   update: (id: string, data: any) => request(`/user/${id}`, { method: 'PUT', body: data }),
-  delete: (id: string) => request(`/user/${id}`, { method: 'DELETE' }),
+  updateStatus: (id: string, status: number) =>
+    request(`/user/${id}/status?status=${status}`, { method: 'PUT' }),
+};
+
+// Audit API
+export const auditApi = {
+  list: (params: { current?: number; size?: number; keyword?: string; operation?: string }) =>
+    request<any>('/audit/list', { method: 'GET', body: params }),
 };
