@@ -1,37 +1,66 @@
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
 plugins {
     id("java")
     id("org.jetbrains.kotlin.jvm") version "1.9.22"
-    id("org.jetbrains.intellij") version "1.17.2"
+    id("org.jetbrains.intellij.platform") version "2.5.0"
 }
 
 group = "com.guoshun.devsecai"
-version = "0.9.7"
+version = "1.0.0"
 
 repositories {
     mavenCentral()
+    intellijPlatform {
+        defaultRepositories()
+    }
 }
 
-// Configure Gradle IntelliJ Plugin
-intellij {
-    version.set("2024.1")
-    type.set("IC") // IntelliJ IDEA Community Edition
-    plugins.set(listOf("java", "Git4Idea"))
+// Configure Gradle IntelliJ Platform Plugin 2.x
+intellijPlatform {
+    buildSearchableOptions = false
+
+    instrumentCode = true
+
+    verifyPlugin = false
+
+    projectConventions {
+        repository = true
+    }
+}
+
+dependencies {
+    // IntelliJ Platform SDK — 2026.1
+    intellijIdeaUltimate("2026.1")
+    intellijPlugins("com.intellij.java", "Git4Idea")
+
+    implementation("com.google.code.gson:gson:2.10.1")
+}
+
+// Java 21 required for IDEA 2024.2+ / 2026.x
+kotlin {
+    jvmToolchain(21)
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
 }
 
 tasks {
-    // Set the JVM compatibility versions
     withType<JavaCompile> {
-        sourceCompatibility = "17"
-        targetCompatibility = "17"
+        sourceCompatibility = "21"
+        targetCompatibility = "21"
     }
 
-    withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
-        kotlinOptions.jvmTarget = "17"
+    withType<KotlinCompile> {
+        kotlinOptions.jvmTarget = "21"
     }
 
     patchPluginXml {
-        sinceBuild.set("241")
-        untilBuild.set("242.*")
+        sinceBuild.set("242")
+        untilBuild.set("261.*")
     }
 
     signPlugin {
@@ -43,18 +72,4 @@ tasks {
     publishPlugin {
         token.set(System.getenv("PUBLISH_TOKEN"))
     }
-
-    buildSearchableOptions {
-        // Disable searchable options to speed up build
-        enabled = false
-    }
-}
-
-kotlin {
-    jvmToolchain(17)
-}
-
-dependencies {
-    implementation("com.google.code.gson:gson:2.10.1")
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 }

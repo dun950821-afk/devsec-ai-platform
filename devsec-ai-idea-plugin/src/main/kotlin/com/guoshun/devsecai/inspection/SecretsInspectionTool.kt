@@ -14,6 +14,9 @@ import com.intellij.psi.PsiFile
 /**
  * Secrets 敏感信息检测引擎
  * 检测代码和配置文件中的密钥、Token、密码等敏感信息
+ *
+ * 重要：buildVisitor 中仅读取 PolicyService 的本地缓存，
+ * 绝不触发网络请求，避免在 PSI 分析路径中造成 IDE 卡顿。
  */
 class SecretsInspectionTool : LocalInspectionTool() {
 
@@ -45,7 +48,9 @@ class SecretsInspectionTool : LocalInspectionTool() {
         val project = holder.project
         val policyService = PolicyService.getInstance(project)
 
-        if (!policyService.isSecretsEnabled()) {
+        // 仅使用缓存策略判断，不触发网络请求
+        // 如果策略未加载（缓存为空），默认启用检测
+        if (!policyService.isSecretsEnabledCached()) {
             return PsiElementVisitor.EMPTY_VISITOR
         }
 
@@ -78,7 +83,7 @@ class SecretsInspectionTool : LocalInspectionTool() {
                     // 跳过明显的占位符
                     if (isPlaceholder(matchedText)) continue
 
-                    // 上送 Finding
+                    // 收集 Finding
                     val finding = LocalFinding(
                         ruleId = pattern.ruleId,
                         module = "SECRETS",

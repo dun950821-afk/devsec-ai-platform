@@ -8,6 +8,10 @@ import com.intellij.openapi.project.Project
 /**
  * 策略管理服务
  * 负责从管理平台拉取策略配置，并缓存到本地
+ *
+ * 设计原则：
+ * - getXxxEnabled() 方法可能触发网络请求（用于非热路径场景）
+ * - getXxxEnabledCached() 方法仅读缓存，绝不触发网络请求（用于 Inspection/PSI 热路径）
  */
 class PolicyService(private val project: Project) {
 
@@ -18,6 +22,7 @@ class PolicyService(private val project: Project) {
 
     /**
      * 获取策略（优先缓存，5分钟过期）
+     * 可能触发网络请求，不适合在 PSI/Inspection 热路径中调用
      */
     fun getPolicy(): PolicyResponse? {
         val settings = DevSecAISettings.getInstance()
@@ -44,7 +49,7 @@ class PolicyService(private val project: Project) {
     }
 
     /**
-     * 强制刷新策略
+     * 强制刷新策略（后台任务中使用）
      */
     fun refreshPolicy(): PolicyResponse? {
         lastFetchTime = 0
@@ -52,7 +57,36 @@ class PolicyService(private val project: Project) {
         return getPolicy()
     }
 
-    // ==================== 能力开关判断 ====================
+    // ==================== 缓存优先的能力开关判断（用于 PSI/Inspection 热路径） ====================
+    // 这些方法仅读取本地缓存，绝不触发网络 I/O
+    // 缓存为空时默认返回 true（启用检测），避免策略未加载时漏检
+
+    fun isSastEnabledCached(): Boolean {
+        val cached = cachedPolicy
+        return cached?.data?.enabledModules?.sast ?: true
+    }
+
+    fun isSecretsEnabledCached(): Boolean {
+        val cached = cachedPolicy
+        return cached?.data?.enabledModules?.secrets ?: true
+    }
+
+    fun isScaEnabledCached(): Boolean {
+        val cached = cachedPolicy
+        return cached?.data?.enabledModules?.sca ?: true
+    }
+
+    fun isBaselineEnabledCached(): Boolean {
+        val cached = cachedPolicy
+        return cached?.data?.enabledModules?.baseline ?: true
+    }
+
+    fun isAiEnabledCached(): Boolean {
+        val cached = cachedPolicy
+        return cached?.data?.enabledModules?.ai ?: true
+    }
+
+    // ==================== 可触发网络请求的能力开关（用于非热路径场景） ====================
 
     fun isScaEnabled(): Boolean = getPolicy()?.data?.enabledModules?.sca == true
     fun isSastEnabled(): Boolean = getPolicy()?.data?.enabledModules?.sast == true

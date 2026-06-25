@@ -14,6 +14,9 @@ import com.intellij.psi.util.PsiTreeUtil
 /**
  * SAST 安全检测引擎
  * 基于 PSI 分析 Java/Kotlin 代码中的安全漏洞
+ *
+ * 重要：buildVisitor 中仅读取 PolicyService 的本地缓存，
+ * 绝不触发网络请求，避免在 PSI 分析路径中造成 IDE 卡顿。
  */
 class SecurityInspectionTool : LocalInspectionTool() {
 
@@ -23,8 +26,9 @@ class SecurityInspectionTool : LocalInspectionTool() {
         val project = holder.project
         val policyService = PolicyService.getInstance(project)
 
-        // 如果 SAST 未启用，不执行检测
-        if (!policyService.isSastEnabled()) {
+        // 仅使用缓存策略判断，不触发网络请求
+        // 如果策略未加载（缓存为空），默认启用检测
+        if (!policyService.isSastEnabledCached()) {
             return PsiElementVisitor.EMPTY_VISITOR
         }
 
@@ -242,7 +246,7 @@ class SecurityInspectionTool : LocalInspectionTool() {
                 ruleId = ruleId,
                 module = "SAST",
                 severity = severity,
-                title = description.substringBefore("："),
+                title = description.substringBefore(":").substringBefore("\uff1a"),
                 description = description,
                 filePath = file.virtualFile.path,
                 startLine = lineNumber,

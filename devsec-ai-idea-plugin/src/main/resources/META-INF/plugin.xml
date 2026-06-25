@@ -37,6 +37,10 @@
         <projectService
                 serviceImplementation="com.guoshun.devsecai.service.HeartbeatService"/>
 
+        <!-- 后台启动活动（替代 ProjectManagerListener，避免阻塞 UI） -->
+        <postStartupActivity
+                implementation="com.guoshun.devsecai.service.ProjectStartupListener"/>
+
         <!-- SAST 安全检测 (Java) -->
         <localInspection
                 language="JAVA"
@@ -83,9 +87,4 @@
             <add-to-group group-id="AnalyzeActions" anchor="last"/>
         </action>
     </actions>
-
-    <projectListeners>
-        <listener class="com.guoshun.devsecai.service.ProjectStartupListener"
-                  topic="com.intellij.openapi.project.ProjectManagerListener"/>
-    </projectListeners>
 </idea-plugin>
