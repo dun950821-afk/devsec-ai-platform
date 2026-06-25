@@ -7,7 +7,7 @@ import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
 
-class UploadFindingsAction : AnAction("Upload Findings", "Upload detection results to management platform", null) {
+class UploadFindingsAction : AnAction("上传检测结果", "将检测结果上传到管理平台", null) {
 
     private val logger = Logger.getInstance(UploadFindingsAction::class.java)
 
@@ -26,22 +26,32 @@ class UploadFindingsAction : AnAction("Upload Findings", "Upload detection resul
             val pendingCount = collector.getPendingCount()
 
             if (pendingCount == 0) {
-                Messages.showInfoMessage(project, "No pending findings to upload.", "Upload Findings")
+                Messages.showInfoMessage(project, "当前没有待上传的检测结果。", "上传检测结果")
                 return
             }
 
-            collector.flush()
+            val result = collector.flush()
+            val summary = "成功：${result.uploaded}，失败：${result.failed}，待上传：${result.pending}"
+            if (result.failed > 0) {
+                val reason = result.failureReasons.joinToString("\n").ifBlank { "平台未返回明确失败原因" }
+                Messages.showErrorDialog(
+                    project,
+                    "上传失败。\n$summary\n\n失败原因：\n$reason",
+                    "上传检测结果"
+                )
+                return
+            }
             Messages.showInfoMessage(
                     project,
-                    "Upload completed. $pendingCount finding(s) uploaded.",
-                    "Upload Findings"
+                    "上传成功。\n$summary",
+                    "上传检测结果"
             )
         } catch (e: Exception) {
-            logger.warn("Upload findings failed: ${e.message}")
+            logger.warn("上传检测结果失败：${e.message}")
             Messages.showErrorDialog(
                     project,
-                    "Upload failed: ${e.message}",
-                    "Upload Findings"
+                    "上传失败：${e.message}",
+                    "上传检测结果"
             )
         }
     }
