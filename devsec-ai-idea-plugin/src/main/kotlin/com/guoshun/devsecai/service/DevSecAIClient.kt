@@ -5,6 +5,7 @@ import com.google.gson.reflect.TypeToken
 import com.guoshun.devsecai.config.DevSecAISettings
 import com.guoshun.devsecai.model.*
 import java.io.BufferedReader
+import java.io.InputStream
 import java.io.InputStreamReader
 import java.io.OutputStreamWriter
 import java.net.HttpURLConnection
@@ -53,7 +54,7 @@ class DevSecAIClient {
             status = status,
             activeModules = activeModules
         )
-        return post(url, request) != null
+        return postWithoutResponse(url, request).successful
     }
 
     fun fetchPolicy(): PolicyData? {
@@ -62,14 +63,14 @@ class DevSecAIClient {
         return response?.data
     }
 
-    fun uploadFindings(module: String, findings: List<FindingItem>): Boolean {
+    fun uploadFindings(module: String, findings: List<FindingItem>): ApiResult {
         val url = URL("${getBaseUrl()}/api/finding/upload")
         val request = FindingUploadRequest(
             pluginId = getPluginId(),
             module = module,
             findings = findings
         )
-        return post(url, request) != null
+        return postWithoutResponse(url, request)
     }
 
     private fun <T> post(url: URL, body: Any, responseClass: Class<T>): T? {
@@ -103,7 +104,7 @@ class DevSecAIClient {
         }
     }
 
-    private fun <T> post(url: URL, body: Any): String? {
+    private fun postWithoutResponse(url: URL, body: Any): ApiResult {
         var connection: HttpURLConnection? = null
         try {
             connection = url.openConnection() as HttpURLConnection
@@ -119,9 +120,14 @@ class DevSecAIClient {
             writer.close()
 
             val responseCode = connection.responseCode
-            return if (responseCode in 200..299) "ok" else null
+            val responseBody = readBody(if (responseCode in 200..299) connection.inputStream else connection.errorStream)
+            return if (responseCode in 200..299) {
+                ApiResult(successful = true, httpCode = responseCode, message = responseBody.ifBlank { "请求成功" })
+            } else {
+                ApiResult(successful = false, httpCode = responseCode, message = responseBody.ifBlank { "平台返回 HTTP $responseCode" })
+            }
         } catch (e: Exception) {
-            return null
+            return ApiResult(successful = false, message = e.message ?: e.javaClass.simpleName)
         } finally {
             connection?.disconnect()
         }
@@ -150,4 +156,15 @@ class DevSecAIClient {
             connection?.disconnect()
         }
     }
+
+    private fun readBody(stream: InputStream?): String {
+        if (stream == null) return ""
+        return BufferedReader(InputStreamReader(stream, "UTF-8")).use { it.readText() }
+    }
+
+    data class ApiResult(
+        val successful: Boolean,
+        val httpCode: Int? = null,
+        val message: String = ""
+    )
 }
