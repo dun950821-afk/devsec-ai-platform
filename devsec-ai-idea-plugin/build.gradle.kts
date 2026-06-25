@@ -16,9 +16,26 @@ repositories {
     }
 }
 
+// ============================================================
+// Option A: Use local IDEA installation (no download needed)
+//   Set ideaInstallationPath in gradle.properties, e.g.:
+//     ideaInstallationPath=D:\\Program Files\\JetBrains\\IntelliJ IDEA 2026.1.3
+//   Or pass via command line:
+//     -PideaInstallationPath="D:/Program Files/JetBrains/IntelliJ IDEA 2026.1.3"
+//
+// Option B: Download from remote (default, requires ~1GB download)
+//   Comment out or remove the ideaInstallationPath property
+// ============================================================
+
+val localIdeaPath: String? = providers.gradleProperty("ideaInstallationPath").orNull
+
 dependencies {
     intellijPlatform {
-        intellijIdeaUltimate("2026.1.3")
+        if (localIdeaPath != null) {
+            local(localIdeaPath)
+        } else {
+            intellijIdeaUltimate("2026.1.3")
+        }
         testFramework(TestFrameworkType.Platform)
         pluginVerifier()
         zipSigner()
