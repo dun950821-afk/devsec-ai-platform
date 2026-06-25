@@ -3,7 +3,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 plugins {
     id("java")
     id("org.jetbrains.kotlin.jvm") version "1.9.22"
-    id("org.jetbrains.intellij.platform") version "2.5.0"
+    id("org.jetbrains.intellij") version "1.17.2"
 }
 
 group = "com.guoshun.devsecai"
@@ -11,51 +11,38 @@ version = "1.0.0"
 
 repositories {
     mavenCentral()
-    intellijPlatform {
-        defaultRepositories()
-    }
 }
 
-// Configure Gradle IntelliJ Platform Plugin 2.x
-intellijPlatform {
-    buildSearchableOptions = false
-
-    instrumentCode = true
-
-    verifyPlugin = false
-
-    projectConventions {
-        repository = true
-    }
+// Configure Gradle IntelliJ Platform Plugin 1.x
+intellij {
+    version.set("2024.2")
+    type.set("IU")
+    plugins.set(listOf("com.intellij.java", "Git4Idea"))
 }
 
 dependencies {
-    // IntelliJ Platform SDK — 2026.1
-    intellijIdeaUltimate("2026.1")
-    intellijPlugins("com.intellij.java", "Git4Idea")
-
     implementation("com.google.code.gson:gson:2.10.1")
 }
 
-// Java 21 required for IDEA 2024.2+ / 2026.x
+// Java 17 + Kotlin JVM Target 17
 kotlin {
-    jvmToolchain(21)
+    jvmToolchain(17)
 }
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
+        languageVersion = JavaLanguageVersion.of(17)
     }
 }
 
 tasks {
     withType<JavaCompile> {
-        sourceCompatibility = "21"
-        targetCompatibility = "21"
+        sourceCompatibility = "17"
+        targetCompatibility = "17"
     }
 
     withType<KotlinCompile> {
-        kotlinOptions.jvmTarget = "21"
+        kotlinOptions.jvmTarget = "17"
     }
 
     patchPluginXml {
