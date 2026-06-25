@@ -4,55 +4,102 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.PersistentStateComponent
 import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
-import com.intellij.util.xmlb.XmlSerializerUtil
 
-/**
- * DevSecAI 插件持久化配置
- */
 @State(
     name = "com.guoshun.devsecai.DevSecAISettings",
     storages = [Storage("devsecai.xml")]
 )
-class DevSecAISettings : PersistentStateComponent<DevSecAISettings> {
+class DevSecAISettings : PersistentStateComponent<DevSecAISettings.State> {
 
-    var serverUrl: String = "http://localhost:8080"
-    var accessToken: String = ""
-    var pluginId: String = ""
-    var developerName: String = ""
-    var autoScanOnSave: Boolean = true
-    var autoScanOnCommit: Boolean = true
-    var blockCriticalOnCommit: Boolean = true
-    var blockHighOnCommit: Boolean = true
-    var uploadFindings: Boolean = true
-    var heartbeatIntervalMinutes: Int = 5
+    private var state = State()
 
-    // 运行时状态（不持久化）
-    @Transient
-    var connected: Boolean = false
+    data class State(
+        var serverUrl: String = "http://localhost:8080",
+        var accessToken: String = "",
+        var pluginId: String = "devsecai-idea-plugin",
+        var enableSCA: Boolean = false,
+        var enableSAST: Boolean = true,
+        var enableSecrets: Boolean = true,
+        var enableBaseline: Boolean = false,
+        var enableAI: Boolean = false,
+        var autoScanOnSave: Boolean = true,
+        var autoUploadFindings: Boolean = true,
+        var gitCommitCheck: Boolean = true,
+        var blockCritical: Boolean = true,
+        var blockHigh: Boolean = true,
+        var blockMedium: Boolean = false,
+        var blockLow: Boolean = false
+    )
 
-    @Transient
-    var projectName: String? = null
+    override fun getState(): State = state
 
-    @Transient
-    var policyId: String? = null
-
-    override fun getState(): DevSecAISettings = this
-
-    override fun loadState(state: DevSecAISettings) {
-        XmlSerializerUtil.copyBean(state, this)
+    override fun loadState(state: State) {
+        this.state = state
     }
+
+    var serverUrl: String
+        get() = state.serverUrl
+        set(value) { state.serverUrl = value }
+
+    var accessToken: String
+        get() = state.accessToken
+        set(value) { state.accessToken = value }
+
+    var pluginId: String
+        get() = state.pluginId
+        set(value) { state.pluginId = value }
+
+    var enableSCA: Boolean
+        get() = state.enableSCA
+        set(value) { state.enableSCA = value }
+
+    var enableSAST: Boolean
+        get() = state.enableSAST
+        set(value) { state.enableSAST = value }
+
+    var enableSecrets: Boolean
+        get() = state.enableSecrets
+        set(value) { state.enableSecrets = value }
+
+    var enableBaseline: Boolean
+        get() = state.enableBaseline
+        set(value) { state.enableBaseline = value }
+
+    var enableAI: Boolean
+        get() = state.enableAI
+        set(value) { state.enableAI = value }
+
+    var autoScanOnSave: Boolean
+        get() = state.autoScanOnSave
+        set(value) { state.autoScanOnSave = value }
+
+    var autoUploadFindings: Boolean
+        get() = state.autoUploadFindings
+        set(value) { state.autoUploadFindings = value }
+
+    var gitCommitCheck: Boolean
+        get() = state.gitCommitCheck
+        set(value) { state.gitCommitCheck = value }
+
+    var blockCritical: Boolean
+        get() = state.blockCritical
+        set(value) { state.blockCritical = value }
+
+    var blockHigh: Boolean
+        get() = state.blockHigh
+        set(value) { state.blockHigh = value }
+
+    var blockMedium: Boolean
+        get() = state.blockMedium
+        set(value) { state.blockMedium = value }
+
+    var blockLow: Boolean
+        get() = state.blockLow
+        set(value) { state.blockLow = value }
 
     companion object {
-        fun getInstance(): DevSecAISettings =
-            ApplicationManager.getApplication().getService(DevSecAISettings::class.java)
-    }
-
-    fun isConfigured(): Boolean = serverUrl.isNotBlank() && accessToken.isNotBlank()
-
-    fun getPluginIdOrGenerate(): String {
-        if (pluginId.isBlank()) {
-            pluginId = "IDEA-PLG-${System.currentTimeMillis().toString(16).uppercase().takeLast(6).padStart(6, '0')}"
+        fun getInstance(): DevSecAISettings {
+            return ApplicationManager.getApplication().getService(DevSecAISettings::class.java)
         }
-        return pluginId
     }
 }

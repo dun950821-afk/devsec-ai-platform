@@ -1,117 +1,94 @@
 package com.guoshun.devsecai.service
 
+import com.guoshun.devsecai.model.FindingItem
 import com.guoshun.devsecai.model.LocalFinding
+import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
-import java.util.concurrent.*
+import java.util.*
+import java.util.concurrent.ConcurrentLinkedQueue
 
-/**
- * Finding 收集器
- * 收集所有检测引擎的发现，批量上送到管理平台
- */
+@Service(Service.Level.PROJECT)
 class FindingCollector(private val project: Project) {
 
     private val logger = Logger.getInstance(FindingCollector::class.java)
+    private val findings = ConcurrentLinkedQueue<LocalFinding>()
     private val client = DevSecAIClient()
-    private val buffer = ConcurrentLinkedQueue<LocalFinding>()
-    private val localFindings = CopyOnWriteArrayList<LocalFinding>()
-    private val scheduler = Executors.newSingleThreadScheduledExecutor { r ->
-        Thread(r, "DevSecAI-FindingUploader").apply { isDaemon = true }
-    }
+    private var uploadTimer: Timer? = null
 
     fun start() {
-        // 每30秒批量上送一次
-        scheduler.scheduleWithFixedDelay({ flush() }, 30, 30, TimeUnit.SECONDS)
-        logger.info("FindingCollector started")
+        stop()
+        uploadTimer = Timer("DevSecAI-FindingUpload", true)
+        uploadTimer?.scheduleAtFixedRate(object : TimerTask() {
+            override fun run() {
+                flush()
+            }
+        }, 30 * 1000L, 30 * 1000L) // every 30 seconds
+        logger.info("Finding collector started")
     }
 
     fun stop() {
-        scheduler.shutdown()
-        flush() // 最终上送
-        logger.info("FindingCollector stopped")
+        flush()
+        uploadTimer?.cancel()
+        uploadTimer = null
+        logger.info("Finding collector stopped")
     }
 
-    /**
-     * 添加一个 Finding 到缓冲区
-     */
     fun addFinding(finding: LocalFinding) {
-        buffer.add(finding)
-        localFindings.add(finding)
-        // 如果缓冲区超过100条，立即上送
-        if (buffer.size >= 100) {
-            CompletableFuture.runAsync { flush() }
-        }
+        findings.add(finding)
     }
 
-    /**
-     * 批量添加 Finding
-     */
-    fun addFindings(findings: List<LocalFinding>) {
-        buffer.addAll(findings)
-        localFindings.addAll(findings)
-        if (buffer.size >= 100) {
-            CompletableFuture.runAsync { flush() }
-        }
+    fun getFindings(): List<LocalFinding> {
+        return findings.toList()
     }
 
-    /**
-     * 将缓冲区的 Finding 上送到管理平台
-     */
-    @Synchronized
+    fun getPendingCount(): Int {
+        return findings.size
+    }
+
+    fun clearFindings() {
+        findings.clear()
+    }
+
     fun flush() {
-        if (buffer.isEmpty()) return
+        if (findings.isEmpty()) return
 
         val batch = mutableListOf<LocalFinding>()
-        while (buffer.isNotEmpty() && batch.size < 200) {
-            buffer.poll()?.let { batch.add(it) }
+        while (batch.size < 10 && findings.isNotEmpty()) {
+            findings.poll()?.let { batch.add(it) }
         }
 
         if (batch.isEmpty()) return
 
-        // 按 module 分组上送
-        batch.groupBy { it.module }.forEach { (module, findings) ->
-            try {
-                val response = client.uploadFindings(findings, module)
-                if (response.code == 200) {
-                    logger.info("Uploaded ${findings.size} findings for module: $module")
-                    findings.forEach { it.uploaded = true }
-                } else {
-                    logger.warn("Upload findings failed: ${response.message}")
-                    // 上送失败，重新加入缓冲区
-                    buffer.addAll(findings)
-                }
-            } catch (e: Exception) {
-                logger.warn("Upload findings error: ${e.message}")
-                buffer.addAll(findings)
+        // Group by module and upload
+        val grouped = batch.groupBy { it.module }
+        for ((module, items) in grouped) {
+            val findingItems = items.map { local ->
+                FindingItem(
+                    ruleId = local.ruleId,
+                    severity = local.severity,
+                    title = local.title,
+                    description = local.description,
+                    filePath = local.filePath,
+                    startLine = local.startLine,
+                    endLine = local.endLine,
+                    componentName = local.componentName,
+                    currentVersion = local.currentVersion,
+                    fixedVersion = local.fixedVersion,
+                    vulnerabilityId = local.vulnerabilityId,
+                    confidence = local.confidence,
+                    recommendation = local.recommendation,
+                    cwe = local.cwe,
+                    owasp = local.owasp
+                )
+            }
+            val success = client.uploadFindings(module, findingItems)
+            if (success) {
+                logger.info("Uploaded ${findingItems.size} findings for module $module")
+            } else {
+                logger.warn("Failed to upload findings for module $module, re-queuing")
+                findings.addAll(items)
             }
         }
-    }
-
-    /**
-     * 获取所有本地 Finding（供 ToolWindow 和 Actions 使用）
-     */
-    fun getFindings(): List<LocalFinding> = localFindings.toList()
-
-    /**
-     * 获取未上传的 Finding
-     */
-    fun getPendingFindings(): List<LocalFinding> = localFindings.filter { !it.uploaded }
-
-    /**
-     * 获取缓冲区大小
-     */
-    fun getBufferSize(): Int = buffer.size
-
-    /**
-     * 清空本地 Finding（用于重新扫描前清空旧结果）
-     */
-    fun clearFindings() {
-        localFindings.clear()
-        buffer.clear()
-    }
-
-    companion object {
-        fun getInstance(project: Project): FindingCollector =
-            project.getService(FindingCollector::class.java)
     }
 }

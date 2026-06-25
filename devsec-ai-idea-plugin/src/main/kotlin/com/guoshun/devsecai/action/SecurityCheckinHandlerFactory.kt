@@ -1,78 +1,81 @@
 package com.guoshun.devsecai.action
 
+import com.guoshun.devsecai.model.LocalFinding
 import com.guoshun.devsecai.service.FindingCollector
 import com.guoshun.devsecai.service.PolicyService
+import com.intellij.openapi.diagnostic.Logger
+import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.vcs.CheckinProjectPanel
 import com.intellij.openapi.vcs.changes.CommitContext
 import com.intellij.openapi.vcs.checkin.CheckinHandler
 import com.intellij.openapi.vcs.checkin.CheckinHandlerFactory
-import com.intellij.openapi.diagnostic.Logger
-import com.intellij.openapi.ui.Messages
+import com.intellij.openapi.wm.WindowManager
 
-/**
- * Git 提交检查处理器工厂
- * 在代码提交前执行安全检查，如果存在高危漏洞则阻断提交
- */
 class SecurityCheckinHandlerFactory : CheckinHandlerFactory() {
 
     override fun createHandler(panel: CheckinProjectPanel, commitContext: CommitContext): CheckinHandler {
-        return SecurityCheckinHandler(panel)
-    }
-}
-
-/**
- * Git 提交安全检查处理器
- */
-class SecurityCheckinHandler(private val panel: CheckinProjectPanel) : CheckinHandler() {
-
-    companion object {
-        private val LOG = Logger.getInstance(SecurityCheckinHandler::class.java)
+        return SecurityCheckinHandler(panel.project)
     }
 
-    override fun beforeCheckin(): ReturnResult {
-        val project = panel.project
-        val policyService = PolicyService.getInstance(project)
+    private class SecurityCheckinHandler(private val project: Project) : CheckinHandler() {
 
-        // 如果未启用 Git 提交检查，跳过
-        if (!policyService.isOnCommitScanEnabled()) {
-            return ReturnResult.COMMIT
-        }
+        private val logger = Logger.getInstance(SecurityCheckinHandler::class.java)
 
-        val collector = FindingCollector.getInstance(project)
-        val findings = collector.getFindings()
+        override fun beforeCheckin(): ReturnResult {
+            val settings = com.guoshun.devsecai.config.DevSecAISettings.getInstance()
+            if (!settings.gitCommitCheck) {
+                return ReturnResult.COMMIT
+            }
 
-        // 统计高危及以上漏洞
-        val criticalCount = findings.count { it.severity == "CRITICAL" }
-        val highCount = findings.count { it.severity == "HIGH" }
+            try {
+                val policyService = project.getService(PolicyService::class.java)
+                val blockingRules = policyService.getBlockingRulesCached()
+                val collector = project.getService(FindingCollector::class.java)
+                val findings = collector.getFindings()
 
-        if (criticalCount > 0 && policyService.shouldBlockCritical()) {
-            LOG.warn("Commit blocked: $criticalCount critical findings")
-            val result = Messages.showYesNoDialog(
-                project,
-                "DevSecAI 安全检查发现 $criticalCount 个严重漏洞，是否仍要提交？\n" +
-                        "可在 DevSecAI 工具窗口查看详情。",
-                "DevSecAI 安全检查",
-                Messages.getWarningIcon()
-            )
-            if (result == Messages.NO) {
-                return ReturnResult.CANCEL
+                val blockedSeverities = mutableSetOf<String>()
+                if (blockingRules.blockCritical) blockedSeverities.add("CRITICAL")
+                if (blockingRules.blockHigh) blockedSeverities.add("HIGH")
+                if (blockingRules.blockMedium) blockedSeverities.add("MEDIUM")
+                if (blockingRules.blockLow) blockedSeverities.add("LOW")
+
+                val blockingFindings = findings.filter { it.severity in blockedSeverities }
+
+                if (blockingFindings.isEmpty()) {
+                    return ReturnResult.COMMIT
+                }
+
+                // Group by severity
+                val critical = blockingFindings.count { it.severity == "CRITICAL" }
+                val high = blockingFindings.count { it.severity == "HIGH" }
+                val medium = blockingFindings.count { it.severity == "MEDIUM" }
+                val low = blockingFindings.count { it.severity == "LOW" }
+
+                val message = StringBuilder("DevSecAI Security Check - ${blockingFindings.size} blocking finding(s):\n")
+                if (critical > 0) message.append("  Critical: $critical\n")
+                if (high > 0) message.append("  High: $high\n")
+                if (medium > 0) message.append("  Medium: $medium\n")
+                if (low > 0) message.append("  Low: $low\n")
+
+                if (blockingRules.allowOverride) {
+                    message.append("\nDo you want to commit anyway?")
+                    val frame = WindowManager.getInstance().getFrame(project)
+                    val result = Messages.showYesNoDialog(
+                            frame, message.toString(), "DevSecAI Security Check",
+                            Messages.getWarningIcon()
+                    )
+                    return if (result == Messages.YES) ReturnResult.COMMIT else ReturnResult.CANCEL
+                } else {
+                    Messages.showErrorDialog(
+                            project, message.toString(), "DevSecAI: Commit Blocked"
+                    )
+                    return ReturnResult.CANCEL
+                }
+            } catch (e: Exception) {
+                logger.warn("Security checkin handler error: ${e.message}")
+                return ReturnResult.COMMIT
             }
         }
-
-        if (highCount > 0 && policyService.shouldBlockHigh()) {
-            LOG.warn("Commit warning: $highCount high findings")
-            val result = Messages.showYesNoDialog(
-                project,
-                "DevSecAI 安全检查发现 $highCount 个高危漏洞，是否仍要提交？\n" +
-                        "可在 DevSecAI 工具窗口查看详情。",
-                "DevSecAI 安全检查",
-                Messages.getWarningIcon()
-            )
-            if (result == Messages.NO) {
-                return ReturnResult.CANCEL
-            }
-        }
-
-        return ReturnResult.COMMIT
     }
 }

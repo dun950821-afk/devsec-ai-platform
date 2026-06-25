@@ -1,62 +1,66 @@
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 
 plugins {
     id("java")
     id("org.jetbrains.kotlin.jvm") version "1.9.22"
-    id("org.jetbrains.intellij") version "1.17.2"
+    id("org.jetbrains.intellij.platform") version "2.5.0"
 }
 
-group = "com.guoshun.devsecai"
+group = "com.guoshun"
 version = "1.0.0"
 
 repositories {
     mavenCentral()
-}
-
-// Configure Gradle IntelliJ Platform Plugin 1.x
-intellij {
-    version.set("2024.2")
-    type.set("IU")
-    plugins.set(listOf("com.intellij.java", "Git4Idea"))
+    intellijPlatform {
+        defaultRepositories()
+    }
 }
 
 dependencies {
+    intellijPlatform {
+        intellijIdeaUltimate("2024.2")
+        testFramework(TestFrameworkType.Platform)
+        pluginVerifier()
+        zipSigner()
+    }
     implementation("com.google.code.gson:gson:2.10.1")
 }
 
-// Java 17 + Kotlin JVM Target 17
 kotlin {
-    jvmToolchain(17)
+    jvmToolchain(21)
 }
 
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(17)
+intellijPlatform {
+    pluginConfiguration {
+        id = "com.guoshun.devsecai"
+        name = "DevSecAI - Security Assistant"
+        version = "1.0.0"
+        description = """
+            DevSecAI Security Assistant - Real-time security detection IDE plugin.
+            SAST, Secrets Detection, Git Commit Check, AI Analysis.
+            """
+        ideaVersion {
+            sinceBuild = "242"
+            untilBuild = "261.*"
+        }
+    }
+    verifyPlugin {
+        ides {
+            ide("2024.2")
+            ide("2025.1")
+            ide("2026.1")
+        }
     }
 }
 
 tasks {
     withType<JavaCompile> {
-        sourceCompatibility = "17"
-        targetCompatibility = "17"
+        sourceCompatibility = "21"
+        targetCompatibility = "21"
     }
-
-    withType<KotlinCompile> {
-        kotlinOptions.jvmTarget = "17"
-    }
-
-    patchPluginXml {
-        sinceBuild.set("242")
-        untilBuild.set("261.*")
-    }
-
-    signPlugin {
-        certificateChain.set(System.getenv("CERTIFICATE_CHAIN"))
-        privateKey.set(System.getenv("PRIVATE_KEY"))
-        password.set(System.getenv("PRIVATE_KEY_PASSWORD"))
-    }
-
-    publishPlugin {
-        token.set(System.getenv("PUBLISH_TOKEN"))
+    withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
+        kotlinOptions {
+            jvmTarget = "21"
+        }
     }
 }

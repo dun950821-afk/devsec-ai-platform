@@ -4,130 +4,111 @@ import com.guoshun.devsecai.model.LocalFinding
 import com.guoshun.devsecai.service.FindingCollector
 import com.guoshun.devsecai.service.PolicyService
 import com.intellij.codeInspection.LocalInspectionTool
-import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
-import com.intellij.psi.PsiElementVisitor
-import com.intellij.psi.PsiFile
+import com.intellij.psi.*
 
-/**
- * Secrets 敏感信息检测引擎
- * 检测代码和配置文件中的密钥、Token、密码等敏感信息
- *
- * 重要：buildVisitor 中仅读取 PolicyService 的本地缓存，
- * 绝不触发网络请求，避免在 PSI 分析路径中造成 IDE 卡顿。
- */
 class SecretsInspectionTool : LocalInspectionTool() {
 
     private val logger = Logger.getInstance(SecretsInspectionTool::class.java)
 
-    // 敏感信息正则表达式规则
-    private val secretPatterns = listOf(
-        SecretPattern("SECRETS-AWS-KEY", "AWS Access Key", """AKIA[0-9A-Z]{16}""", "CRITICAL"),
-        SecretPattern("SECRETS-AWS-SECRET", "AWS Secret Key", """(?i)aws(.{0,20})?(?-i)['\"][0-9a-zA-Z/+]{40}['\"]""", "CRITICAL"),
-        SecretPattern("SECRETS-GITHUB-TOKEN", "GitHub Token", """gh[pousr]_[0-9a-zA-Z]{36}""", "CRITICAL"),
-        SecretPattern("SECRETS-JWT-SECRET", "JWT Secret", """(?i)(jwt[_-]?secret|jwt[_-]?key)['\"]?\s*[:=]\s*['\"][^'\"]{8,}['\"]""", "HIGH"),
-        SecretPattern("SECRETS-PRIVATE-KEY", "Private Key", """-----BEGIN (?:RSA |EC |DSA )?PRIVATE KEY-----""", "CRITICAL"),
-        SecretPattern("SECRETS-DATABASE-PWD", "Database Password", """(?i)(db[_-]?password|database[_-]?pwd|mysql[_-]?password|postgres[_-]?password)['\"]?\s*[:=]\s*['\"][^'\"]{4,}['\"]""", "HIGH"),
-        SecretPattern("SECRETS-API-KEY", "API Key", """(?i)(api[_-]?key|apikey|access[_-]?key)['\"]?\s*[:=]\s*['\"][^'\"]{8,}['\"]""", "MEDIUM"),
-        SecretPattern("SECRETS-SECRET-KEY", "Secret Key", """(?i)(secret[_-]?key|secretkey|encryption[_-]?key)['\"]?\s*[:=]\s*['\"][^'\"]{8,}['\"]""", "HIGH"),
-        SecretPattern("SECRETS-PASSWORD", "Hardcoded Password", """(?i)(password|passwd|pwd)['\"]?\s*[:=]\s*['\"][^'\"]{4,}['\"]""", "MEDIUM"),
-        SecretPattern("SECRETS-TOKEN", "Access Token", """(?i)(token|access[_-]?token|auth[_-]?token)['\"]?\s*[:=]\s*['\"][^'\"]{8,}['\"]""", "MEDIUM"),
-        SecretPattern("SECRETS-SLACK-TOKEN", "Slack Token", """xox[baprs]-[0-9]{10,13}-[0-9a-zA-Z]{24,34}""", "HIGH"),
-        SecretPattern("SECRETS-STRIPE-KEY", "Stripe Key", """[sr]k_(live|test)_[0-9a-zA-Z]{24}""", "CRITICAL"),
-    )
-
-    // 排除的文件模式
-    private val excludedFilePatterns = setOf(
-        ".lock", ".min.js", ".min.css", ".map",
-        "package-lock.json", "yarn.lock", "pnpm-lock.yaml"
+    private val patterns = listOf(
+            SecretPattern("AWS Access Key", "AKIA[0-9A-Z]{16}", "CRITICAL", "SECRETS-AWS-KEY",
+                    "AWS Access Key ID detected. Rotate the key immediately."),
+            SecretPattern("AWS Secret Key", "(?i)aws(.{0,20})?(?-i)['\\\"][0-9a-zA-Z/+]{40}['\\\"]", "CRITICAL", "SECRETS-AWS-SECRET",
+                    "AWS Secret Access Key detected. Rotate the key immediately."),
+            SecretPattern("GitHub Token", "gh[ps]_[0-9a-zA-Z]{36}", "CRITICAL", "SECRETS-GITHUB-TOKEN",
+                    "GitHub Token detected. Revoke and regenerate the token."),
+            SecretPattern("JWT Token", "eyJ[A-Za-z0-9-_]+\\.eyJ[A-Za-z0-9-_]+\\.[A-Za-z0-9-_]+", "HIGH", "SECRETS-JWT",
+                    "JWT Token detected in source code. Store in environment variables."),
+            SecretPattern("Private Key", "-----BEGIN (?:RSA |EC |DSA )?PRIVATE KEY-----", "CRITICAL", "SECRETS-PRIVATE-KEY",
+                    "Private key detected. Store in secure key management system."),
+            SecretPattern("Database Password", "(?i)(password|passwd|pwd)\\s*[:=]\\s*['\\\"][^'\\\"]{8,}['\\\"]", "HIGH", "SECRETS-DB-PASSWORD",
+                    "Database password detected. Use environment variables or vault."),
+            SecretPattern("API Key Generic", "(?i)(api[_-]?key|apikey)\\s*[:=]\\s*['\\\"][^'\\\"]{16,}['\\\"]", "HIGH", "SECRETS-API-KEY",
+                    "API key detected. Store in environment variables or vault."),
+            SecretPattern("Slack Token", "xox[baprs]-[0-9]{10,}-[0-9a-zA-Z]{24,}", "HIGH", "SECRETS-SLACK-TOKEN",
+                    "Slack token detected. Revoke and use environment variables.")
     )
 
     override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean): PsiElementVisitor {
         val project = holder.project
-        val policyService = PolicyService.getInstance(project)
 
-        // 仅使用缓存策略判断，不触发网络请求
-        // 如果策略未加载（缓存为空），默认启用检测
+        // Only use cached policy - NEVER trigger network I/O in PSI path
+        val policyService = project.getService(PolicyService::class.java)
         if (!policyService.isSecretsEnabledCached()) {
             return PsiElementVisitor.EMPTY_VISITOR
         }
 
-        return SecretsVisitor(holder, project)
-    }
+        return object : JavaElementVisitor() {
+            override fun visitLiteralExpression(expression: PsiLiteralExpression) {
+                super.visitLiteralExpression(expression)
+                val text = expression.text ?: return
+                checkSecrets(expression, text, holder, project)
+            }
 
-    private inner class SecretsVisitor(
-        private val holder: ProblemsHolder,
-        private val project: Project
-    ) : PsiElementVisitor() {
-
-        override fun visitFile(file: PsiFile) {
-            super.visitFile(file)
-
-            val fileName = file.name.lowercase()
-            if (excludedFilePatterns.any { fileName.endsWith(it) }) return
-            if (fileName.contains("test") || fileName.contains("spec")) return
-
-            val text = file.text ?: return
-            val doc = file.viewProvider.document ?: return
-
-            for (pattern in secretPatterns) {
-                val regex = Regex(pattern.regex)
-                val matches = regex.findAll(text)
-
-                for (match in matches) {
-                    val lineNumber = doc.getLineNumber(match.range.first) + 1
-                    val matchedText = match.value
-
-                    // 跳过明显的占位符
-                    if (isPlaceholder(matchedText)) continue
-
-                    // 收集 Finding
-                    val finding = LocalFinding(
-                        ruleId = pattern.ruleId,
-                        module = "SECRETS",
-                        severity = pattern.severity,
-                        title = pattern.title,
-                        description = "检测到${pattern.title}泄露，文件中包含敏感信息",
-                        filePath = file.virtualFile.path,
-                        startLine = lineNumber,
-                        endLine = lineNumber
-                    )
-                    FindingCollector.getInstance(project).addFinding(finding)
-
-                    // 高危以上的在IDE中标记
-                    if (pattern.severity in setOf("CRITICAL", "HIGH")) {
-                        val highlightType = when (pattern.severity) {
-                            "CRITICAL" -> ProblemHighlightType.GENERIC_ERROR
-                            else -> ProblemHighlightType.GENERIC_ERROR_OR_WARNING
-                        }
-                        // 全文件级别警告
-                        holder.registerProblem(
-                            file,
-                            "[DevSecAI] 检测到${pattern.title}泄露 (行$lineNumber)",
-                            highlightType
-                        )
-                    }
-                }
+            override fun visitComment(comment: PsiComment) {
+                super.visitComment(comment)
+                val text = comment.text
+                checkSecrets(comment, text, holder, project)
             }
         }
+    }
 
-        private fun isPlaceholder(text: String): Boolean {
-            val placeholders = setOf(
-                "xxx", "your-", "change-me", "replace", "example",
-                "placeholder", "todo", "fixme", "insert", "<", ">",
-                "xxxx", "****", "0000", "1234", "abcd"
-            )
-            val lower = text.lowercase()
-            return placeholders.any { lower.contains(it) }
+    private fun checkSecrets(element: PsiElement, text: String, holder: ProblemsHolder, project: Project) {
+        for (pattern in patterns) {
+            try {
+                val regex = Regex(pattern.regex)
+                if (regex.containsMatchIn(text)) {
+                    val message = "Secret Detected: ${pattern.name}. ${pattern.recommendation}"
+                    holder.registerProblem(element, message,
+                            com.intellij.codeInspection.ProblemHighlightType.WARNING)
+                    addFinding(project, pattern.ruleId, pattern.severity, pattern.name,
+                            pattern.recommendation,
+                            element.containingFile?.virtualFile?.path ?: "",
+                            getLineNumber(element), getLineNumber(element))
+                }
+            } catch (e: Exception) {
+                logger.warn("Regex error for pattern ${pattern.name}: ${e.message}")
+            }
         }
     }
 
-    data class SecretPattern(
-        val ruleId: String,
-        val title: String,
-        val regex: String,
-        val severity: String
+    private fun addFinding(project: Project, ruleId: String, severity: String, title: String,
+                           description: String, filePath: String, startLine: Int, endLine: Int) {
+        try {
+            val collector = project.getService(FindingCollector::class.java)
+            collector.addFinding(LocalFinding(
+                    ruleId = ruleId,
+                    severity = severity,
+                    title = title,
+                    description = description,
+                    filePath = filePath,
+                    startLine = startLine,
+                    endLine = endLine,
+                    module = "SECRETS"
+            ))
+        } catch (e: Exception) {
+            logger.warn("Failed to add finding: ${e.message}")
+        }
+    }
+
+    private fun getLineNumber(element: PsiElement): Int {
+        return try {
+            val doc = com.intellij.openapi.editor.Document.getInstance(element.containingFile)
+            val offset = element.textOffset
+            doc.getLineNumber(offset) + 1
+        } catch (e: Exception) {
+            0
+        }
+    }
+
+    private data class SecretPattern(
+            val name: String,
+            val regex: String,
+            val severity: String,
+            val ruleId: String,
+            val recommendation: String
     )
 }

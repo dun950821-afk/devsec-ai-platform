@@ -2,9 +2,44 @@ package com.guoshun.devsecai.model
 
 import com.google.gson.annotations.SerializedName
 
-/**
- * 握手认证请求
- */
+data class PolicyConfig(
+    val enabledModules: EnabledModules? = null,
+    val scanTriggers: ScanTriggers? = null,
+    val blockingRules: BlockingRules? = null,
+    val aiPolicy: AiPolicy? = null
+)
+
+data class EnabledModules(
+    val sca: Boolean = false,
+    val sast: Boolean = true,
+    val secrets: Boolean = true,
+    val baseline: Boolean = false,
+    val ai: Boolean = false
+)
+
+data class ScanTriggers(
+    val onFileSave: Boolean = true,
+    val onFileOpen: Boolean = false,
+    val onCommit: Boolean = true,
+    val manualOnly: Boolean = false
+)
+
+data class BlockingRules(
+    val blockCritical: Boolean = true,
+    val blockHigh: Boolean = true,
+    val blockMedium: Boolean = false,
+    val blockLow: Boolean = false,
+    val allowOverride: Boolean = true
+)
+
+data class AiPolicy(
+    val vulnExplain: Boolean = false,
+    val fixSuggestion: Boolean = false,
+    val patchGenerate: Boolean = false,
+    val allowCodeSnippet: Boolean = false,
+    val maxContextLines: Int = 10
+)
+
 data class HandshakeRequest(
     val pluginId: String,
     val pluginVersion: String,
@@ -15,90 +50,38 @@ data class HandshakeRequest(
     val accessToken: String
 )
 
-/**
- * 握手认证响应
- */
 data class HandshakeResponse(
-    val code: Int,
-    val message: String,
-    val data: HandshakeData?
+    val projectId: String? = null,
+    val projectName: String? = null,
+    val userId: String? = null,
+    val policyId: String? = null,
+    val policyVersion: String? = null,
+    val rulePackVersion: String? = null,
+    val enabledModules: List<String>? = null
 )
 
-data class HandshakeData(
-    val projectId: String,
-    val projectName: String?,
-    val userId: String,
-    val policyId: String,
-    val policyVersion: String,
-    val rulePackVersion: String,
-    val enabledModules: List<String>
-)
-
-/**
- * 心跳请求
- */
 data class HeartbeatRequest(
-    val pluginId: String
+    val pluginId: String,
+    val status: String = "ONLINE",
+    val activeModules: List<String>? = null
 )
 
-/**
- * 通用API响应
- */
-data class ApiResponse(
-    val code: Int,
-    val message: String,
-    val data: Any?
-)
-
-/**
- * 策略配置响应
- */
 data class PolicyResponse(
-    val code: Int,
-    val message: String,
-    val data: PolicyData?
+    val code: Int? = null,
+    val message: String? = null,
+    val data: PolicyData? = null
 )
 
 data class PolicyData(
-    val policyId: String,
-    val policyName: String,
-    val policyVersion: String,
-    val enabledModules: EnabledModules,
-    val scanTriggers: ScanTriggers,
-    val blockingRules: BlockingRules,
-    val aiPolicy: AiPolicy
+    val policyId: String? = null,
+    val policyName: String? = null,
+    val policyVersion: String? = null,
+    val enabledModules: EnabledModules? = null,
+    val scanTriggers: ScanTriggers? = null,
+    val blockingRules: BlockingRules? = null,
+    val aiPolicy: AiPolicy? = null
 )
 
-data class EnabledModules(
-    val sca: Boolean,
-    val sast: Boolean,
-    val secrets: Boolean,
-    val baseline: Boolean,
-    val ai: Boolean
-)
-
-data class ScanTriggers(
-    val manualScan: Boolean,
-    val onSave: Boolean,
-    val onCommit: Boolean
-)
-
-data class BlockingRules(
-    val critical: Boolean,
-    val high: Boolean,
-    val medium: Boolean,
-    val low: Boolean
-)
-
-data class AiPolicy(
-    val maskSecrets: Boolean,
-    val maxContextLines: Int,
-    val allowCodeSnippetUpload: Boolean
-)
-
-/**
- * Finding上送请求
- */
 data class FindingUploadRequest(
     val pluginId: String,
     val module: String,
@@ -111,53 +94,47 @@ data class FindingItem(
     val title: String,
     val description: String,
     val filePath: String,
-    val startLine: Int? = null,
-    val endLine: Int? = null,
-    val componentName: String? = null,
-    val currentVersion: String? = null,
-    val fixedVersion: String? = null,
-    val vulnerabilityId: String? = null,
-    val cwe: String? = null,
-    val owasp: String? = null,
-    val confidence: String? = null,
-    val recommendation: String? = null
-)
-
-/**
- * Finding数据模型（本地使用）
- */
-data class LocalFinding(
-    val ruleId: String,
-    val module: String,         // SAST / SCA / SECRETS
-    val severity: String,       // CRITICAL / HIGH / MEDIUM / LOW
-    val title: String,
-    val description: String,
-    val filePath: String,
     val startLine: Int,
     val endLine: Int,
     val componentName: String? = null,
     val currentVersion: String? = null,
     val fixedVersion: String? = null,
     val vulnerabilityId: String? = null,
+    val confidence: String = "HIGH",
     val recommendation: String? = null,
-    var status: FindingStatus = FindingStatus.OPEN,
-    var uploaded: Boolean = false
+    val cwe: String? = null,
+    val owasp: String? = null
 )
 
-enum class FindingStatus(val display: String) {
-    OPEN("待处理"),
-    FIXED("已修复"),
-    IGNORED("已忽略")
+data class LocalFinding(
+    val ruleId: String,
+    val severity: String,
+    val title: String,
+    val description: String,
+    val filePath: String,
+    val startLine: Int,
+    val endLine: Int,
+    val module: String,
+    val componentName: String? = null,
+    val currentVersion: String? = null,
+    val fixedVersion: String? = null,
+    val vulnerabilityId: String? = null,
+    val confidence: String = "HIGH",
+    val recommendation: String? = null,
+    val cwe: String? = null,
+    val owasp: String? = null
+)
+
+enum class FindingSeverity(val display: String, val color: String) {
+    CRITICAL("Critical", "#FF0000"),
+    HIGH("High", "#FF6600"),
+    MEDIUM("Medium", "#FFAA00"),
+    LOW("Low", "#66AAFF"),
+    INFO("Info", "#888888")
 }
 
-enum class Severity(val display: String, val priority: Int) {
-    CRITICAL("严重", 0),
-    HIGH("高危", 1),
-    MEDIUM("中危", 2),
-    LOW("低危", 3);
-
-    companion object {
-        fun fromValue(value: String): Severity =
-            values().find { it.name.equals(value, ignoreCase = true) } ?: LOW
-    }
+enum class FindingStatus(val display: String) {
+    OPEN("Open"),
+    FIXED("Fixed"),
+    IGNORED("Ignored")
 }

@@ -4,50 +4,81 @@ import com.guoshun.devsecai.config.DevSecAISettings
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.startup.ProjectActivity
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
-/**
- * 项目启动监听器（后台执行）
- * 使用 ProjectActivity (StartupActivity.Background) 在项目打开后后台执行握手认证、启动心跳和策略拉取
- * 避免在 projectOpened 中同步执行网络请求导致 IDE 卡顿
- */
 class ProjectStartupListener : ProjectActivity {
 
     private val logger = Logger.getInstance(ProjectStartupListener::class.java)
 
     override suspend fun execute(project: Project) {
-        val settings = DevSecAISettings.getInstance()
-        if (!settings.isConfigured()) {
-            logger.info("DevSecAI not configured, skipping startup")
-            return
-        }
+        logger.info("DevSecAI plugin starting for project: ${project.name}")
 
-        // 所有网络操作在后台协程中执行，不阻塞 UI
-        try {
-            // 1. 握手认证
-            val client = DevSecAIClient()
-            val handshakeResponse = client.handshake()
-            if (handshakeResponse.code == 200) {
-                settings.connected = true
-                logger.info("Handshake successful: ${handshakeResponse.data}")
+        val cs = CoroutineScope(Dispatchers.IO)
+        cs.launch {
+            try {
+                // Step 1: Handshake
+                val settings = DevSecAISettings.getInstance()
+                if (settings.serverUrl.isEmpty() || settings.accessToken.isEmpty()) {
+                    logger.warn("Server URL or Access Token not configured, skipping handshake")
+                    return@launch
+                }
 
-                // 2. 启动心跳（后台 Timer，不阻塞）
-                val heartbeatService = HeartbeatService.getInstance(project)
-                heartbeatService.start()
+                val client = DevSecAIClient()
+                val ideName = "IntelliJ IDEA"
+                val ideVersion = getIdeVersion()
+                val machineId = getMachineId()
+                val developer = System.getProperty("user.name") ?: "unknown"
 
-                // 3. 拉取策略（后台 HTTP 请求）
-                val policyService = PolicyService.getInstance(project)
+                val response = client.handshake(ideName, ideVersion, machineId, developer)
+                if (response != null) {
+                    logger.info("Handshake successful, project: ${response.projectName}")
+                } else {
+                    logger.warn("Handshake failed")
+                }
+
+                // Step 2: Fetch policy
+                val policyService = project.getService(PolicyService::class.java)
                 policyService.refreshPolicy()
 
-                // 4. 启动 Finding 收集器
-                val findingCollector = FindingCollector.getInstance(project)
+                // Step 3: Start heartbeat
+                val heartbeatService = project.getService(HeartbeatService::class.java)
+                heartbeatService.start()
+
+                // Step 4: Start finding collector
+                val findingCollector = project.getService(FindingCollector::class.java)
                 findingCollector.start()
+
+                logger.info("DevSecAI plugin initialized successfully")
+            } catch (e: Exception) {
+                logger.error("DevSecAI plugin initialization failed: ${e.message}", e)
+            }
+        }
+    }
+
+    private fun getIdeVersion(): String {
+        return try {
+            val buildNumber = com.intellij.openapi.application.ApplicationInfo.getInstance().build
+            buildNumber.asString()
+        } catch (e: Exception) {
+            "unknown"
+        }
+    }
+
+    private fun getMachineId(): String {
+        return try {
+            val userHome = System.getProperty("user.home") ?: "/tmp"
+            val path = java.io.File(userHome, ".devsecai-machine-id")
+            if (path.exists()) {
+                path.readText().trim()
             } else {
-                settings.connected = false
-                logger.warn("Handshake failed: ${handshakeResponse.message}")
+                val id = java.util.UUID.randomUUID().toString()
+                path.writeText(id)
+                id
             }
         } catch (e: Exception) {
-            settings.connected = false
-            logger.warn("Startup initialization error: ${e.message}")
+            java.util.UUID.randomUUID().toString()
         }
     }
 }

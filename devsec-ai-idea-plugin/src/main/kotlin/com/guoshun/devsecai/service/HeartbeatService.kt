@@ -1,79 +1,61 @@
 package com.guoshun.devsecai.service
 
-import com.guoshun.devsecai.config.DevSecAISettings
-import com.intellij.openapi.Disposable
+import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import java.util.*
-import kotlin.concurrent.schedule
 
-/**
- * 心跳上报服务
- * 定时向管理平台上报插件存活状态
- */
-class HeartbeatService(private val project: Project) : Disposable {
+@Service(Service.Level.PROJECT)
+class HeartbeatService(private val project: Project) {
 
     private val logger = Logger.getInstance(HeartbeatService::class.java)
+    private var timer: Timer? = null
     private val client = DevSecAIClient()
-    private var timer: TimerTask? = null
-    private var started = false
 
-    @Synchronized
     fun start() {
-        if (started) return
-        started = true
-        scheduleNext()
-        logger.info("HeartbeatService started")
+        stop()
+        timer = Timer("DevSecAI-Heartbeat", true)
+        timer?.scheduleAtFixedRate(object : TimerTask() {
+            override fun run() {
+                try {
+                    val settings = com.guoshun.devsecai.config.DevSecAISettings.getInstance()
+                    val activeModules = mutableListOf<String>()
+                    if (settings.enableSAST) activeModules.add("SAST")
+                    if (settings.enableSecrets) activeModules.add("SECRETS")
+                    if (settings.enableSCA) activeModules.add("SCA")
+                    if (settings.enableBaseline) activeModules.add("BASELINE")
+
+                    val success = client.heartbeat("ONLINE", activeModules)
+                    if (success) {
+                        logger.info("Heartbeat sent successfully")
+                    } else {
+                        logger.warn("Heartbeat send failed")
+                    }
+                } catch (e: Exception) {
+                    logger.warn("Heartbeat error: ${e.message}")
+                }
+            }
+        }, 0, 5 * 60 * 1000L) // every 5 minutes
+        logger.info("Heartbeat service started")
     }
 
-    @Synchronized
     fun stop() {
         timer?.cancel()
         timer = null
-        started = false
-        logger.info("HeartbeatService stopped")
+        logger.info("Heartbeat service stopped")
     }
 
-    private fun scheduleNext() {
-        if (!started) return
-        val settings = DevSecAISettings.getInstance()
-        val intervalMs = settings.heartbeatIntervalMinutes * 60 * 1000L
-        timer = Timer().schedule(intervalMs) {
-            try {
-                doHeartbeat()
-            } catch (e: Exception) {
-                logger.warn("Heartbeat failed: ${e.message}")
-            } finally {
-                scheduleNext()
-            }
-        }
-    }
-
-    private fun doHeartbeat() {
-        val settings = DevSecAISettings.getInstance()
-        if (!settings.isConfigured()) return
-
+    fun sendHeartbeat() {
         try {
-            val response = client.heartbeat()
-            if (response.code == 200) {
-                settings.connected = true
-                logger.debug("Heartbeat success")
-            } else {
-                settings.connected = false
-                logger.warn("Heartbeat returned code: ${response.code}, message: ${response.message}")
-            }
+            val settings = com.guoshun.devsecai.config.DevSecAISettings.getInstance()
+            val activeModules = mutableListOf<String>()
+            if (settings.enableSAST) activeModules.add("SAST")
+            if (settings.enableSecrets) activeModules.add("SECRETS")
+            if (settings.enableSCA) activeModules.add("SCA")
+            if (settings.enableBaseline) activeModules.add("BASELINE")
+            client.heartbeat("ONLINE", activeModules)
         } catch (e: Exception) {
-            settings.connected = false
-            logger.warn("Heartbeat error: ${e.message}")
+            logger.warn("Manual heartbeat error: ${e.message}")
         }
-    }
-
-    override fun dispose() {
-        stop()
-    }
-
-    companion object {
-        fun getInstance(project: Project): HeartbeatService =
-            project.getService(HeartbeatService::class.java)
     }
 }

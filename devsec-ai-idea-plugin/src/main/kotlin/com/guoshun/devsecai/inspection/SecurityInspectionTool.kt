@@ -4,256 +4,208 @@ import com.guoshun.devsecai.model.LocalFinding
 import com.guoshun.devsecai.service.FindingCollector
 import com.guoshun.devsecai.service.PolicyService
 import com.intellij.codeInspection.LocalInspectionTool
-import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.intellij.psi.*
-import com.intellij.psi.util.PsiTreeUtil
 
-/**
- * SAST 安全检测引擎
- * 基于 PSI 分析 Java/Kotlin 代码中的安全漏洞
- *
- * 重要：buildVisitor 中仅读取 PolicyService 的本地缓存，
- * 绝不触发网络请求，避免在 PSI 分析路径中造成 IDE 卡顿。
- */
 class SecurityInspectionTool : LocalInspectionTool() {
 
     private val logger = Logger.getInstance(SecurityInspectionTool::class.java)
 
     override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean): PsiElementVisitor {
         val project = holder.project
-        val policyService = PolicyService.getInstance(project)
 
-        // 仅使用缓存策略判断，不触发网络请求
-        // 如果策略未加载（缓存为空），默认启用检测
+        // Only use cached policy - NEVER trigger network I/O in PSI path
+        val policyService = project.getService(PolicyService::class.java)
         if (!policyService.isSastEnabledCached()) {
             return PsiElementVisitor.EMPTY_VISITOR
         }
 
-        return SecurityVisitor(holder, project)
+        return object : JavaElementVisitor() {
+
+            override fun visitMethod(method: PsiMethod) {
+                super.visitMethod(method)
+                checkSqlInjection(method, holder, project)
+                checkCommandInjection(method, holder, project)
+                checkPathTraversal(method, holder, project)
+            }
+
+            override fun visitLiteralExpression(expression: PsiLiteralExpression) {
+                super.visitLiteralExpression(expression)
+                checkHardcodedPassword(expression, holder, project)
+                checkWeakCrypto(expression, holder, project)
+            }
+
+            override fun visitMethodCallExpression(expression: PsiMethodCallExpression) {
+                super.visitMethodCallExpression(expression)
+                checkXss(expression, holder, project)
+                checkUnsafeDeserialization(expression, holder, project)
+                checkInsecureSocket(expression, holder, project)
+            }
+        }
     }
 
-    /**
-     * 安全检查访问器
-     */
-    private inner class SecurityVisitor(
-        private val holder: ProblemsHolder,
-        private val project: Project
-    ) : JavaElementVisitor() {
+    private fun checkSqlInjection(method: PsiMethod, holder: ProblemsHolder, project: Project) {
+        val body = method.body ?: return
+        val text = body.text
 
-        override fun visitMethodCallExpression(expression: PsiMethodCallExpression) {
-            super.visitMethodCallExpression(expression)
-            checkSqlInjection(expression)
-            checkXssVulnerability(expression)
-            checkCommandInjection(expression)
-            checkPathTraversal(expression)
-            checkUnsafeDeserialization(expression)
-            checkWeakCrypto(expression)
+        if (text.contains("executeQuery") || text.contains("executeUpdate") || text.contains("prepareStatement")) {
+            if (text.contains("+") && (text.contains("SELECT") || text.contains("INSERT") ||
+                            text.contains("UPDATE") || text.contains("DELETE") || text.contains("WHERE"))) {
+                val message = "SQL Injection: String concatenation in SQL query. Use PreparedStatement instead."
+                holder.registerProblem(method, message)
+                addFinding(project, "SAST-SQL-INJECTION", "HIGH", "SQL Injection",
+                        "String concatenation detected in SQL query. Use parameterized queries.",
+                        method.containingFile?.virtualFile?.path ?: "",
+                        getLineNumber(method), getLineNumber(method))
+            }
         }
+    }
 
-        override fun visitNewExpression(expression: PsiNewExpression) {
-            super.visitNewExpression(expression)
-            checkInsecureSocket(expression)
-        }
+    private fun checkXss(expression: PsiMethodCallExpression, holder: ProblemsHolder, project: Project) {
+        val methodText = expression.methodExpression.qualifierExpression?.text ?: ""
+        val methodName = expression.methodExpression.referenceName ?: ""
 
-        // ==================== SQL 注入检测 ====================
-        private fun checkSqlInjection(call: PsiMethodCallExpression) {
-            val method = call.resolveMethod() ?: return
-            val className = method.containingClass?.qualifiedName ?: return
-            val methodName = method.name
-
-            val sqlClasses = setOf(
-                "java.sql.Statement", "java.sql.PreparedStatement",
-                "java.sql.Connection", "javax.sql.DataSource"
-            )
-
-            if (className in sqlClasses && methodName in setOf("executeQuery", "execute", "executeUpdate")) {
-                val args = call.argumentList.expressions
+        if (methodName == "println" || methodName == "print" || methodName == "write") {
+            if (methodText.contains("Writer") || methodText.contains("writer") ||
+                    methodText.contains("getWriter") || methodText.contains("out")) {
+                val args = expression.argumentList.expressions
                 if (args.isNotEmpty()) {
-                    val arg = args.first()
-                    if (containsStringConcat(arg) || containsVariableReference(arg)) {
-                        registerFinding(
-                            call, "SAST-SQL-001",
-                            "SQL注入风险：检测到动态SQL拼接，建议使用参数化查询",
-                            "HIGH", "SQL注入"
-                        )
+                    val argText = args[0].text
+                    if (argText.contains("getParameter") || argText.contains("getParameterValues")) {
+                        val message = "XSS: Unsanitized user input written to output. Apply output encoding."
+                        holder.registerProblem(expression, message)
+                        addFinding(project, "SAST-XSS", "HIGH", "Cross-Site Scripting (XSS)",
+                                "Unsanitized user input written directly to output.",
+                                expression.containingFile?.virtualFile?.path ?: "",
+                                getLineNumber(expression), getLineNumber(expression))
                     }
                 }
             }
         }
+    }
 
-        // ==================== XSS 检测 ====================
-        private fun checkXssVulnerability(call: PsiMethodCallExpression) {
-            val method = call.resolveMethod() ?: return
-            val className = method.containingClass?.qualifiedName ?: return
-            val methodName = method.name
+    private fun checkCommandInjection(method: PsiMethod, holder: ProblemsHolder, project: Project) {
+        val body = method.body ?: return
+        val text = body.text
 
-            val xssPatterns = mapOf(
-                "javax.servlet.jsp.JspWriter" to setOf("print", "write", "println"),
-                "javax.servlet.http.HttpServletResponse" to setOf("getWriter"),
-                "java.io.PrintWriter" to setOf("print", "write", "println")
-            )
-
-            xssPatterns[className]?.let { methods ->
-                if (methodName in methods) {
-                    val args = call.argumentList.expressions
-                    if (args.any { containsUserInput(it) }) {
-                        registerFinding(
-                            call, "SAST-XSS-001",
-                            "XSS风险：用户输入未经过滤直接输出到页面",
-                            "HIGH", "XSS跨站脚本"
-                        )
-                    }
-                }
+        if (text.contains("Runtime.getRuntime().exec(") || text.contains("ProcessBuilder(")) {
+            if (text.contains("+") || text.contains("getParameter")) {
+                val message = "Command Injection: User input in OS command. Use allowlist and parameterized execution."
+                holder.registerProblem(method, message)
+                addFinding(project, "SAST-CMD-INJECTION", "CRITICAL", "Command Injection",
+                        "User input used in OS command execution.",
+                        method.containingFile?.virtualFile?.path ?: "",
+                        getLineNumber(method), getLineNumber(method))
             }
         }
+    }
 
-        // ==================== 命令注入检测 ====================
-        private fun checkCommandInjection(call: PsiMethodCallExpression) {
-            val method = call.resolveMethod() ?: return
-            val className = method.containingClass?.qualifiedName ?: return
-            val methodName = method.name
+    private fun checkPathTraversal(method: PsiMethod, holder: ProblemsHolder, project: Project) {
+        val body = method.body ?: return
+        val text = body.text
 
-            if (className == "java.lang.Runtime" && methodName == "exec") {
-                val args = call.argumentList.expressions
-                if (args.isNotEmpty() && containsVariableReference(args.first())) {
-                    registerFinding(
-                        call, "SAST-CMD-001",
-                        "命令注入风险：检测到动态命令执行，建议使用白名单校验",
-                        "CRITICAL", "命令注入"
-                    )
-                }
+        if ((text.contains("FileInputStream") || text.contains("FileOutputStream") ||
+                        text.contains("File(")) && text.contains("getParameter")) {
+            val message = "Path Traversal: User input used in file path. Validate and canonicalize paths."
+            holder.registerProblem(method, message)
+            addFinding(project, "SAST-PATH-TRAVERSAL", "HIGH", "Path Traversal",
+                    "User input used in file path construction.",
+                    method.containingFile?.virtualFile?.path ?: "",
+                    getLineNumber(method), getLineNumber(method))
+        }
+    }
+
+    private fun checkHardcodedPassword(expression: PsiLiteralExpression, holder: ProblemsHolder, project: Project) {
+        val text = expression.text
+        val parent = expression.parent
+
+        if (parent is PsiNameValuePair) {
+            val name = parent.name
+            if (name == "password" || name == "secret" || name == "apiKey") {
+                val message = "Hardcoded Password: Avoid hardcoding passwords in source code."
+                holder.registerProblem(expression, message)
+                addFinding(project, "SAST-HARDCODED-PASSWORD", "MEDIUM", "Hardcoded Password",
+                        "Password/secret hardcoded in source code.",
+                        expression.containingFile?.virtualFile?.path ?: "",
+                        getLineNumber(expression), getLineNumber(expression))
             }
         }
+    }
 
-        // ==================== 路径遍历检测 ====================
-        private fun checkPathTraversal(call: PsiMethodCallExpression) {
-            val method = call.resolveMethod() ?: return
-            val className = method.containingClass?.qualifiedName ?: return
-            val methodName = method.name
+    private fun checkWeakCrypto(expression: PsiLiteralExpression, holder: ProblemsHolder, project: Project) {
+        val text = expression.text
+        val weakAlgorithms = listOf("DES", "MD5", "SHA-1", "RC4", "RC2", "AES/ECB")
 
-            if (className in setOf("java.io.File", "java.io.FileInputStream", "java.io.FileOutputStream")
-                && methodName in setOf("<init>", "File")) {
-                val args = call.argumentList.expressions
-                if (args.isNotEmpty() && containsUserInput(args.first())) {
-                    registerFinding(
-                        call, "SAST-PATH-001",
-                        "路径遍历风险：文件路径包含用户输入，建议校验路径合法性",
-                        "HIGH", "路径遍历"
-                    )
-                }
+        for (algo in weakAlgorithms) {
+            if (text.contains(algo)) {
+                val message = "Weak Cryptography: $algo is insecure. Use AES-GCM, SHA-256+ or Argon2."
+                holder.registerProblem(expression, message)
+                addFinding(project, "SAST-WEAK-CRYPTO", "MEDIUM", "Weak Cryptography",
+                        "Insecure cryptographic algorithm: $algo",
+                        expression.containingFile?.virtualFile?.path ?: "",
+                        getLineNumber(expression), getLineNumber(expression))
+                break
             }
         }
+    }
 
-        // ==================== 不安全反序列化检测 ====================
-        private fun checkUnsafeDeserialization(call: PsiMethodCallExpression) {
-            val method = call.resolveMethod() ?: return
-            val className = method.containingClass?.qualifiedName ?: return
+    private fun checkUnsafeDeserialization(expression: PsiMethodCallExpression, holder: ProblemsHolder, project: Project) {
+        val methodText = expression.methodExpression.referenceName ?: ""
+        val qualifier = expression.methodExpression.qualifierExpression?.text ?: ""
 
-            if (className == "java.io.ObjectInputStream") {
-                registerFinding(
-                    call, "SAST-DESER-001",
-                    "不安全反序列化：使用ObjectInputStream可能导致RCE漏洞",
-                    "CRITICAL", "不安全反序列化"
-                )
-            }
+        if (methodText == "readObject" && qualifier.contains("ObjectInputStream")) {
+            val message = "Unsafe Deserialization: Untrusted data deserialization. Use allowlist or JSON."
+            holder.registerProblem(expression, message)
+            addFinding(project, "SAST-UNSAFE-DESERIALIZATION", "HIGH", "Unsafe Deserialization",
+                    "ObjectInputStream.readObject() on untrusted data.",
+                    expression.containingFile?.virtualFile?.path ?: "",
+                    getLineNumber(expression), getLineNumber(expression))
         }
+    }
 
-        // ==================== 弱加密检测 ====================
-        private fun checkWeakCrypto(call: PsiMethodCallExpression) {
-            val method = call.resolveMethod() ?: return
-            val className = method.containingClass?.qualifiedName ?: return
-            val methodName = method.name
+    private fun checkInsecureSocket(expression: PsiMethodCallExpression, holder: ProblemsHolder, project: Project) {
+        val methodText = expression.methodExpression.referenceName ?: ""
+        val qualifier = expression.methodExpression.qualifierExpression?.text ?: ""
 
-            val weakCryptoClasses = mapOf(
-                "javax.crypto.Cipher" to setOf("getInstance"),
-                "java.security.MessageDigest" to setOf("getInstance"),
-                "javax.net.ssl.SSLContext" to setOf("getInstance")
-            )
-
-            if (className in weakCryptoClasses && methodName in (weakCryptoClasses[className] ?: emptySet())) {
-                val args = call.argumentList.expressions
-                if (args.isNotEmpty()) {
-                    val algo = args.first().text.lowercase()
-                    val weakAlgos = setOf("des", "rc4", "md5", "sha1", "tlsv1", "sslv3")
-                    if (weakAlgos.any { algo.contains(it) }) {
-                        registerFinding(
-                            call, "SAST-CRYPTO-001",
-                            "弱加密算法：检测到不安全的加密算法 $algo，建议使用AES-256/SHA-256等",
-                            "MEDIUM", "弱加密"
-                        )
-                    }
-                }
-            }
+        if ((methodText == "Socket" || methodText == "ServerSocket") &&
+                !qualifier.contains("SSLSocket") && !qualifier.contains("SSLServerSocket")) {
+            val message = "Insecure Socket: Non-SSL socket detected. Use SSLSocket for encrypted communication."
+            holder.registerProblem(expression, message)
+            addFinding(project, "SAST-INSECURE-SOCKET", "MEDIUM", "Insecure Socket",
+                    "Non-SSL socket usage detected.",
+                    expression.containingFile?.virtualFile?.path ?: "",
+                    getLineNumber(expression), getLineNumber(expression))
         }
+    }
 
-        // ==================== 不安全Socket检测 ====================
-        private fun checkInsecureSocket(expr: PsiNewExpression) {
-            val className = expr.classReference?.qualifiedName ?: return
-            if (className in setOf("java.net.Socket", "java.net.ServerSocket")) {
-                registerFinding(
-                    expr, "SAST-NET-001",
-                    "不安全网络连接：使用明文Socket通信，建议使用SSLSocket",
-                    "MEDIUM", "不安全通信"
-                )
-            }
+    private fun addFinding(project: Project, ruleId: String, severity: String, title: String,
+                           description: String, filePath: String, startLine: Int, endLine: Int) {
+        try {
+            val collector = project.getService(FindingCollector::class.java)
+            collector.addFinding(LocalFinding(
+                    ruleId = ruleId,
+                    severity = severity,
+                    title = title,
+                    description = description,
+                    filePath = filePath,
+                    startLine = startLine,
+                    endLine = endLine,
+                    module = "SAST"
+            ))
+        } catch (e: Exception) {
+            logger.warn("Failed to add finding: ${e.message}")
         }
+    }
 
-        // ==================== 辅助方法 ====================
-
-        private fun containsStringConcat(expr: PsiExpression): Boolean {
-            return expr.text.contains("+") && expr.text.contains("\"")
-        }
-
-        private fun containsVariableReference(expr: PsiExpression): Boolean {
-            return expr is PsiReferenceExpression || expr.text.contains("+")
-        }
-
-        private fun containsUserInput(expr: PsiExpression): Boolean {
-            val text = expr.text.lowercase()
-            val userInputPatterns = setOf(
-                "getparameter", "getheader", "getinputstream",
-                "request.get", "getreader", "getline"
-            )
-            return userInputPatterns.any { text.contains(it) } || containsVariableReference(expr)
-        }
-
-        private fun registerFinding(
-            element: PsiElement,
-            ruleId: String,
-            description: String,
-            severity: String,
-            category: String
-        ) {
-            // 在IDE中显示警告
-            val highlightType = when (severity) {
-                "CRITICAL" -> ProblemHighlightType.GENERIC_ERROR
-                "HIGH" -> ProblemHighlightType.GENERIC_ERROR_OR_WARNING
-                "MEDIUM" -> ProblemHighlightType.WEAK_WARNING
-                else -> ProblemHighlightType.INFORMATION
-            }
-
-            holder.registerProblem(element, "[DevSecAI] $description", highlightType)
-
-            // 收集 Finding 上送
-            val file = element.containingFile
-            val doc = file.viewProvider.document
-            val lineNumber = doc?.getLineNumber(element.textOffset)?.plus(1) ?: 0
-
-            val finding = LocalFinding(
-                ruleId = ruleId,
-                module = "SAST",
-                severity = severity,
-                title = description.substringBefore(":").substringBefore("\uff1a"),
-                description = description,
-                filePath = file.virtualFile.path,
-                startLine = lineNumber,
-                endLine = lineNumber
-            )
-
-            FindingCollector.getInstance(element.project).addFinding(finding)
+    private fun getLineNumber(element: PsiElement): Int {
+        return try {
+            val doc = com.intellij.openapi.editor.Document.getInstance(element.containingFile)
+            val offset = element.textOffset
+            doc.getLineNumber(offset) + 1
+        } catch (e: Exception) {
+            0
         }
     }
 }

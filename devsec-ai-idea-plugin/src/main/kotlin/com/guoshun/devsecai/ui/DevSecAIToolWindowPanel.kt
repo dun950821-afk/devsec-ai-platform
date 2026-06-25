@@ -2,188 +2,169 @@ package com.guoshun.devsecai.ui
 
 import com.guoshun.devsecai.model.LocalFinding
 import com.guoshun.devsecai.service.FindingCollector
-import com.intellij.icons.AllIcons
+import com.intellij.openapi.actionSystem.ActionManager
+import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
+import com.intellij.openapi.wm.ToolWindow
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.table.JBTable
 import java.awt.*
 import javax.swing.*
 import javax.swing.table.DefaultTableModel
 
-/**
- * DevSecAI 检测结果 ToolWindow 面板
- */
-class DevSecAIToolWindowPanel(private val project: Project) : JPanel(BorderLayout()) {
+class DevSecAIToolWindowPanel(private val project: Project, toolWindow: ToolWindow) {
 
+    private val panel = JPanel(BorderLayout())
     private val tableModel = DefaultTableModel(
-        arrayOf("严重等级", "规则", "描述", "文件", "行号", "模块"),
-        0
+            arrayOf("Severity", "Module", "Title", "File", "Line", "Rule ID"), 0
     )
     private val table = JBTable(tableModel)
-    private val severityFilter = ComboBox(arrayOf("全部", "严重", "高危", "中危", "低危"))
-    private val statusLabel = JLabel("就绪")
-
-    // 本地 Finding 缓存（用于表格展示）
-    private val localFindings = mutableListOf<LocalFinding>()
+    private var severityFilter: ComboBox<String> = ComboBox(arrayOf("All", "CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"))
+    private val allFindings = mutableListOf<LocalFinding>()
 
     init {
-        // 顶部工具栏
+        // Toolbar
         val toolbar = JPanel(FlowLayout(FlowLayout.LEFT))
-        toolbar.add(JLabel("严重等级:"))
+        toolbar.add(JLabel("Severity:"))
         toolbar.add(severityFilter)
-        toolbar.add(Box.createHorizontalStrut(10))
 
-        val refreshBtn = JButton("刷新", AllIcons.Actions.Refresh)
-        refreshBtn.addActionListener { refreshTable() }
-        toolbar.add(refreshBtn)
+        val scanButton = JButton("Scan Project")
+        scanButton.addActionListener { triggerScan() }
+        toolbar.add(scanButton)
 
-        val uploadBtn = JButton("上送结果", AllIcons.Actions.Upload)
-        uploadBtn.addActionListener { uploadFindings() }
-        toolbar.add(uploadBtn)
+        val uploadButton = JButton("Upload Results")
+        uploadButton.addActionListener { uploadFindings() }
+        toolbar.add(uploadButton)
 
-        val clearBtn = JButton("清空", AllIcons.Actions.GC)
-        clearBtn.addActionListener { clearFindings() }
-        toolbar.add(clearBtn)
+        val clearButton = JButton("Clear")
+        clearButton.addActionListener { clearResults() }
+        toolbar.add(clearButton)
 
-        toolbar.add(Box.createHorizontalStrut(20))
-        toolbar.add(statusLabel)
+        val refreshButton = JButton("Refresh")
+        refreshButton.addActionListener { refreshTable() }
+        toolbar.add(refreshButton)
 
-        // 表格设置
-        table.rowHeight = 28
-        table.setAutoCreateRowSorter(true)
-        table.columnModel.getColumn(0).preferredWidth = 70
-        table.columnModel.getColumn(1).preferredWidth = 140
-        table.columnModel.getColumn(2).preferredWidth = 300
-        table.columnModel.getColumn(3).preferredWidth = 250
-        table.columnModel.getColumn(4).preferredWidth = 50
-        table.columnModel.getColumn(5).preferredWidth = 70
-
-        // 严重等级列渲染器
-        table.columnModel.getColumn(0).cellRenderer = SeverityCellRenderer()
-
-        // 布局
-        add(toolbar, BorderLayout.NORTH)
-        add(JBScrollPane(table), BorderLayout.CENTER)
-
-        // 统计面板
-        add(createStatsPanel(), BorderLayout.SOUTH)
-
-        // 监听筛选
         severityFilter.addActionListener { refreshTable() }
-    }
 
-    /**
-     * 添加 Finding 到本地缓存和表格
-     */
-    fun addFinding(finding: LocalFinding) {
-        localFindings.add(finding)
+        // Table setup
+        table.rowSorter = null
+        table.autoCreateRowSorter = true
+        table.setRowHeight(24)
+
+        // Severity color renderer
+        val severityColumn = table.columnModel.getColumn(0)
+        severityColumn.preferredWidth = 80
+        severityColumn.cellRenderer = SeverityRenderer()
+
+        val scrollPane = JBScrollPane(table)
+
+        panel.add(toolbar, BorderLayout.NORTH)
+        panel.add(scrollPane, BorderLayout.CENTER)
+
+        // Status bar
+        val statusBar = JPanel(FlowLayout(FlowLayout.LEFT))
+        val statusLabel = JLabel("Ready")
+        statusBar.add(statusLabel)
+        panel.add(statusBar, BorderLayout.SOUTH)
+
+        // Initial load
         refreshTable()
     }
 
-    /**
-     * 批量添加 Finding
-     */
-    fun addFindings(findings: List<LocalFinding>) {
-        localFindings.addAll(findings)
-        refreshTable()
-    }
+    fun getContent(): JComponent = panel
 
     private fun refreshTable() {
         tableModel.rowCount = 0
-        val selectedSeverity = severityFilter.selectedItem as String
+        val filterSeverity = severityFilter.selectedItem as? String ?: "All"
 
-        val severityMap = mapOf(
-            "严重" to "CRITICAL", "高危" to "HIGH",
-            "中危" to "MEDIUM", "低危" to "LOW"
-        )
-
-        val filteredFindings = if (selectedSeverity == "全部") {
-            localFindings
-        } else {
-            localFindings.filter { it.severity == (severityMap[selectedSeverity] ?: it.severity) }
+        try {
+            val collector = project.getService(FindingCollector::class.java)
+            allFindings.clear()
+            allFindings.addAll(collector.getFindings())
+        } catch (e: Exception) {
+            // Service may not be available yet
         }
 
-        val severityChinese = mapOf(
-            "CRITICAL" to "严重", "HIGH" to "高危",
-            "MEDIUM" to "中危", "LOW" to "低危"
-        )
+        val filtered = if (filterSeverity == "All") allFindings
+        else allFindings.filter { it.severity == filterSeverity }
 
-        for (f in filteredFindings) {
+        for (finding in filtered) {
             tableModel.addRow(arrayOf(
-                severityChinese[f.severity] ?: f.severity,
-                f.ruleId,
-                f.title,
-                f.filePath.substringAfterLast("/"),
-                f.startLine.toString(),
-                f.module
+                    finding.severity,
+                    finding.module,
+                    finding.title,
+                    finding.filePath.substringAfterLast('/'),
+                    finding.startLine.toString(),
+                    finding.ruleId
             ))
         }
 
-        updateStats(localFindings)
+        updateStatusBar()
     }
 
-    private fun updateStats(findings: List<LocalFinding>) {
-        val critical = findings.count { it.severity == "CRITICAL" }
-        val high = findings.count { it.severity == "HIGH" }
-        val medium = findings.count { it.severity == "MEDIUM" }
-        val low = findings.count { it.severity == "LOW" }
-        statusLabel.text = "共 ${findings.size} 项 | 严重:$critical 高危:$high 中危:$medium 低危:$low"
+    private fun triggerScan() {
+        try {
+            val actionManager = ActionManager.getInstance()
+            val action = actionManager.getAction("DevSecAI.ManualScan")
+            if (action != null) {
+                val event = com.intellij.openapi.actionSystem.AnActionEvent.createFromDataContext(
+                        "DevSecAIToolWindow", null,
+                        com.intellij.openapi.actionSystem.DataContext { null }
+                )
+                action.actionPerformed(event)
+            }
+        } catch (e: Exception) {
+            // Fallback
+        }
     }
 
     private fun uploadFindings() {
-        statusLabel.text = "正在上送..."
-        val collector = FindingCollector.getInstance(project)
-        // 将本地未上传的 Finding 交给 collector 上送
-        val notUploaded = localFindings.filter { !it.uploaded }
-        if (notUploaded.isEmpty()) {
-            statusLabel.text = "没有待上送的结果"
-            return
+        try {
+            val collector = project.getService(FindingCollector::class.java)
+            collector.flush()
+        } catch (e: Exception) {
+            // Ignore
         }
-        notUploaded.groupBy { it.module }.forEach { (module, findings) ->
-            collector.addFindings(findings)
-        }
-        collector.flush()
-        notUploaded.forEach { it.uploaded = true }
-        statusLabel.text = "上送完成"
     }
 
-    private fun clearFindings() {
-        localFindings.clear()
-        refreshTable()
-    }
-
-    private fun createStatsPanel(): JPanel {
-        val panel = JPanel(FlowLayout(FlowLayout.LEFT))
-        panel.add(JLabel("DevSecAI 安全检测结果"))
-        return panel
-    }
-
-    /**
-     * 严重等级单元格渲染器（带颜色）
-     */
-    private class SeverityCellRenderer : JLabel(), javax.swing.table.TableCellRenderer {
-        init {
-            isOpaque = true
-            horizontalAlignment = SwingConstants.CENTER
+    private fun clearResults() {
+        tableModel.rowCount = 0
+        try {
+            val collector = project.getService(FindingCollector::class.java)
+            collector.clearFindings()
+            allFindings.clear()
+        } catch (e: Exception) {
+            // Ignore
         }
+        updateStatusBar()
+    }
 
+    private fun updateStatusBar() {
+        val total = allFindings.size
+        val critical = allFindings.count { it.severity == "CRITICAL" }
+        val high = allFindings.count { it.severity == "HIGH" }
+        val medium = allFindings.count { it.severity == "MEDIUM" }
+        val low = allFindings.count { it.severity == "LOW" }
+        val statusLabel = (panel.getComponent(2) as JPanel).getComponent(0) as JLabel
+        statusLabel.text = "Total: $total | Critical: $critical | High: $high | Medium: $medium | Low: $low"
+    }
+
+    private class SeverityRenderer : javax.swing.table.DefaultTableCellRenderer() {
         override fun getTableCellRendererComponent(
-            table: JTable?, value: Any?, isSelected: Boolean,
-            hasFocus: Boolean, row: Int, column: Int
+                table: JTable?, value: Any?, isSelected: Boolean, hasFocus: Boolean,
+                row: Int, column: Int
         ): Component {
-            text = value?.toString() ?: ""
-            when (text) {
-                "严重" -> { background = Color(220, 53, 69); foreground = Color.WHITE }
-                "高危" -> { background = Color(255, 120, 50); foreground = Color.WHITE }
-                "中危" -> { background = Color(255, 193, 7); foreground = Color.BLACK }
-                "低危" -> { background = Color(40, 167, 69); foreground = Color.WHITE }
-                else -> { background = Color.WHITE; foreground = Color.BLACK }
+            val c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column)
+            when (value?.toString()) {
+                "CRITICAL" -> c.foreground = Color(255, 0, 0)
+                "HIGH" -> c.foreground = Color(255, 102, 0)
+                "MEDIUM" -> c.foreground = Color(255, 170, 0)
+                "LOW" -> c.foreground = Color(102, 170, 255)
+                "INFO" -> c.foreground = Color(136, 136, 136)
             }
-            if (isSelected) {
-                background = background.darker()
-            }
-            return this
+            c.font = c.font.deriveFont(Font.BOLD)
+            return c
         }
     }
 }

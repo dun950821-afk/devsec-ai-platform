@@ -1,113 +1,74 @@
 package com.guoshun.devsecai.service
 
-import com.guoshun.devsecai.config.DevSecAISettings
-import com.guoshun.devsecai.model.PolicyResponse
+import com.guoshun.devsecai.model.*
+import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 
-/**
- * 策略管理服务
- * 负责从管理平台拉取策略配置，并缓存到本地
- *
- * 设计原则：
- * - getXxxEnabled() 方法可能触发网络请求（用于非热路径场景）
- * - getXxxEnabledCached() 方法仅读缓存，绝不触发网络请求（用于 Inspection/PSI 热路径）
- */
+@Service(Service.Level.PROJECT)
 class PolicyService(private val project: Project) {
 
     private val logger = Logger.getInstance(PolicyService::class.java)
     private val client = DevSecAIClient()
-    private var cachedPolicy: PolicyResponse? = null
-    private var lastFetchTime: Long = 0
+    private var cachedPolicy: PolicyData? = null
+    private var cacheTimestamp: Long = 0
+    private val CACHE_TTL = 5 * 60 * 1000L // 5 minutes
 
-    /**
-     * 获取策略（优先缓存，5分钟过期）
-     * 可能触发网络请求，不适合在 PSI/Inspection 热路径中调用
-     */
-    fun getPolicy(): PolicyResponse? {
-        val settings = DevSecAISettings.getInstance()
-        if (!settings.isConfigured()) return null
-
-        val now = System.currentTimeMillis()
-        if (cachedPolicy != null && now - lastFetchTime < 5 * 60 * 1000) {
+    fun refreshPolicy(): PolicyData? {
+        try {
+            val policy = client.fetchPolicy()
+            if (policy != null) {
+                cachedPolicy = policy
+                cacheTimestamp = System.currentTimeMillis()
+                logger.info("Policy refreshed: ${policy.policyId}")
+            }
+            return policy
+        } catch (e: Exception) {
+            logger.warn("Failed to refresh policy: ${e.message}")
             return cachedPolicy
         }
+    }
 
-        return try {
-            val policy = client.getPolicy()
-            cachedPolicy = policy
-            lastFetchTime = now
-            val data = policy.data
-            if (data != null) {
-                logger.info("Policy fetched: ${data.policyName} v${data.policyVersion}")
-            }
-            policy
-        } catch (e: Exception) {
-            logger.warn("Failed to fetch policy: ${e.message}")
-            cachedPolicy
+    private fun getPolicy(): PolicyData? {
+        val now = System.currentTimeMillis()
+        if (cachedPolicy == null || (now - cacheTimestamp) > CACHE_TTL) {
+            refreshPolicy()
         }
+        return cachedPolicy
     }
 
-    /**
-     * 强制刷新策略（后台任务中使用）
-     */
-    fun refreshPolicy(): PolicyResponse? {
-        lastFetchTime = 0
-        cachedPolicy = null
-        return getPolicy()
-    }
-
-    // ==================== 缓存优先的能力开关判断（用于 PSI/Inspection 热路径） ====================
-    // 这些方法仅读取本地缓存，绝不触发网络 I/O
-    // 缓存为空时默认返回 true（启用检测），避免策略未加载时漏检
+    // Cached-only methods for use in PSI/Inspection paths (no network I/O)
+    // Returns true by default if no cached policy is available (fail-open)
 
     fun isSastEnabledCached(): Boolean {
-        val cached = cachedPolicy
-        return cached?.data?.enabledModules?.sast ?: true
+        return cachedPolicy?.enabledModules?.sast ?: true
     }
 
     fun isSecretsEnabledCached(): Boolean {
-        val cached = cachedPolicy
-        return cached?.data?.enabledModules?.secrets ?: true
+        return cachedPolicy?.enabledModules?.secrets ?: true
     }
 
     fun isScaEnabledCached(): Boolean {
-        val cached = cachedPolicy
-        return cached?.data?.enabledModules?.sca ?: true
+        return cachedPolicy?.enabledModules?.sca ?: false
     }
 
     fun isBaselineEnabledCached(): Boolean {
-        val cached = cachedPolicy
-        return cached?.data?.enabledModules?.baseline ?: true
+        return cachedPolicy?.enabledModules?.baseline ?: false
     }
 
     fun isAiEnabledCached(): Boolean {
-        val cached = cachedPolicy
-        return cached?.data?.enabledModules?.ai ?: true
+        return cachedPolicy?.enabledModules?.ai ?: false
     }
 
-    // ==================== 可触发网络请求的能力开关（用于非热路径场景） ====================
+    fun getBlockingRulesCached(): BlockingRules {
+        return cachedPolicy?.blockingRules ?: BlockingRules()
+    }
 
-    fun isScaEnabled(): Boolean = getPolicy()?.data?.enabledModules?.sca == true
-    fun isSastEnabled(): Boolean = getPolicy()?.data?.enabledModules?.sast == true
-    fun isSecretsEnabled(): Boolean = getPolicy()?.data?.enabledModules?.secrets == true
-    fun isBaselineEnabled(): Boolean = getPolicy()?.data?.enabledModules?.baseline == true
-    fun isAiEnabled(): Boolean = getPolicy()?.data?.enabledModules?.ai == true
+    fun getAiPolicyCached(): AiPolicy {
+        return cachedPolicy?.aiPolicy ?: AiPolicy()
+    }
 
-    fun shouldBlockCritical(): Boolean = getPolicy()?.data?.blockingRules?.critical == true
-    fun shouldBlockHigh(): Boolean = getPolicy()?.data?.blockingRules?.high == true
-    fun shouldBlockMedium(): Boolean = getPolicy()?.data?.blockingRules?.medium == true
-
-    fun isManualScanEnabled(): Boolean = getPolicy()?.data?.scanTriggers?.manualScan == true
-    fun isOnSaveScanEnabled(): Boolean = getPolicy()?.data?.scanTriggers?.onSave == true
-    fun isOnCommitScanEnabled(): Boolean = getPolicy()?.data?.scanTriggers?.onCommit == true
-
-    fun isCodeSnippetUploadAllowed(): Boolean = getPolicy()?.data?.aiPolicy?.allowCodeSnippetUpload == true
-    fun shouldMaskSecrets(): Boolean = getPolicy()?.data?.aiPolicy?.maskSecrets == true
-    fun getMaxContextLines(): Int = getPolicy()?.data?.aiPolicy?.maxContextLines ?: 80
-
-    companion object {
-        fun getInstance(project: Project): PolicyService =
-            project.getService(PolicyService::class.java)
+    fun getScanTriggersCached(): ScanTriggers {
+        return cachedPolicy?.scanTriggers ?: ScanTriggers()
     }
 }

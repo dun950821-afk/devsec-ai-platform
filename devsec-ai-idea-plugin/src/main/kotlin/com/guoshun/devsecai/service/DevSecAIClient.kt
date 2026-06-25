@@ -4,163 +4,150 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.guoshun.devsecai.config.DevSecAISettings
 import com.guoshun.devsecai.model.*
-import com.intellij.openapi.diagnostic.Logger
+import java.io.BufferedReader
+import java.io.InputStreamReader
+import java.io.OutputStreamWriter
 import java.net.HttpURLConnection
 import java.net.URL
-import java.nio.charset.StandardCharsets
 
-/**
- * DevSecAI HTTP 客户端
- * 负责与后端管理平台的所有HTTP通信
- * 注意：这是一个普通类，不注册为 IntelliJ Service
- */
 class DevSecAIClient {
 
-    private val logger = Logger.getInstance(DevSecAIClient::class.java)
     private val gson = Gson()
-    private val connectTimeout = 10000
-    private val readTimeout = 30000
 
-    private fun getSettings(): DevSecAISettings = DevSecAISettings.getInstance()
+    private fun getBaseUrl(): String {
+        val url = DevSecAISettings.getInstance().serverUrl
+        return if (url.endsWith("/")) url.dropLast(1) else url
+    }
 
-    private fun getBaseUrl(): String = getSettings().serverUrl.removeSuffix("/")
+    private fun getPluginId(): String {
+        return DevSecAISettings.getInstance().pluginId
+    }
 
-    /**
-     * 握手认证
-     */
-    fun handshake(): HandshakeResponse {
-        val settings = getSettings()
-        val ideInfo = getIdeInfo()
+    private fun getAccessToken(): String {
+        return DevSecAISettings.getInstance().accessToken
+    }
+
+    fun handshake(
+        ideName: String,
+        ideVersion: String,
+        machineId: String,
+        developer: String
+    ): HandshakeResponse? {
+        val url = URL("${getBaseUrl()}/api/plugin-instance/handshake")
         val request = HandshakeRequest(
-            pluginId = settings.getPluginIdOrGenerate(),
-            pluginVersion = PLUGIN_VERSION,
-            ideName = ideInfo.first,
-            ideVersion = ideInfo.second,
-            machineId = getMachineId(),
-            developer = settings.developerName,
-            accessToken = settings.accessToken
+            pluginId = getPluginId(),
+            pluginVersion = "1.0.0",
+            ideName = ideName,
+            ideVersion = ideVersion,
+            machineId = machineId,
+            developer = developer,
+            accessToken = getAccessToken()
         )
-        return postJson("${getBaseUrl()}/api/plugin-instance/handshake", request, HandshakeResponse::class.java)
+        return post(url, request, HandshakeResponse::class.java)
     }
 
-    /**
-     * 心跳上报
-     */
-    fun heartbeat(): ApiResponse {
-        val settings = getSettings()
-        val request = HeartbeatRequest(pluginId = settings.getPluginIdOrGenerate())
-        return postJson("${getBaseUrl()}/api/plugin-instance/heartbeat", request, ApiResponse::class.java)
+    fun heartbeat(status: String, activeModules: List<String>?): Boolean {
+        val url = URL("${getBaseUrl()}/api/plugin-instance/heartbeat")
+        val request = HeartbeatRequest(
+            pluginId = getPluginId(),
+            status = status,
+            activeModules = activeModules
+        )
+        return post(url, request) != null
     }
 
-    /**
-     * 获取策略配置
-     */
-    fun getPolicy(): PolicyResponse {
-        val settings = getSettings()
-        val url = "${getBaseUrl()}/api/plugin-instance/policy?pluginId=${settings.getPluginIdOrGenerate()}"
-        return getJson(url, PolicyResponse::class.java)
+    fun fetchPolicy(): PolicyData? {
+        val url = URL("${getBaseUrl()}/api/plugin-instance/policy?pluginId=${getPluginId()}")
+        val response = get(url, PolicyResponse::class.java)
+        return response?.data
     }
 
-    /**
-     * 上送Finding结果
-     */
-    fun uploadFindings(findings: List<LocalFinding>, module: String): ApiResponse {
-        val settings = getSettings()
-        val items = findings.map { f ->
-            FindingItem(
-                ruleId = f.ruleId,
-                severity = f.severity,
-                title = f.title,
-                description = f.description,
-                filePath = f.filePath,
-                startLine = f.startLine,
-                endLine = f.endLine,
-                componentName = f.componentName,
-                currentVersion = f.currentVersion,
-                fixedVersion = f.fixedVersion,
-                vulnerabilityId = f.vulnerabilityId,
-                recommendation = f.recommendation
-            )
-        }
+    fun uploadFindings(module: String, findings: List<FindingItem>): Boolean {
+        val url = URL("${getBaseUrl()}/api/finding/upload")
         val request = FindingUploadRequest(
-            pluginId = settings.getPluginIdOrGenerate(),
+            pluginId = getPluginId(),
             module = module,
-            findings = items
+            findings = findings
         )
-        return postJson("${getBaseUrl()}/api/finding/upload", request, ApiResponse::class.java)
+        return post(url, request) != null
     }
 
-    // ==================== HTTP 方法 ====================
+    private fun <T> post(url: URL, body: Any, responseClass: Class<T>): T? {
+        var connection: HttpURLConnection? = null
+        try {
+            connection = url.openConnection() as HttpURLConnection
+            connection.requestMethod = "POST"
+            connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
+            connection.setRequestProperty("Accept", "application/json")
+            connection.doOutput = true
+            connection.connectTimeout = 10000
+            connection.readTimeout = 15000
 
-    private fun <T> getJson(url: String, clazz: Class<T>): T {
-        val conn = URL(url).openConnection() as HttpURLConnection
-        return try {
-            conn.requestMethod = "GET"
-            conn.connectTimeout = connectTimeout
-            conn.readTimeout = readTimeout
-            conn.setRequestProperty("Accept", "application/json")
-            val body = conn.readBody()
-            gson.fromJson(body, clazz)
+            val writer = OutputStreamWriter(connection.outputStream, "UTF-8")
+            writer.write(gson.toJson(body))
+            writer.flush()
+            writer.close()
+
+            val responseCode = connection.responseCode
+            if (responseCode in 200..299) {
+                val reader = BufferedReader(InputStreamReader(connection.inputStream, "UTF-8"))
+                val response = reader.readText()
+                reader.close()
+                return gson.fromJson(response, responseClass)
+            }
+            return null
         } catch (e: Exception) {
-            logger.error("GET request failed: $url", e)
-            throw e
+            return null
         } finally {
-            conn.disconnect()
+            connection?.disconnect()
         }
     }
 
-    private fun <T> postJson(url: String, payload: Any, clazz: Class<T>): T {
-        val conn = URL(url).openConnection() as HttpURLConnection
-        return try {
-            conn.requestMethod = "POST"
-            conn.connectTimeout = connectTimeout
-            conn.readTimeout = readTimeout
-            conn.doOutput = true
-            conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
-            conn.setRequestProperty("Accept", "application/json")
-            val json = gson.toJson(payload)
-            conn.outputStream.use { os ->
-                os.write(json.toByteArray(StandardCharsets.UTF_8))
-            }
-            val body = conn.readBody()
-            gson.fromJson(body, clazz)
+    private fun <T> post(url: URL, body: Any): String? {
+        var connection: HttpURLConnection? = null
+        try {
+            connection = url.openConnection() as HttpURLConnection
+            connection.requestMethod = "POST"
+            connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
+            connection.doOutput = true
+            connection.connectTimeout = 10000
+            connection.readTimeout = 15000
+
+            val writer = OutputStreamWriter(connection.outputStream, "UTF-8")
+            writer.write(gson.toJson(body))
+            writer.flush()
+            writer.close()
+
+            val responseCode = connection.responseCode
+            return if (responseCode in 200..299) "ok" else null
         } catch (e: Exception) {
-            logger.error("POST request failed: $url", e)
-            throw e
+            return null
         } finally {
-            conn.disconnect()
+            connection?.disconnect()
         }
     }
 
-    private fun HttpURLConnection.readBody(): String {
-        val stream = if (responseCode in 200..299) inputStream else errorStream
-        return stream?.bufferedReader(StandardCharsets.UTF_8)?.use { it.readText() } ?: ""
-    }
+    private fun <T> get(url: URL, responseClass: Class<T>): T? {
+        var connection: HttpURLConnection? = null
+        try {
+            connection = url.openConnection() as HttpURLConnection
+            connection.requestMethod = "GET"
+            connection.setRequestProperty("Accept", "application/json")
+            connection.connectTimeout = 10000
+            connection.readTimeout = 15000
 
-    companion object {
-        const val PLUGIN_VERSION = "0.9.7"
-
-        private fun getIdeInfo(): Pair<String, String> {
-            val appInfo = com.intellij.openapi.application.ApplicationInfo.getInstance()
-            val appName = appInfo.fullApplicationName
-            val buildNumber = appInfo.build.toString()
-            return when {
-                appName.contains("IDEA", ignoreCase = true) -> "IntelliJ IDEA" to buildNumber
-                appName.contains("WebStorm", ignoreCase = true) -> "WebStorm" to buildNumber
-                appName.contains("PyCharm", ignoreCase = true) -> "PyCharm" to buildNumber
-                appName.contains("GoLand", ignoreCase = true) -> "GoLand" to buildNumber
-                else -> appName to buildNumber
+            val responseCode = connection.responseCode
+            if (responseCode in 200..299) {
+                val reader = BufferedReader(InputStreamReader(connection.inputStream, "UTF-8"))
+                val response = reader.readText()
+                reader.close()
+                return gson.fromJson(response, responseClass)
             }
-        }
-
-        private fun getMachineId(): String {
-            return try {
-                val optionsDir = com.intellij.openapi.application.PathManager.getOptionsDir()
-                val dirName = optionsDir.fileName.toString()
-                "hash-${dirName.hashCode().toString(16).uppercase().take(8)}"
-            } catch (e: Exception) {
-                "hash-${System.getProperty("user.name", "unknown").hashCode().toString(16).uppercase().take(8)}"
-            }
+            return null
+        } catch (e: Exception) {
+            return null
+        } finally {
+            connection?.disconnect()
         }
     }
 }
