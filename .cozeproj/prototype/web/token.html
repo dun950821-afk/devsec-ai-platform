@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/jquery/jquery-3.7.1.min.js"></script>
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/lucide/lucide-1.11.0.min.js"></script>
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/tailwindcss/tailwindcss-browser-4.2.4.min.js"></script>
+
+  <style type="text/tailwindcss">
+    @theme {
+      /* === 品牌色 — 安定感靛蓝，安全领域信赖色 === */
+      --color-primary:              #4F5BD5;
+      --color-primary-container:    #E0E3FF;
+      --color-on-primary:           #ffffff;
+      /* === 背景 / 表面 — 冷灰中性底，不混入品牌色相 === */
+      --color-background:                 #F4F5F9;
+      --color-surface-container-lowest:   #FFFFFF;
+      --color-surface:                    #FFFFFF;
+      --color-surface-container:          #EAEBF0;
+      --color-surface-container-high:     #E0E1E8;
+      --color-surface-container-highest:  #D3D4DC;
+      /* === 文字 === */
+      --color-on-surface:           #1A1D2E;
+      --color-on-surface-variant:   #6B7085;
+      /* === 功能色 === */
+      --color-success:  #22c55e;
+      --color-error:    #ef4444;
+      --color-warning:  #f59e0b;
+      /* === 边框 === */
+      --color-outline:          #C4C6D0;
+      --color-outline-variant:  #DDDEE5;
+      /* === 圆角 === */
+      --radius-sm:   0.25rem;
+      --radius-md:   0.5rem;
+      --radius-lg:   0.75rem;
+      --radius-xl:   1rem;
+      --radius-2xl:  1.5rem;
+      --radius-full: 9999px;
+      /* === 阴影 === */
+      --shadow-card:   0 2px 8px rgba(0,0,0,0.08);
+      --shadow-float:  0 10px 25px rgba(0,0,0,0.10);
+      --shadow-dialog: 0 25px 50px rgba(0,0,0,0.15);
+      /* === 字体 === */
+      --font-sans: system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+  </style>
+
+  <!-- 图片兜底 -->
+  <script>
+    document.addEventListener('error', function (e) {
+      const img = e.target;
+      if (img.tagName !== 'IMG' || img.dataset.fallback) return;
+      img.dataset.fallback = '1';
+      const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const cat = img.getAttribute('data-category') || '其他';
+      const alt = img.getAttribute('alt') || '';
+      const label = esc(alt.length > 8 ? alt.slice(0, 8) + '…' : alt);
+      const icons = { '人物': '👤', '自然风景': '🏞', '动物': '🐾', '建筑城市': '🏙', '运动体育': '⚽', '交通工具': '🚗', '食物': '🍽', '服饰时尚': '👗', '商业科技': '💼', '游戏娱乐': '🎮', '艺术': '🎨', '其他': '🖼' };
+      const icon = icons[cat] || '🖼';
+      const w = img.width || 400, h = img.height || 300;
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"><rect width="100%" height="100%" fill="%23f3f4f6"/><text x="50%" y="45%" text-anchor="middle" font-size="${Math.min(w, h) * 0.18}" dominant-baseline="central">${icon}</text><text x="50%" y="68%" text-anchor="middle" font-size="${Math.min(w, h) * 0.07}" fill="%239ca3af" font-family="system-ui,sans-serif" dominant-baseline="central">${label}</text></svg>`;
+      img.src = 'data:image/svg+xml,' + svg;
+    }, true);
+  </script>
+</head>
+
+<body class="bg-background text-on-surface font-sans">
+
+  <!-- @nav:start -->
+  <header class="bg-surface sticky top-0 z-40 h-14 flex items-center justify-between px-5 border-b border-outline-variant/15">
+    <div class="flex items-center gap-2.5">
+      <div class="w-7 h-7 bg-primary rounded-md flex items-center justify-center">
+        <i data-lucide="shield-check" class="w-4 h-4 text-on-primary"></i>
+      </div>
+      <span class="font-bold text-base text-on-surface">DevSecAI</span>
+      <span class="text-xs text-on-surface-variant ml-1">插件管理平台</span>
+    </div>
+    <div class="flex items-center gap-4">
+      <button class="relative p-1.5 rounded-md hover:bg-surface-container transition-colors">
+        <i data-lucide="bell" class="w-4 h-4 text-on-surface-variant"></i>
+        <span class="absolute top-0.5 right-0.5 w-2 h-2 bg-error rounded-full"></span>
+      </button>
+      <div class="flex items-center gap-2">
+        <div class="w-7 h-7 bg-primary/15 rounded-full flex items-center justify-center text-xs font-semibold text-primary">初</div>
+        <span class="text-sm text-on-surface">小初</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="flex" style="height: calc(100vh - 3.5rem)">
+    <aside class="w-52 shrink-0 bg-[#0F1629] overflow-y-auto">
+      <div class="p-3 space-y-0.5">
+        <a href="home.html" class="flex items-center gap-3 px-3 py-2.5 rounded-md text-on-surface-variant/[.55] hover:bg-white/[.06] hover:text-white font-medium text-sm transition-colors">
+          <i data-lucide="layout-dashboard" class="w-4 h-4"></i>首页总览
+        </a>
+        <a href="plugin.html" class="flex items-center gap-3 px-3 py-2.5 rounded-md text-on-surface-variant/[.55] hover:bg-white/[.06] hover:text-white font-medium text-sm transition-colors">
+          <i data-lucide="puzzle" class="w-4 h-4"></i>插件管理
+        </a>
+        <a href="capability.html" class="flex items-center gap-3 px-3 py-2.5 rounded-md text-on-surface-variant/[.55] hover:bg-white/[.06] hover:text-white font-medium text-sm transition-colors">
+          <i data-lucide="sliders-horizontal" class="w-4 h-4"></i>能力配置
+        </a>
+        <a href="token.html" class="flex items-center gap-3 px-3 py-2.5 rounded-md bg-primary/20 text-primary font-medium text-sm transition-colors" aria-current="page">
+          <i data-lucide="key-round" class="w-4 h-4"></i>Token管理
+        </a>
+      </div>
+    </aside>
+    <!-- @nav:end -->
+
+    <!-- @main-content:start -->
+    <main class="flex-1 min-w-0 overflow-y-auto bg-background p-6">
+
+      <!-- 页面顶部信息提示条 -->
+      <div id="info-banner" class="flex items-start gap-2.5 bg-primary/8 border border-primary/15 rounded-lg px-4 py-3 mb-5">
+        <i data-lucide="info" class="w-4 h-4 text-primary mt-0.5 shrink-0"></i>
+        <p class="text-sm text-on-surface leading-relaxed">Token用于插件握手认证，生成后请在IDEA插件设置中配置。吊销Token后对应插件将无法连接平台。</p>
+      </div>
+
+      <!-- 顶部操作栏 -->
+      <div class="flex items-center justify-between mb-5">
+        <div>
+          <h1 class="text-2xl font-bold text-on-surface">Token管理</h1>
+          <p class="text-sm text-on-surface-variant mt-1">管理插件访问令牌，用于握手认证</p>
+        </div>
+        <button id="btn-generate-token" class="bg-primary text-on-primary px-4 py-2 rounded-md text-sm font-medium hover:opacity-90 active:scale-[0.98] transition-all inline-flex items-center gap-2">
+          <i data-lucide="plus" class="w-4 h-4"></i>生成Token
+        </button>
+      </div>
+
+      <!-- Token列表表格 -->
+      <div class="bg-surface rounded-lg shadow-card overflow-hidden">
+        <!-- 表头 -->
+        <div class="grid grid-cols-7 px-4 py-3 bg-surface-container text-xs font-semibold text-on-surface-variant uppercase tracking-wide">
+          <span>Token</span>
+          <span>名称</span>
+          <span>绑定插件</span>
+          <span>状态</span>
+          <span>过期时间</span>
+          <span>创建时间</span>
+          <span>操作</span>
+        </div>
+        <div id="token-table-body" class="divide-y divide-outline-variant/50">
+
+          <!-- 列表-Token1: 支付团队Token ACTIVE -->
+          <div class="grid grid-cols-7 px-4 py-3.5 hover:bg-surface-container/50 transition-colors items-center" data-token-id="1" data-token-full="plt_a8f3c72e9b4dd912" data-status="ACTIVE">
+            <span class="text-sm font-mono font-medium text-on-surface">plt_a8f3****d912</span>
+            <span class="text-sm text-on-surface">支付团队Token</span>
+            <span class="text-sm text-on-surface-variant">IDEA-PLG-000128</span>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-success/15 text-success w-fit">ACTIVE</span>
+            <span class="text-sm text-on-surface-variant">2027-06-25</span>
+            <span class="text-sm text-on-surface-variant">2026-06-25</span>
+            <div class="flex items-center gap-2">
+              <button id="btn-copy-1" class="p-1 rounded-md hover:bg-surface-container transition-colors text-on-surface-variant hover:text-on-surface" title="复制Token">
+                <i data-lucide="copy" class="w-4 h-4"></i>
+              </button>
+              <button id="btn-revoke-1" class="text-error text-xs font-medium hover:underline">吊销</button>
+            </div>
+          </div>
+
+          <!-- 列表-Token2: 开发组Token ACTIVE -->
+          <div class="grid grid-cols-7 px-4 py-3.5 hover:bg-surface-container/50 transition-colors items-center" data-token-id="2" data-token-full="plt_b2e1f5a83c7d4c7f" data-status="ACTIVE">
+            <span class="text-sm font-mono font-medium text-on-surface">plt_b2e1****4c7f</span>
+            <span class="text-sm text-on-surface">开发组Token</span>
+            <span class="text-sm text-on-surface-variant">IDEA-PLG-000256</span>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-success/15 text-success w-fit">ACTIVE</span>
+            <span class="text-sm text-on-surface-variant">2027-03-15</span>
+            <span class="text-sm text-on-surface-variant">2026-03-15</span>
+            <div class="flex items-center gap-2">
+              <button id="btn-copy-2" class="p-1 rounded-md hover:bg-surface-container transition-colors text-on-surface-variant hover:text-on-surface" title="复制Token">
+                <i data-lucide="copy" class="w-4 h-4"></i>
+              </button>
+              <button id="btn-revoke-2" class="text-error text-xs font-medium hover:underline">吊销</button>
+            </div>
+          </div>
+
+          <!-- 列表-Token3: 测试Token EXPIRED -->
+          <div class="grid grid-cols-7 px-4 py-3.5 hover:bg-surface-container/50 transition-colors items-center" data-token-id="3" data-token-full="plt_c5d9a3b17e6f8a3e" data-status="EXPIRED">
+            <span class="text-sm font-mono font-medium text-on-surface">plt_c5d9****8a3e</span>
+            <span class="text-sm text-on-surface">测试Token</span>
+            <span class="text-sm text-on-surface-variant/60">未绑定</span>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-surface-container-highest/40 text-on-surface-variant w-fit">EXPIRED</span>
+            <span class="text-sm text-on-surface-variant">2026-01-01</span>
+            <span class="text-sm text-on-surface-variant">2025-06-01</span>
+            <div class="flex items-center gap-2">
+              <button id="btn-copy-3" class="p-1 rounded-md hover:bg-surface-container transition-colors text-on-surface-variant hover:text-on-surface" title="复制Token">
+                <i data-lucide="copy" class="w-4 h-4"></i>
+              </button>
+              <span class="text-on-surface-variant/40 text-xs">—</span>
+            </div>
+          </div>
+
+          <!-- 列表-Token4: 旧版Token REVOKED -->
+          <div class="grid grid-cols-7 px-4 py-3.5 hover:bg-surface-container/50 transition-colors items-center" data-token-id="4" data-token-full="plt_f1a7d6c29b4e2b5c" data-status="REVOKED">
+            <span class="text-sm font-mono font-medium text-on-surface">plt_f1a7****2b5c</span>
+            <span class="text-sm text-on-surface">旧版Token</span>
+            <span class="text-sm text-on-surface-variant">IDEA-PLG-000384</span>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-error/15 text-error w-fit">REVOKED</span>
+            <span class="text-sm text-on-surface-variant">2026-12-01</span>
+            <span class="text-sm text-on-surface-variant">2025-12-01</span>
+            <div class="flex items-center gap-2">
+              <button id="btn-copy-4" class="p-1 rounded-md hover:bg-surface-container transition-colors text-on-surface-variant hover:text-on-surface" title="复制Token">
+                <i data-lucide="copy" class="w-4 h-4"></i>
+              </button>
+              <span class="text-on-surface-variant/40 text-xs">—</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </main>
+    <!-- @main-content:end -->
+  </div>
+
+  <!-- 弹窗 - 生成Token -->
+  <div id="modal-generate" class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 hidden">
+    <div class="bg-surface rounded-xl shadow-dialog max-w-md w-full max-h-[90vh] overflow-y-auto">
+      <!-- 生成表单阶段 -->
+      <div id="modal-generate-form">
+        <div class="flex items-center justify-between px-6 pt-6 pb-2">
+          <h2 class="text-lg font-semibold text-on-surface">生成访问Token</h2>
+          <button id="btn-close-generate" class="p-1 rounded-md hover:bg-surface-container transition-colors text-on-surface-variant">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+        <div class="px-6 pb-6 space-y-4">
+          <div>
+            <label for="input-token-name" class="block text-sm font-medium text-on-surface mb-1.5">Token名称 <span class="text-error">*</span></label>
+            <input id="input-token-name" type="text" placeholder="如：支付团队Token" class="w-full bg-surface-container border-none rounded-md px-3 py-2 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors" />
+          </div>
+          <div>
+            <label for="select-expire" class="block text-sm font-medium text-on-surface mb-1.5">过期时间</label>
+            <select id="select-expire" class="w-full bg-surface-container border-none rounded-md px-3 py-2 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors appearance-none cursor-pointer">
+              <option value="30">30天</option>
+              <option value="90" selected>90天</option>
+              <option value="180">180天</option>
+              <option value="365">1年</option>
+              <option value="never">永不过期</option>
+            </select>
+          </div>
+        </div>
+        <div class="flex items-center justify-end gap-3 px-6 pb-6">
+          <button id="btn-cancel-generate" class="bg-surface-container text-on-surface border-none px-4 py-2 rounded-md text-sm font-medium hover:bg-surface-container-high active:scale-[0.98] transition-all">取消</button>
+          <button id="btn-confirm-generate" class="bg-primary text-on-primary px-4 py-2 rounded-md text-sm font-medium hover:opacity-90 active:scale-[0.98] transition-all">生成</button>
+        </div>
+      </div>
+      <!-- 生成成功阶段 -->
+      <div id="modal-generate-success" class="hidden">
+        <div class="flex items-center justify-between px-6 pt-6 pb-2">
+          <h2 class="text-lg font-semibold text-on-surface">Token生成成功</h2>
+          <button id="btn-close-success" class="p-1 rounded-md hover:bg-surface-container transition-colors text-on-surface-variant">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+        <div class="px-6 pb-4 space-y-4">
+          <div class="bg-success/8 border border-success/20 rounded-lg p-4">
+            <div class="flex items-start gap-2">
+              <i data-lucide="check-circle-2" class="w-5 h-5 text-success mt-0.5 shrink-0"></i>
+              <div class="space-y-2 min-w-0">
+                <p class="text-sm font-medium text-on-surface">Token已生成</p>
+                <div class="flex items-center gap-2">
+                  <code id="generated-token-value" class="flex-1 bg-surface-container rounded px-3 py-2 text-sm font-mono text-on-surface break-all select-all">plt_new_xxxxxxxxxxxxxxxx</code>
+                  <button id="btn-copy-generated" class="p-2 rounded-md hover:bg-surface-container-high transition-colors text-primary shrink-0" title="复制Token">
+                    <i data-lucide="copy" class="w-4 h-4"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="flex items-start gap-2 bg-warning/8 border border-warning/20 rounded-lg p-3">
+            <i data-lucide="alert-triangle" class="w-4 h-4 text-warning mt-0.5 shrink-0"></i>
+            <p class="text-sm text-on-surface leading-relaxed">请妥善保存，关闭后无法再次查看完整Token</p>
+          </div>
+        </div>
+        <div class="flex items-center justify-end px-6 pb-6">
+          <button id="btn-close-success-final" class="bg-primary text-on-primary px-4 py-2 rounded-md text-sm font-medium hover:opacity-90 active:scale-[0.98] transition-all">完成</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 弹窗 - 确认吊销 -->
+  <div id="modal-revoke" class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 hidden">
+    <div class="bg-surface rounded-xl shadow-dialog max-w-sm w-full">
+      <div class="px-6 pt-6 pb-2">
+        <h2 class="text-lg font-semibold text-on-surface">确认吊销Token</h2>
+      </div>
+      <div class="px-6 pb-4">
+        <p class="text-sm text-on-surface-variant leading-relaxed">吊销后，使用该Token的插件将无法通过握手认证连接平台，此操作不可撤销。确定要吊销吗？</p>
+      </div>
+      <div class="flex items-center justify-end gap-3 px-6 pb-6">
+        <button id="btn-cancel-revoke" class="bg-surface-container text-on-surface border-none px-4 py-2 rounded-md text-sm font-medium hover:bg-surface-container-high active:scale-[0.98] transition-all">取消</button>
+        <button id="btn-confirm-revoke" class="bg-error text-white px-4 py-2 rounded-md text-sm font-medium hover:opacity-90 active:scale-[0.98] transition-all">确认吊销</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast 提示 -->
+  <div id="toast" class="fixed top-20 left-1/2 -translate-x-1/2 z-[60] hidden">
+    <div class="bg-surface rounded-lg shadow-float px-4 py-2.5 flex items-center gap-2 border border-outline-variant/15">
+      <i data-lucide="check-circle-2" class="w-4 h-4 text-success"></i>
+      <span id="toast-text" class="text-sm text-on-surface">已复制到剪贴板</span>
+    </div>
+  </div>
+
+  <script>
+    $(function () {
+
+      var revokeTargetId = null;
+
+      // --- 显示 Toast ---
+      function showToast(message) {
+        $('#toast-text').text(message);
+        $('#toast').removeClass('hidden');
+        setTimeout(function () {
+          $('#toast').addClass('hidden');
+        }, 2000);
+      }
+
+      // --- 生成Token弹窗 ---
+      $('#btn-generate-token').on('click', function () {
+        $('#modal-generate-form').removeClass('hidden');
+        $('#modal-generate-success').addClass('hidden');
+        $('#input-token-name').val('');
+        $('#select-expire').val('90');
+        $('#modal-generate').removeClass('hidden');
+      });
+
+      function closeGenerateModal() {
+        $('#modal-generate').addClass('hidden');
+      }
+
+      $('#btn-close-generate').on('click', closeGenerateModal);
+      $('#btn-cancel-generate').on('click', closeGenerateModal);
+
+      // 点击遮罩关闭
+      $('#modal-generate').on('click', function (e) {
+        if ($(e.target).is('#modal-generate')) closeGenerateModal();
+      });
+
+      // --- 确认生成 ---
+      $('#btn-confirm-generate').on('click', function () {
+        var name = $('#input-token-name').val().trim();
+        if (!name) {
+          $('#input-token-name').focus();
+          return;
+        }
+        // 生成模拟Token
+        var chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+        var rand = '';
+        for (var i = 0; i < 16; i++) {
+          rand += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        var fullToken = 'plt_' + rand;
+        $('#generated-token-value').text(fullToken);
+        $('#modal-generate-form').addClass('hidden');
+        $('#modal-generate-success').removeClass('hidden');
+      });
+
+      // --- 复制生成的Token ---
+      $('#btn-copy-generated').on('click', function () {
+        var token = $('#generated-token-value').text();
+        // 复制到剪贴板 - 后续应使用 navigator.clipboard.writeText() 实现
+        console.log('复制Token:', token);
+        showToast('Token已复制到剪贴板');
+      });
+
+      // --- 关闭成功弹窗 ---
+      function closeSuccessModal() {
+        $('#modal-generate').addClass('hidden');
+      }
+
+      $('#btn-close-success').on('click', closeSuccessModal);
+      $('#btn-close-success-final').on('click', closeSuccessModal);
+
+      // --- 复制Token（列表中） ---
+      $('#btn-copy-1, #btn-copy-2, #btn-copy-3, #btn-copy-4').on('click', function () {
+        var row = $(this).closest('[data-token-id]');
+        var token = row.data('token-full');
+        // 复制到剪贴板 - 后续应使用 navigator.clipboard.writeText() 实现
+        console.log('复制Token:', token);
+        showToast('Token已复制到剪贴板');
+      });
+
+      // --- 吊销Token ---
+      $('#btn-revoke-1, #btn-revoke-2').on('click', function () {
+        revokeTargetId = $(this).closest('[data-token-id]').data('token-id');
+        $('#modal-revoke').removeClass('hidden');
+      });
+
+      function closeRevokeModal() {
+        $('#modal-revoke').addClass('hidden');
+        revokeTargetId = null;
+      }
+
+      $('#btn-cancel-revoke').on('click', closeRevokeModal);
+
+      $('#modal-revoke').on('click', function (e) {
+        if ($(e.target).is('#modal-revoke')) closeRevokeModal();
+      });
+
+      $('#btn-confirm-revoke').on('click', function () {
+        if (revokeTargetId) {
+          // 吊销Token - 后续应调用API: POST /api/token/{id}/revoke
+          var row = $('[data-token-id="' + revokeTargetId + '"]');
+          // 更新状态为REVOKED
+          row.data('status', 'REVOKED');
+          row.find('.inline-flex').removeClass('bg-success/15 text-success').addClass('bg-error/15 text-error').text('REVOKED');
+          // 隐藏吊销按钮，显示占位符
+          row.find('.text-error.text-xs').replaceWith('<span class="text-on-surface-variant/40 text-xs">—</span>');
+          showToast('Token已吊销');
+        }
+        closeRevokeModal();
+      });
+
+    });
+  </script>
+
+  <script>lucide.createIcons();</script>
+</body>
+
+</html>

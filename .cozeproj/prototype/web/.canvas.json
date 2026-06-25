@@ -3,14 +3,6 @@
     {
       "type": "html",
       "options": {
-        "path": ".cozeproj/prototype/web/login.html"
-      },
-      "title": "登录页",
-      "size": "web"
-    },
-    {
-      "type": "html",
-      "options": {
         "path": ".cozeproj/prototype/web/home.html"
       },
       "title": "首页总览",
@@ -27,65 +19,17 @@
     {
       "type": "html",
       "options": {
-        "path": ".cozeproj/prototype/web/plugin-capability.html"
+        "path": ".cozeproj/prototype/web/capability.html"
       },
-      "title": "插件能力配置",
+      "title": "能力配置",
       "size": "web"
     },
     {
       "type": "html",
       "options": {
-        "path": ".cozeproj/prototype/web/audit-log.html"
+        "path": ".cozeproj/prototype/web/token.html"
       },
-      "title": "审计日志",
-      "size": "web"
-    },
-    {
-      "type": "html",
-      "options": {
-        "path": ".cozeproj/prototype/web/project.html"
-      },
-      "title": "项目管理",
-      "size": "web"
-    },
-    {
-      "type": "html",
-      "options": {
-        "path": ".cozeproj/prototype/web/policy.html"
-      },
-      "title": "检测策略中心",
-      "size": "web"
-    },
-    {
-      "type": "html",
-      "options": {
-        "path": ".cozeproj/prototype/web/rules.html"
-      },
-      "title": "规则管理中心",
-      "size": "web"
-    },
-    {
-      "type": "html",
-      "options": {
-        "path": ".cozeproj/prototype/web/results.html"
-      },
-      "title": "检测结果中心",
-      "size": "web"
-    },
-    {
-      "type": "html",
-      "options": {
-        "path": ".cozeproj/prototype/web/skill.html"
-      },
-      "title": "大模型Skill中心",
-      "size": "web"
-    },
-    {
-      "type": "html",
-      "options": {
-        "path": ".cozeproj/prototype/web/settings.html"
-      },
-      "title": "系统设置",
+      "title": "Token管理",
       "size": "web"
     }
   ]

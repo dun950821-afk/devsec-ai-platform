@@ -1,410 +1,338 @@
-# 国舜 DevSecAI 插件管理平台 开发计划
+# IDEA 检查插件模块开发计划
 
-## 一、概述
+## 概述
 
-国舜 DevSecAI 插件管理平台是一个面向企业研发场景的 IDE 安全检测与大模型辅助修复平台（前后端分离的全栈应用）。平台提供统一后台管理、IDEA 插件安全检测、大模型 Skill 辅助修复等能力，实现"插件接入—策略下发—本地检测—结果上送—AI 辅助修复—审计留痕—风险治理"的完整闭环。
+根据设计文档，在现有 DevSecAI 后台管理平台基础上，开发 IDEA 插件管理模块的后台功能，涵盖插件实例注册、握手认证、心跳上报、能力配置、策略下发、检测结果接收等完整流程。平台为 Web 端，纯前端 + Spring Boot 后端架构，不引入额外集成。
 
-平台为 **Web 应用**，前端采用 Vue 3 + TypeScript + Element Plus，后端采用 Java Spring Boot，UI 风格严格遵循参考界面（蓝色主色调、侧边栏布局、数据卡片+图表展示）。
-
-## 二、技术方案
-
-### 前端技术栈
+## 技术方案
 
 | 维度 | 选择 | 理由 |
 |------|------|------|
-| 前端框架 | Vue 3 + TypeScript | 文档推荐，生态成熟 |
-| UI 组件库 | Element Plus | 文档推荐，企业级风格 |
-| 图表库 | ECharts | 文档推荐，数据可视化 |
-| 状态管理 | Pinia | Vue 3 官方推荐 |
-| 路由 | Vue Router | 配合 Vue 3 |
-| 构建工具 | Vite | 文档推荐，快速构建 |
-| HTTP 客户端 | Axios | API 调用 |
+| 前端框架 | 纯 HTML/CSS/JS | 与现有项目保持一致 |
+| 后端框架 | Spring Boot 3.2 + MyBatis Plus | 与现有后端一致 |
+| 数据库 | H2 (dev) | 与现有一致 |
+| 认证方式 | Token + JWT | 设计文档要求插件用 Token 认证 |
+| 前后端通信 | REST API + 代理 | 与现有架构一致 |
 
-### 后端技术栈
+## 功能模块
 
-| 维度 | 选择 | 理由 |
-|------|------|------|
-| 后端框架 | Java Spring Boot | 文档推荐，安全行业主流 |
-| 权限认证 | Spring Security + JWT | 文档推荐 |
-| ORM | MyBatis Plus | 文档推荐，易于维护 |
-| 数据库 | PostgreSQL | 文档推荐，功能强大 |
-| 缓存 | Redis | 文档推荐 |
-| 文件存储 | MinIO | 文档推荐 |
-| 消息队列 | RabbitMQ | 文档推荐 |
-| API 文档 | SpringDoc OpenAPI | Swagger 规范 |
+### 模块 A：插件实例管理（后台页面）
 
-## 三、功能模块
+**职责**：管理所有 IDEA 插件实例的注册、状态、心跳、绑定项目。
 
-### 3.1 首页总览
-- 核心指标卡片：接入项目数、在线插件数、今日扫描次数、高危风险数（带趋势变化）
-- 风险趋势折线图：按 SCA/SAST/Secrets/Baseline 展示近7天趋势
-- 插件运行状态饼图：在线/离线/异常占比
-- Top 风险项目列表：高危项目排序展示
-- AI Skill 调用统计柱状图：近7天调用次数
+**数据结构 — plugin_instance**：
+```json
+{
+  "id": 1,
+  "pluginId": "IDEA-PLG-000128",
+  "pluginVersion": "0.9.6",
+  "ideName": "IntelliJ IDEA",
+  "ideVersion": "2025.2",
+  "developer": "张三",
+  "machineId": "hash-machine-id",
+  "projectId": 1,
+  "projectName": "支付核心系统",
+  "policyId": 1,
+  "policyName": "银行Java安全策略",
+  "status": "ONLINE",
+  "lastHeartbeat": "2026-06-25 10:30:00",
+  "accessToken": "plt_xxx",
+  "enabledModules": "SCA,SAST,SECRETS,BASELINE,AI",
+  "createTime": "2026-06-20 09:00:00",
+  "updateTime": "2026-06-25 10:30:00"
+}
+```
 
-### 3.2 项目管理
-- 项目列表：名称、部门、负责人、Git地址、绑定策略、在线插件数、风险统计、安全评分
-- 项目增删改查
-- 项目绑定检测策略
-- 项目风险详情入口
+**插件状态**：ONLINE / OFFLINE / ERROR / UPGRADE_REQUIRED / DISABLED / UNAUTHENTICATED
 
-### 3.3 插件管理
-- 插件实例列表：插件ID、开发者、项目、IDE类型、版本、策略、心跳、在线状态
-- 插件状态筛选：在线、离线、异常、待升级、已禁用
-- 插件详情抽屉：基础信息、启用能力、扫描记录、规则包版本
-- 远程操作：下发策略、禁用、解绑、查看日志
+**页面字段**：插件ID / 开发者 / 所属项目 / IDE类型 / 插件版本 / 当前策略 / 最近心跳 / 状态 / 操作
 
-### 3.4 插件能力配置
-- 8项能力开关卡片：SCA、SAST、Secrets、Baseline、AI漏洞解释、AI修复建议、提交前检查、高危阻断
-- 策略下发预览：生效项目数、生效插件数、执行状态检查
-- 保存并下发功能
+### 模块 B：插件握手认证（后台API）
 
-### 3.5 检测策略中心
-- 策略列表管理
-- 扫描触发方式配置：手动、保存时、依赖变更、提交前、定时
-- 扫描范围配置：当前文件/模块/项目、排除目录
-- 阻断规则配置：按风险等级配置阻断
-- AI 调用策略配置
-- 策略版本管理与发布回滚
+**职责**：插件启动时握手，后台校验 Token 后返回用户、项目、策略、规则包版本、启用模块和 AI 权限。
 
-### 3.6 规则管理中心
-- 规则分类：SCA、SAST、Secrets、Baseline、自定义
-- 规则字段：ID、名称、类型、等级、CWE/OWASP映射、修复建议、示例代码
-- 规则包管理：版本、签名、下载、回滚
-- 规则启停管理
+**握手请求** `POST /api/plugin/handshake`：
+```json
+{
+  "pluginId": "IDEA-PLG-000128",
+  "pluginVersion": "0.9.6",
+  "ideName": "IntelliJ IDEA",
+  "ideVersion": "2025.2",
+  "projectName": "payment-service",
+  "projectGitUrl": "https://git.example.com/bank/payment-service.git",
+  "machineId": "hash-machine-id",
+  "accessToken": "plt_xxx"
+}
+```
 
-### 3.7 检测结果中心
-- 风险列表：按项目、类型、等级、规则、状态筛选
-- 风险状态：待修复、修复中、已修复、已忽略、误报确认
-- 风险详情：文件位置、规则说明、修复建议、AI调用记录
-- 导出报表功能
+**握手响应**：
+```json
+{
+  "success": true,
+  "data": {
+    "projectId": "payment-core-system",
+    "projectName": "支付核心系统",
+    "userId": "zhangsan",
+    "policyId": "bank-java-secure-dev",
+    "policyVersion": "1.0.3",
+    "rulePackVersion": "2026.06.23",
+    "enabledModules": ["SCA", "SAST", "SECRETS", "BASELINE", "AI"]
+  }
+}
+```
 
-### 3.8 大模型 Skill 中心
-- Skill 列表：漏洞解释、修复建议、Patch生成、误报分析、整改报告、安全问答、规则生成
-- Skill 配置：输入结构、Prompt模板、输出结构、调用模型
-- 权限范围控制
-- 调用统计与审计
+### 模块 C：插件心跳上报（后台API）
 
-### 3.9 插件审计日志
-- 日志列表：时间、操作用户、插件ID、项目、操作类型、操作详情、结果、来源IP
-- 多维度筛选：操作类型、项目、开发者、插件ID、时间范围、风险等级
-- 审计详情弹窗：AI调用详情、Token数、采纳状态
-- 导出功能
+**职责**：插件定时上报心跳，后台更新在线状态。
 
-### 3.10 系统设置
-- 用户管理：增删改查、密码修改
-- 角色管理：内置角色（系统管理员、安全管理员、项目负责人、开发人员、审计人员、只读用户）
-- 权限管理：菜单权限、数据权限
-- 组织机构管理
-- API Token 管理
-- 登录日志
+**心跳请求** `POST /api/plugin/heartbeat`：
+```json
+{
+  "pluginId": "IDEA-PLG-000128",
+  "status": "ONLINE",
+  "activeModules": ["SCA", "SAST"],
+  "scanCount": 12,
+  "findingCount": 3
+}
+```
 
-## 四、是否有原型设计
+### 模块 D：插件能力配置（后台页面+API）
+
+**职责**：后台统一控制插件的 SCA/SAST/Secrets/Baseline/AI 等能力开关，按项目/组织/用户绑定策略。
+
+**能力开关项**：
+| 能力 | 说明 |
+|------|------|
+| SCA | 开源组件检测 |
+| SAST | 代码安全检测 |
+| Secrets | 敏感信息检测 |
+| Baseline | 企业基线检测 |
+| AI 漏洞解释 | 调用大模型解释漏洞 |
+| AI 修复建议 | 调用大模型生成修复建议 |
+| AI Patch 生成 | 生成代码修改片段 |
+| Git Commit 检查 | 提交前自动扫描 |
+| 高危阻断提交 | Critical/High 风险禁止提交 |
+| 结果自动上送 | Finding 元数据上送后台 |
+| 代码片段上传 | 控制是否允许上传代码片段 |
+| 脱敏策略 | 控制 Secrets 脱敏方式 |
+
+**数据结构 — plugin_capability_policy**：
+```json
+{
+  "id": 1,
+  "policyName": "银行Java安全检测策略",
+  "policyVersion": "1.0.3",
+  "scaEnabled": true,
+  "sastEnabled": true,
+  "secretsEnabled": true,
+  "baselineEnabled": true,
+  "aiEnabled": true,
+  "aiVulnExplain": true,
+  "aiFixSuggestion": true,
+  "aiPatchGenerate": true,
+  "gitCommitCheck": true,
+  "blockCritical": true,
+  "blockHigh": true,
+  "blockMedium": false,
+  "blockLow": false,
+  "autoUpload": true,
+  "allowCodeSnippet": true,
+  "maskSecrets": true,
+  "maxContextLines": 80,
+  "projectId": 1,
+  "status": 1,
+  "createTime": "2026-06-20 09:00:00"
+}
+```
+
+### 模块 E：检测结果上送（后台API）
+
+**职责**：插件扫描完成后上送 Finding 数据，后台存储并汇总统计。
+
+**SCA Finding** `POST /api/finding/upload`：
+```json
+{
+  "pluginId": "IDEA-PLG-000128",
+  "module": "SCA",
+  "ruleId": "SCA-MAVEN-LOG4J-CVE-2021-44228",
+  "severity": "CRITICAL",
+  "componentName": "org.apache.logging.log4j:log4j-core",
+  "currentVersion": "2.14.1",
+  "fixedVersion": "2.17.1",
+  "vulnerabilityId": "CVE-2021-44228",
+  "filePath": "pom.xml",
+  "status": "OPEN"
+}
+```
+
+**SAST Finding**：
+```json
+{
+  "pluginId": "IDEA-PLG-000128",
+  "module": "SAST",
+  "ruleId": "JAVA-SQL-INJECTION-001",
+  "title": "疑似SQL注入风险",
+  "severity": "HIGH",
+  "confidence": "MEDIUM",
+  "filePath": "src/main/java/com/example/UserMapper.java",
+  "startLine": 42,
+  "endLine": 44,
+  "description": "检测到MyBatis使用${}拼接外部参数",
+  "recommendation": "建议使用#{}参数绑定",
+  "cwe": "CWE-89",
+  "owasp": "A03:2021-Injection",
+  "status": "OPEN"
+}
+```
+
+### 模块 F：策略下发（后台API）
+
+**职责**：插件拉取能力策略和检测策略，后台返回完整的策略配置。
+
+**策略拉取** `GET /api/plugin/policy?pluginId=IDEA-PLG-000128`：
+```json
+{
+  "policyId": "bank-java-secure-dev",
+  "policyName": "银行Java安全检测策略",
+  "policyVersion": "1.0.3",
+  "enabledModules": { "sca": true, "sast": true, "secrets": true, "baseline": true, "ai": true },
+  "scanTriggers": { "manualScan": true, "onSave": true, "onCommit": true },
+  "blockingRules": { "critical": true, "high": true, "medium": false, "low": false },
+  "aiPolicy": { "allowCodeSnippetUpload": true, "maskSecrets": true, "maxContextLines": 80 }
+}
+```
+
+### 模块 G：插件访问 Token 管理（后台页面）
+
+**职责**：管理插件的访问 Token，用于握手认证。生成、吊销、查看绑定插件。
+
+**数据结构 — plugin_token**：
+```json
+{
+  "id": 1,
+  "token": "plt_xxxxxxxxxxxx",
+  "name": "支付团队Token",
+  "userId": 1,
+  "bindPluginId": "IDEA-PLG-000128",
+  "status": "ACTIVE",
+  "expireTime": "2027-06-25 00:00:00",
+  "createTime": "2026-06-25 10:00:00"
+}
+```
+
+## 是否有原型设计
 
 是（设计引导工具已开启）
 
-## 五、实施步骤
+## 实施步骤
 
-### 阶段一：原型设计
+1. **后端：新增实体和数据库表** — 创建 PluginInstance、PluginCapabilityPolicy、PluginToken 实体类及 MyBatis Mapper，使用 DatabaseInitRunner 初始化表结构和示例数据。涉及文件：entity/PluginInstance.java、entity/PluginCapabilityPolicy.java、entity/PluginToken.java、config/DatabaseInitRunner.java
 
-1. **加载 design-canvas 技能**
-   - 加载设计引导技能，获取设计规范
+2. **后端：实现插件握手、心跳、策略下发、Finding上送 API** — 新增 PluginHandshakeController（握手+心跳+策略拉取）和 FindingController（检测结果上送），包含 Token 校验逻辑。涉及文件：controller/PluginHandshakeController.java、controller/FindingController.java、service/PluginHandshakeService.java
 
-2. **设计登录页面原型**
-   - 设计文件：`/src/views/login/index.html`
-   - 包含：登录表单（用户名、密码）、蓝色主题风格
-   - 风格：与企业级后台界面一致
+3. **后端：完善插件实例管理 CRUD 和能力配置 CRUD** — 扩展 PluginController 增加实例列表/详情/禁用/启用/策略下发，新增 CapabilityPolicyController 管理能力配置策略。涉及文件：controller/PluginController.java、controller/CapabilityPolicyController.java
 
-3. **设计首页总览原型**
-   - 设计文件：`/src/views/dashboard/index.html`
-   - 包含：核心指标卡片、风险趋势图、插件状态饼图、Top风险项目、AI调用统计
-   - 严格遵循参考界面布局
+4. **后端：插件 Token 管理 API** — 新增 PluginTokenController，实现 Token 生成、列表、吊销。涉及文件：controller/PluginTokenController.java
 
-4. **设计插件管理页面原型**
-   - 设计文件：`/src/views/plugin/index.html`
-   - 包含：筛选栏、插件列表（ID、开发者、项目、IDE类型、版本、状态）、详情抽屉
+5. **前端：插件管理页面重构** — 重构插件管理页面展示实例信息（插件ID/开发者/项目/IDE版本/状态6值/心跳），增加握手/心跳日志查看、策略下发操作、禁用操作。涉及文件：index.html
 
-5. **设计插件能力配置页面原型**
-   - 设计文件：`/src/views/plugin-capability/index.html`
-   - 包含：8项能力开关卡片、策略下发预览、执行状态检查
+6. **前端：能力配置页面** — 新增能力配置页面，展示12项开关，支持按项目绑定策略，版本管理。涉及文件：index.html
 
-6. **设计审计日志页面原型**
-   - 设计文件：`/src/views/audit-log/index.html`
-   - 包含：多维度筛选、日志表格、审计详情弹窗
+7. **前端：Token 管理和检测结果页面增强** — 新增 Token 管理页面（生成/吊销/查看绑定），增强检测结果页面增加 SCA/SAST Finding 详情展示（组件版本/漏洞编号/修复版本/代码行/CWE等）。涉及文件：index.html
 
-7. **用户原型验收确认**
-   - 提示用户查看原型
-   - 等待用户确认或提出修改意见
+8. **联调测试** — 用 curl 逐一测试握手、心跳、策略拉取、Finding 上送、Token 管理 API，验证前端页面数据展示。涉及文件：无
 
-### 阶段二：代码开发
-
-#### 前端开发
-
-8. **初始化 Vue 3 项目**
-   - 使用 coze init 初始化 Vite + Vue 3 + TypeScript 项目
-   - 安装 Element Plus、ECharts、Pinia、Vue Router、Axios
-   - 配置项目结构和路由
-
-9. **实现登录模块**
-   - 登录页面组件
-   - 登录状态管理（Pinia）
-   - JWT Token 存储与验证
-   - 路由守卫
-
-10. **实现首页总览页面**
-    - 核心指标卡片组件
-    - 风险趋势折线图（ECharts）
-    - 插件状态饼图（ECharts）
-    - Top风险项目列表组件
-    - AI调用统计柱状图（ECharts）
-
-11. **实现插件管理模块**
-    - 插件列表页面
-    - 多维度筛选功能
-    - 插件详情抽屉组件
-    - 插件状态管理
-
-12. **实现插件能力配置模块**
-    - 8项能力开关卡片组件
-    - 策略下发预览组件
-    - 保存下发功能
-
-13. **实现检测结果中心**
-    - 风险列表页面
-    - 多维度筛选功能
-    - 风险详情弹窗
-    - 导出功能
-
-14. **实现审计日志模块**
-    - 日志列表页面
-    - 多维度筛选组件
-    - 审计详情弹窗
-    - 导出功能
-
-15. **实现项目管理、策略中心、规则中心、Skill中心**
-    - 各模块页面组件
-    - 列表、新增、编辑、详情功能
-    - 表单组件复用
-
-16. **实现系统设置模块**
-    - 用户管理、角色管理、权限管理
-    - API Token 管理
-    - 组织机构管理
-
-#### 后端开发
-
-17. **初始化 Java Spring Boot 项目**
-    - 创建项目结构
-    - 配置 pom.xml 依赖
-    - 配置 application.yml
-    - 集成 Spring Security + JWT
-
-18. **实现用户与权限管理后端**
-    - 用户 CRUD API
-    - 角色管理 API
-    - 权限控制
-    - JWT 认证接口
-    - 登录日志
-
-19. **实现项目管理后端**
-    - 项目 CRUD API
-    - 项目策略绑定
-    - 项目风险统计
-
-20. **实现插件管理后端**
-    - 插件注册/握手接口
-    - 插件心跳处理
-    - 插件状态管理
-    - 策略下发接口
-
-21. **实现检测相关后端**
-    - 策略管理 API
-    - 规则管理 API
-    - 规则包管理
-    - 检测结果接收与存储
-
-22. **实现 Skill 中心后端**
-    - Skill 配置 API
-    - AI 调用接口
-    - 调用统计与审计
-
-23. **实现审计日志后端**
-    - 日志记录与查询
-    - 日志导出
-
-### 阶段三：验证
-
-24. **前端代码检查**
-    - TypeScript 类型检查
-    - ESLint 代码规范
-    - 页面渲染验证
-
-25. **后端代码检查**
-    - Maven 编译检查
-    - Java 代码规范
-    - 接口测试
-
-## 六、页面规格
-
-### 全局导航
-
-##### @nav(web-sidebar)
-> type: sidebar
-> platform: web
-
-- Logo 链接到首页 /
-- 首页总览
-- 项目管理
-- 插件管理
-- 插件能力配置
-- 检测策略中心
-- 规则管理中心
-- 检测结果中心
-- 大模型Skill中心
-- 插件审计日志
-- 系统设置
+## 页面规格
 
 ##### @nav(web-topbar)
 > type: topbar
 > platform: web
 
-- Logo + 平台名称 "国舜DevSecAI插件管理平台"
-- 全局搜索
-- 当前项目/策略信息
-- 在线插件数量
-- 消息通知
-- 管理员账号入口
-
-### 页面详情
-
-##### @page(/login) 登录页
-
-**核心职责**：用户身份认证
-**布局**：居中卡片式登录表单，蓝色主题
-
-| 元素 | 动作 | 响应 | 备注 |
-|------|------|------|------|
-| 用户名输入框 | 输入 | 更新表单数据 | 必填 |
-| 密码输入框 | 输入 | 更新表单数据 | 必填 |
-| 登录按钮 | 点击 | 调用登录接口，成功跳转首页 | 蓝色主按钮 |
-| 记住登录 | 点击 | 设置记住状态 | 复选框 |
+- @page(/) 首页
+- @page(/plugin) 插件管理
+- @page(/capability) 能力配置
+- @page(/token) Token管理
 
 ##### @page(/) 首页总览
 
-**核心职责**：平台运行态势总览
-**布局**：侧边栏 + 主内容区（数据卡片+图表）
-
-| 元素 | 动作 | 响应 | 备注 |
-|------|------|------|------|
-| 核心指标卡片 | 点击 | 跳转对应详情页 | 4个卡片并列 |
-| 风险趋势图 | 悬停 | 显示数据详情 | 折线图，7天数据 |
-| 插件状态饼图 | 点击扇区 | 筛选对应状态插件 | 在线/离线/异常 |
-| Top风险项目 | 点击行 | 跳转项目详情 | 按高危数排序 |
+**核心职责**：展示全局安全指标概览和最近检测动态
+**访问路径**：导航直达
+**布局**：顶部统计卡片(6项) → 风险等级分布 → 最近扫描列表
+**列表项字段**：项目名称 / 检测类型 / 严重等级 / 状态 / 时间
 
 ##### @page(/plugin) 插件管理
 
-**核心职责**：插件实例统一管理
-**布局**：筛选栏 + 列表 + 详情抽屉
+**核心职责**：管理所有 IDEA 插件实例的注册、状态和策略
+**访问路径**：导航直达
+**布局**：顶部操作栏(搜索+类型筛选+状态筛选) → 插件实例表格
+**列表项字段**：插件ID / 开发者 / 所属项目 / IDE类型+版本 / 插件版本 / 当前策略 / 最近心跳 / 状态 / 操作
 
-| 元素 | 动作 | 响应 | 备注 |
-|------|------|------|------|
-| 项目筛选 | 选择 | 刷新列表 | 下拉选择 |
-| 状态筛选 | 选择 | 刷新列表 | 在线/离线/异常/待升级/已禁用 |
-| 搜索框 | 输入 | 搜索插件ID/开发者 | 支持模糊搜索 |
-| 详情按钮 | 点击 | 打开详情抽屉 | 右侧抽屉 |
-| 下发策略 | 点击 | 调用下发接口 | 二次确认 |
-| 禁用按钮 | 点击 | 禁用插件 | 二次确认 |
+**状态**：
+- 空态：暂无插件实例
+- 加载态：加载中...
 
-##### @page(/plugin-capability) 插件能力配置
+**交互说明**
 
-**核心职责**：统一控制插件检测能力
-**布局**：能力卡片区 + 下发预览区
+| 元素 | 动作 | 响应 | 传参 | 备注 |
+|------|------|------|------|------|
+| 搜索框 | 输入 | 按插件ID/开发者搜索 | keyword | 防抖300ms |
+| 状态筛选 | 选择 | 按状态过滤 | status | 6种状态 |
+| 详情按钮 | 点击 | 弹出详情面板 | pluginId | 展示握手记录、心跳历史 |
+| 下发策略 | 点击 | 弹出策略选择框 | pluginId | 选择能力策略后下发 |
+| 禁用按钮 | 点击 | 确认后禁用插件 | pluginId | 禁用后插件无法调用API |
+| 查看日志 | 点击 | 弹出心跳/状态日志 | pluginId | 时间线展示 |
 
-| 元素 | 动作 | 响应 | 备注 |
-|------|------|------|------|
-| 能力开关 | 点击 | 切换开关状态 | 8个开关卡片 |
-| 保存并下发 | 点击 | 保存配置并触发下发 | 蓝色主按钮 |
-| 生效项目预览 | 查看 | 显示生效项目列表 | 下发前预览 |
-| 执行状态检查 | 查看 | 显示检查结果 | 策略校验通过/失败 |
+**弹窗 plugin-detail**：
+- 标题：插件详情
+- 内容：插件完整信息（ID/版本/IDE/机器码/项目/策略/启用模块/心跳历史）
+- 操作：关闭
 
-##### @page(/audit-log) 审计日志
+**弹窗 policy-assign**：
+- 标题：下发策略
+- 内容：策略选择下拉框
+- 操作：确认下发、取消
 
-**核心职责**：记录所有插件操作行为
-**布局**：筛选栏 + 列表 + 详情弹窗
+##### @page(/capability) 能力配置
 
-| 元素 | 动作 | 响应 | 备注 |
-|------|------|------|------|
-| 时间范围 | 选择 | 刷新列表 | 日期范围选择 |
-| 操作类型 | 选择 | 刷新列表 | 下拉多选 |
-| 项目筛选 | 选择 | 刷新列表 | 下拉选择 |
-| 日志行 | 点击 | 打开详情弹窗 | 居中弹窗 |
-| 导出按钮 | 点击 | 导出日志文件 | Excel格式 |
+**核心职责**：管理插件能力开关策略，绑定到项目
+**访问路径**：导航直达
+**布局**：顶部操作栏(新建策略) → 策略列表表格
+**列表项字段**：策略名称 / 版本 / 绑定项目 / 启用模块 / 状态 / 操作
 
-## 七、API 接口设计
+**状态**：
+- 空态：暂无策略，请点击新建
 
-### 认证接口
-- POST /api/auth/login - 用户登录
-- POST /api/auth/logout - 退出登录
-- GET /api/auth/userinfo - 获取用户信息
+**交互说明**
 
-### 首页接口
-- GET /api/dashboard/stats - 获取核心统计数据
-- GET /api/dashboard/risk-trend - 获取风险趋势
-- GET /api/dashboard/plugin-status - 获取插件状态分布
-- GET /api/dashboard/top-risks - 获取Top风险项目
+| 元素 | 动作 | 响应 | 传参 | 备注 |
+|------|------|------|------|------|
+| 新建策略 | 点击 | 弹出策略编辑表单 | — | 12项开关+基本信息 |
+| 编辑按钮 | 点击 | 弹出策略编辑表单 | policyId | 预填现有值 |
+| 开关项 | 切换 | 即时标记未保存 | — | 离开前提醒保存 |
+| 绑定项目 | 点击 | 弹出项目选择 | policyId | 多选项目 |
+| 删除按钮 | 点击 | 确认后删除 | policyId | 已绑定项目时提示 |
 
-### 插件管理接口
-- GET /api/plugins - 获取插件列表
-- GET /api/plugins/{id} - 获取插件详情
-- POST /api/plugins/{id}/disable - 禁用插件
-- POST /api/plugins/{id}/enable - 启用插件
-- POST /api/plugins/{id}/dispatch-policy - 下发策略
+**弹窗 capability-form**：
+- 标题：新建/编辑能力策略
+- 内容：策略名称 + 12项开关(分为4组：检测能力/AI能力/提交控制/数据策略)
+- 操作：保存、取消
 
-### 项目管理接口
-- GET /api/projects - 获取项目列表
-- POST /api/projects - 创建项目
-- PUT /api/projects/{id} - 更新项目
-- DELETE /api/projects/{id} - 删除项目
-- GET /api/projects/{id}/risks - 获取项目风险
+##### @page(/token) Token管理
 
-### 审计日志接口
-- GET /api/audit-logs - 获取审计日志列表
-- GET /api/audit-logs/{id} - 获取日志详情
-- GET /api/audit-logs/export - 导出日志
+**核心职责**：管理插件访问 Token 的生成、吊销和绑定查看
+**访问路径**：导航直达
+**布局**：顶部操作栏(生成Token) → Token列表表格
+**列表项字段**：Token(脱敏) / 名称 / 绑定插件 / 状态 / 过期时间 / 创建时间 / 操作
 
-### 其他接口
-- GET /api/capability-config - 获取能力配置
-- PUT /api/capability-config - 更新能力配置
-- GET /api/policies - 获取策略列表
-- GET /api/rules - 获取规则列表
-- GET /api/skills - 获取Skill列表
-- GET /api/users - 获取用户列表
-- GET /api/roles - 获取角色列表
+**交互说明**
 
-## 八、数据模型
+| 元素 | 动作 | 响应 | 传参 | 备注 |
+|------|------|------|------|------|
+| 生成Token | 点击 | 弹出生成表单 | — | 填写名称和过期时间 |
+| 复制Token | 点击 | 复制到剪贴板 | token | 仅创建时可见完整Token |
+| 吊销按钮 | 点击 | 确认后吊销 | tokenId | 吊销后插件握手失败 |
 
-### 用户表 (sys_user)
-- id, username, password, email, phone, status, org_id, create_time, update_time
-
-### 角色表 (sys_role)
-- id, name, code, description, status, create_time
-
-### 项目表 (dev_project)
-- id, name, git_url, org_id, leader_id, policy_id, risk_score, create_time
-
-### 插件实例表 (plugin_instance)
-- id, plugin_id, user_id, project_id, version, status, last_heartbeat, create_time
-
-### 审计日志表 (plugin_audit_log)
-- id, user_id, plugin_id, project_id, action, detail, result, ip, create_time
-
-### 风险记录表 (sec_finding)
-- id, scan_id, project_id, plugin_id, rule_id, severity, file_path, line, status, create_time
-
-## 九、开发注意事项
-
-1. **前后端并行开发**：前端使用 Mock 数据独立开发，后端同步实现接口
-2. **JWT Token 验证**：所有需认证的接口需携带 Token
-3. **统一响应格式**：{ success, data, message, code }
-4. **分页查询**：列表接口统一支持分页参数 page, size
-5. **状态码规范**：200成功，401未认证，403无权限，404未找到，500服务器错误
+**弹窗 token-generate**：
+- 标题：生成访问Token
+- 内容：Token名称 + 过期时间选择
+- 操作：生成、取消
