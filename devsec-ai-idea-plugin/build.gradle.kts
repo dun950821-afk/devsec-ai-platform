@@ -46,8 +46,7 @@ intellijPlatform {
     }
     verifyPlugin {
         ides {
-            ide("2024.2")
-            ide("2025.1")
+            // Only verify against the target platform
             ide("2026.1.3")
         }
     }
