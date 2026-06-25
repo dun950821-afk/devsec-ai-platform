@@ -4,9 +4,8 @@ import com.guoshun.devsecai.config.DevSecAISettings
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.startup.ProjectActivity
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class ProjectStartupListener : ProjectActivity {
 
@@ -15,14 +14,16 @@ class ProjectStartupListener : ProjectActivity {
     override suspend fun execute(project: Project) {
         logger.info("DevSecAI plugin starting for project: ${project.name}")
 
-        val cs = CoroutineScope(Dispatchers.IO)
-        cs.launch {
+        // ProjectActivity.execute() already runs in a coroutine scope managed
+        // by the platform. We switch to IO for network calls but always check
+        // project.isDisposed before touching project-level services.
+        withContext(Dispatchers.IO) {
             try {
-                // Step 1: Handshake
+                // Step 1: Handshake (does not need project services)
                 val settings = DevSecAISettings.getInstance()
                 if (settings.serverUrl.isEmpty() || settings.accessToken.isEmpty()) {
                     logger.warn("Server URL or Access Token not configured, skipping handshake")
-                    return@launch
+                    return@withContext
                 }
 
                 val client = DevSecAIClient()
@@ -38,17 +39,27 @@ class ProjectStartupListener : ProjectActivity {
                     logger.warn("Handshake failed")
                 }
 
-                // Step 2: Fetch policy
+                // Bail out if project was closed during network I/O
+                if (project.isDisposed) {
+                    logger.warn("Project disposed during initialization, aborting")
+                    return@withContext
+                }
+
+                // Step 2: Fetch policy (project-level service)
                 val policyService = project.getService(PolicyService::class.java)
                 policyService.refreshPolicy()
 
-                // Step 3: Start heartbeat
-                val heartbeatService = project.getService(HeartbeatService::class.java)
-                heartbeatService.start()
+                // Step 3: Start heartbeat (project-level service)
+                if (!project.isDisposed) {
+                    val heartbeatService = project.getService(HeartbeatService::class.java)
+                    heartbeatService.start()
+                }
 
-                // Step 4: Start finding collector
-                val findingCollector = project.getService(FindingCollector::class.java)
-                findingCollector.start()
+                // Step 4: Start finding collector (project-level service)
+                if (!project.isDisposed) {
+                    val findingCollector = project.getService(FindingCollector::class.java)
+                    findingCollector.start()
+                }
 
                 logger.info("DevSecAI plugin initialized successfully")
             } catch (e: Exception) {

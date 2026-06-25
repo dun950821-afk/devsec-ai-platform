@@ -18,7 +18,7 @@ repositories {
 
 dependencies {
     intellijPlatform {
-        intellijIdeaUltimate("2024.2")
+        intellijIdeaUltimate("2026.1.3")
         testFramework(TestFrameworkType.Platform)
         pluginVerifier()
         zipSigner()
@@ -41,14 +41,14 @@ intellijPlatform {
             """
         ideaVersion {
             sinceBuild = "242"
-            untilBuild = "261.*"
+            // No untilBuild — do not artificially block future IDEA versions
         }
     }
     verifyPlugin {
         ides {
             ide("2024.2")
             ide("2025.1")
-            ide("2026.1")
+            ide("2026.1.3")
         }
     }
 }
@@ -57,10 +57,5 @@ tasks {
     withType<JavaCompile> {
         sourceCompatibility = "21"
         targetCompatibility = "21"
-    }
-    withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
-        kotlinOptions {
-            jvmTarget = "21"
-        }
     }
 }

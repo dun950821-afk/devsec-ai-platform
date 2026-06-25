@@ -1,8 +1,6 @@
 package com.guoshun.devsecai.action
 
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
-import com.intellij.codeInspection.InspectionManager
-import com.intellij.codeInspection.ex.InspectionManagerEx
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.diagnostic.Logger
@@ -30,39 +28,43 @@ class ManualScanAction : AnAction("DevSecAI Security Scan", "Run security scan o
         ProgressManager.getInstance().run(object : Task.Backgroundable(project, "DevSecAI Security Scan", true) {
             override fun run(indicator: ProgressIndicator) {
                 indicator.isIndeterminate = false
-                indicator.text = "Scanning project for security issues..."
+                indicator.text = "Collecting source files..."
 
                 try {
-                    val inspectionManagerEx = InspectionManagerEx.getInstance(project)
-
-                    // Get all source files in project
                     val sourceRoots = ProjectRootManager.getInstance(project).contentSourceRoots
                     val filesToScan = mutableListOf<VirtualFile>()
 
                     for (root in sourceRoots) {
-                        collectJavaFiles(root, filesToScan)
+                        collectSourceFiles(root, filesToScan)
                     }
 
                     indicator.fraction = 0.0
                     val total = filesToScan.size
                     if (total == 0) {
-                        indicator.text = "No Java source files found to scan"
+                        indicator.text = "No source files found to scan"
                         return
                     }
 
-                    // Run inspections on each file
+                    // Run daemon analyzer on each file to trigger local inspections
+                    // (SecurityInspectionTool / SecretsInspectionTool will be invoked by the platform)
+                    val daemonAnalyzer = DaemonCodeAnalyzer.getInstance(project)
+                    val psiManager = com.intellij.psi.PsiManager.getInstance(project)
+
                     for ((index, file) in filesToScan.withIndex()) {
                         if (indicator.isCanceled) break
+                        if (project.isDisposed) break
 
                         indicator.fraction = (index + 1).toDouble() / total
                         indicator.text = "Scanning: ${file.name}"
 
                         try {
-                            val psiFile = com.intellij.psi.PsiManager.getInstance(project).findFile(file)
+                            val psiFile = psiManager.findFile(file)
                             if (psiFile != null) {
-                                val globalContext = inspectionManagerEx.createNewGlobalContext(false)
-                                val tool = com.intellij.codeInspection.InspectionEngine
-                                DaemonCodeAnalyzer.getInstance(project).restart(psiFile)
+                                // Restart daemon on the file triggers all registered
+                                // LocalInspectionTools including our SecurityInspectionTool
+                                // and SecretsInspectionTool. The platform will invoke
+                                // buildVisitor() and collect problems for us.
+                                daemonAnalyzer.restart(psiFile)
                             }
                         } catch (ex: Exception) {
                             logger.warn("Error scanning ${file.name}: ${ex.message}")
@@ -79,16 +81,17 @@ class ManualScanAction : AnAction("DevSecAI Security Scan", "Run security scan o
         })
     }
 
-    private fun collectJavaFiles(root: VirtualFile, files: MutableList<VirtualFile>) {
+    private fun collectSourceFiles(root: VirtualFile, files: MutableList<VirtualFile>) {
         if (!root.isDirectory) {
-            if (root.extension.equals("java", ignoreCase = true)) {
+            val ext = root.extension?.lowercase() ?: ""
+            if (ext in setOf("java", "kt", "kts", "xml", "properties", "yml", "yaml")) {
                 files.add(root)
             }
             return
         }
         val children = root.children
         for (child in children) {
-            collectJavaFiles(child, files)
+            collectSourceFiles(child, files)
         }
     }
 }

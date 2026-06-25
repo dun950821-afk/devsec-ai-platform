@@ -6,6 +6,7 @@ import com.guoshun.devsecai.service.PolicyService
 import com.intellij.codeInspection.LocalInspectionTool
 import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.openapi.diagnostic.Logger
+import com.intellij.openapi.editor.Document
 import com.intellij.openapi.project.Project
 import com.intellij.psi.*
 
@@ -96,7 +97,9 @@ class SecretsInspectionTool : LocalInspectionTool() {
 
     private fun getLineNumber(element: PsiElement): Int {
         return try {
-            val doc = com.intellij.openapi.editor.Document.getInstance(element.containingFile)
+            val file = element.containingFile ?: return 0
+            val doc = com.intellij.psi.PsiDocumentManager.getInstance(element.project).getDocument(file)
+                ?: return 0
             val offset = element.textOffset
             doc.getLineNumber(offset) + 1
         } catch (e: Exception) {
