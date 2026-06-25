@@ -194,7 +194,7 @@
       <div class="features">
         <div class="feature-item"><div class="fi-icon">🔍</div><div class="fi-title">SAST</div><div class="fi-desc">静态代码安全扫描</div></div>
         <div class="feature-item"><div class="fi-icon">📦</div><div class="fi-title">SCA</div><div class="fi-desc">依赖组件分析</div></div>
-        <div class="feature-item"><div class="fi-icon">🔑</div><div class="fi-title">Secrets</div><div class="fi-desc">密钥凭证检测</div></div>
+        <div class="feature-item"><div class="fi-icon">🔑</div><div class="fi-title">密钥检测</div><div class="fi-desc">密钥凭证检测</div></div>
         <div class="feature-item"><div class="fi-icon">🤖</div><div class="fi-title">AI Fix</div><div class="fi-desc">智能修复建议</div></div>
       </div>
     </div>
@@ -264,7 +264,7 @@
             <div class="stat-card"><div class="sc-top"><div><div class="sc-label">离线插件</div><div class="sc-value" id="statOfflinePlugins">-</div></div><div class="sc-icon" style="background:rgba(140,140,140,0.1);">⚫</div></div></div>
             <div class="stat-card sc-orange"><div class="sc-top"><div><div class="sc-label">活跃策略</div><div class="sc-value" id="statActivePolicies">-</div></div><div class="sc-icon" style="background:rgba(250,173,20,0.1);">🛡️</div></div></div>
             <div class="stat-card sc-blue"><div class="sc-top"><div><div class="sc-label">今日检测</div><div class="sc-value" id="statTodayDetections">-</div></div><div class="sc-icon" style="background:rgba(102,126,234,0.1);">🔍</div></div></div>
-            <div class="stat-card sc-red"><div class="sc-top"><div><div class="sc-label">高危Finding</div><div class="sc-value" id="statHighFindings">-</div></div><div class="sc-icon" style="background:rgba(255,77,79,0.1);">🔴</div></div></div>
+            <div class="stat-card sc-red"><div class="sc-top"><div><div class="sc-label">高危漏洞</div><div class="sc-value" id="statHighFindings">-</div></div><div class="sc-icon" style="background:rgba(255,77,79,0.1);">🔴</div></div></div>
             <div class="stat-card"><div class="sc-top"><div><div class="sc-label">待处理Token</div><div class="sc-value" id="statPendingTokens">-</div></div><div class="sc-icon" style="background:rgba(235,47,150,0.1);">🔑</div></div></div>
           </div>
           <div class="grid-2">
@@ -285,10 +285,10 @@
                 <div style="display:flex;align-items:center;gap:20px;">
                   <div style="width:120px;height:120px;border-radius:50%;background:conic-gradient(#52c41a 0deg 227deg,#8c8c8c 227deg 284deg,#ff4d4f 284deg 303deg,#d9d9d9 303deg 341deg,#faad14 341deg 360deg);display:flex;align-items:center;justify-content:center;"><div style="width:70px;height:70px;border-radius:50%;background:white;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:20px;color:#1a1a2e;" id="donutTotal">0</div></div>
                   <div style="display:flex;flex-direction:column;gap:8px;">
-                    <div style="display:flex;align-items:center;gap:8px;"><span style="width:10px;height:10px;border-radius:50%;background:#52c41a;display:inline-block;"></span><span style="font-size:13px;color:#595959;">ONLINE <b id="donutOnline">0</b></span></div>
-                    <div style="display:flex;align-items:center;gap:8px;"><span style="width:10px;height:10px;border-radius:50%;background:#8c8c8c;display:inline-block;"></span><span style="font-size:13px;color:#595959;">OFFLINE <b id="donutOffline">0</b></span></div>
-                    <div style="display:flex;align-items:center;gap:8px;"><span style="width:10px;height:10px;border-radius:50%;background:#ff4d4f;display:inline-block;"></span><span style="font-size:13px;color:#595959;">ERROR <b id="donutError">0</b></span></div>
-                    <div style="display:flex;align-items:center;gap:8px;"><span style="width:10px;height:10px;border-radius:50%;background:#d9d9d9;display:inline-block;"></span><span style="font-size:13px;color:#595959;">DISABLED <b id="donutDisabled">0</b></span></div>
+                    <div style="display:flex;align-items:center;gap:8px;"><span style="width:10px;height:10px;border-radius:50%;background:#52c41a;display:inline-block;"></span><span style="font-size:13px;color:#595959;">在线 <b id="donutOnline">0</b></span></div>
+                    <div style="display:flex;align-items:center;gap:8px;"><span style="width:10px;height:10px;border-radius:50%;background:#8c8c8c;display:inline-block;"></span><span style="font-size:13px;color:#595959;">离线 <b id="donutOffline">0</b></span></div>
+                    <div style="display:flex;align-items:center;gap:8px;"><span style="width:10px;height:10px;border-radius:50%;background:#ff4d4f;display:inline-block;"></span><span style="font-size:13px;color:#595959;">异常 <b id="donutError">0</b></span></div>
+                    <div style="display:flex;align-items:center;gap:8px;"><span style="width:10px;height:10px;border-radius:50%;background:#d9d9d9;display:inline-block;"></span><span style="font-size:13px;color:#595959;">已禁用 <b id="donutDisabled">0</b></span></div>
                     <div style="display:flex;align-items:center;gap:8px;"><span style="width:10px;height:10px;border-radius:50%;background:#faad14;display:inline-block;"></span><span style="font-size:13px;color:#595959;">UPGRADE <b id="donutUpgrade">0</b></span></div>
                   </div>
                 </div>
@@ -306,7 +306,7 @@
           <div class="page-header"><div class="page-title">插件实例管理</div><button class="btn btn-primary" onclick="refreshHeartbeats()">🔄 刷新心跳</button></div>
           <div class="search-bar">
             <input type="text" id="piSearch" placeholder="搜索插件ID/开发者..." oninput="loadPluginInstances()">
-            <select id="piStatusFilter" onchange="loadPluginInstances()"><option value="">全部状态</option><option value="ONLINE">ONLINE</option><option value="OFFLINE">OFFLINE</option><option value="ERROR">ERROR</option><option value="UPGRADE_REQUIRED">UPGRADE_REQUIRED</option><option value="DISABLED">DISABLED</option><option value="UNAUTHENTICATED">UNAUTHENTICATED</option></select>
+            <select id="piStatusFilter" onchange="loadPluginInstances()"><option value="">全部状态</option><option value="ONLINE">在线</option><option value="OFFLINE">离线</option><option value="ERROR">异常</option><option value="UPGRADE_REQUIRED">需升级</option><option value="DISABLED">已禁用</option><option value="UNAUTHENTICATED">未认证</option></select>
             <select id="piIdeFilter" onchange="loadPluginInstances()"><option value="">全部IDE</option><option value="IntelliJ IDEA">IntelliJ IDEA</option><option value="WebStorm">WebStorm</option><option value="PyCharm">PyCharm</option></select>
           </div>
           <div class="panel"><div class="panel-body"><table class="table"><thead><tr><th>插件ID</th><th>开发者</th><th>所属项目</th><th>IDE</th><th>插件版本</th><th>当前策略</th><th>最近心跳</th><th>状态</th><th>操作</th></tr></thead><tbody id="piTable"></tbody></table></div></div>
@@ -467,12 +467,12 @@
     var ROLE_TAG = { admin:'tag-danger', user:'tag-info' };
     var RULE_CAT_MAP = { security:'安全', code_quality:'代码质量', best_practice:'最佳实践' };
     var RULE_CAT_TAG = { security:'tag-danger', code_quality:'tag-info', best_practice:'tag-success' };
-    var PI_STATUS_MAP = { ONLINE:'ONLINE', OFFLINE:'OFFLINE', ERROR:'ERROR', UPGRADE_REQUIRED:'UPGRADE_REQUIRED', DISABLED:'DISABLED', UNAUTHENTICATED:'UNAUTHENTICATED' };
+    var PI_STATUS_MAP = { ONLINE:'在线', OFFLINE:'离线', ERROR:'异常', UPGRADE_REQUIRED:'需升级', DISABLED:'已禁用', UNAUTHENTICATED:'未认证' };
     var PI_STATUS_TAG = { ONLINE:'tag-success', OFFLINE:'tag-default', ERROR:'tag-danger', UPGRADE_REQUIRED:'tag-warning', DISABLED:'tag-default', UNAUTHENTICATED:'tag-warning' };
-    var TOKEN_STATUS_MAP = { ACTIVE:'ACTIVE', REVOKED:'REVOKED', EXPIRED:'EXPIRED' };
+    var TOKEN_STATUS_MAP = { ACTIVE:'有效', REVOKED:'已吊销', EXPIRED:'已过期' };
     var TOKEN_STATUS_TAG = { ACTIVE:'tag-success', REVOKED:'tag-danger', EXPIRED:'tag-default' };
-    var FINDING_TYPE_MAP = { SCA:'SCA', SAST:'SAST' };
-    var FINDING_STATUS_MAP = { OPEN:'OPEN', FIXED:'FIXED', IGNORED:'IGNORED' };
+    var FINDING_TYPE_MAP = { SCA:'软件成分分析', SAST:'静态代码扫描' };
+    var FINDING_STATUS_MAP = { OPEN:'待处理', FIXED:'已修复', IGNORED:'已忽略' };
 
     // ===== 初始化 =====
     function init() { if (token) { showApp(); loadDashboardData(); } }
@@ -584,7 +584,7 @@
     function renderDashResults(list) {
       var tb=document.getElementById('dashResults');
       if(!list||!list.length){tb.innerHTML='<tr><td colspan="5" class="empty-state">暂无检测活动</td></tr>';return;}
-      tb.innerHTML=list.slice(0,5).map(function(r){return '<tr><td>'+esc(r.projectName||'-')+'</td><td><span class="tag tag-info">'+esc(r.findingType||'-')+'</span></td><td><span class="tag '+(r.severity==='CRITICAL'?'tag-critical':r.severity==='HIGH'?'tag-high':r.severity==='MEDIUM'?'tag-medium':'tag-low')+'">'+esc(r.severity||'-')+'</span></td><td><span class="tag '+(r.status==='OPEN'?'tag-danger':r.status==='FIXED'?'tag-success':'tag-default')+'">'+esc(r.status||'-')+'</span></td><td style="font-size:12px;color:#8c8c8c;">'+esc(r.createTime||'-')+'</td></tr>';}).join('');
+      tb.innerHTML=list.slice(0,5).map(function(r){return '<tr><td>'+esc(r.projectName||'-')+'</td><td><span class="tag tag-info">'+esc(r.findingType||'-')+'</span></td><td><span class="tag '+(r.severity==='CRITICAL'?'tag-critical':r.severity==='HIGH'?'tag-high':r.severity==='MEDIUM'?'tag-medium':'tag-low')+'">'+(SEVERITY_MAP[r.severity]||r.severity||'-')+'</span></td><td><span class="tag '+(r.status==='OPEN'?'tag-danger':r.status==='FIXED'?'tag-success':'tag-default')+'">'+(FINDING_STATUS_MAP[r.status]||r.status||'-')+'</span></td><td style="font-size:12px;color:#8c8c8c;">'+esc(r.createTime||'-')+'</td></tr>';}).join('');
     }
 
     // ===== 1.2 用户管理 =====
@@ -692,8 +692,8 @@
           var modules = [];
           if(p.scaEnabled)modules.push('<span class="tag tag-info">SCA</span>');
           if(p.sastEnabled)modules.push('<span class="tag tag-success">SAST</span>');
-          if(p.secretsEnabled)modules.push('<span class="tag tag-warning">Secrets</span>');
-          if(p.baselineEnabled)modules.push('<span class="tag tag-default">Baseline</span>');
+          if(p.secretsEnabled)modules.push('<span class="tag tag-warning">密钥检测</span>');
+          if(p.baselineEnabled)modules.push('<span class="tag tag-default">基线检查</span>');
           if(p.aiEnabled)modules.push('<span class="tag tag-danger">AI</span>');
           var html='<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">'
             +'<div><h4 style="margin-bottom:10px;font-size:14px;color:#1a1a2e;">基本信息</h4>'
@@ -756,9 +756,9 @@
       if(!list.length){tb.innerHTML='<tr><td colspan="6" class="empty-state">暂无策略数据</td></tr>';return;}
       tb.innerHTML=list.map(function(p){
         var mods=[];
-        if(p.scaEnabled)mods.push('SCA');if(p.sastEnabled)mods.push('SAST');if(p.secretsEnabled)mods.push('Secrets');
-        if(p.baselineEnabled)mods.push('Baseline');if(p.aiVulnExplain)mods.push('AI解释');if(p.aiFixSuggest)mods.push('AI修复');
-        if(p.aiPatchGen)mods.push('AI Patch');if(p.gitCommitCheck)mods.push('Commit检查');if(p.highRiskBlock)mods.push('高危阻断');
+        if(p.scaEnabled)mods.push('软件成分分析');if(p.sastEnabled)mods.push('静态代码扫描');if(p.secretsEnabled)mods.push('密钥检测');
+        if(p.baselineEnabled)mods.push('基线检查');if(p.aiVulnExplain)mods.push('AI解释');if(p.aiFixSuggest)mods.push('AI修复');
+        if(p.aiPatchGen)mods.push('AI补丁');if(p.gitCommitCheck)mods.push('提交检查');if(p.highRiskBlock)mods.push('高危阻断');
         if(p.autoUpload)mods.push('自动上送');if(p.codeSnippetUpload)mods.push('代码上传');if(p.desensitize)mods.push('脱敏');
         return '<tr><td><b>'+esc(p.name)+'</b></td><td>'+esc(p.version||'-')+'</td><td>'+(p.projectNames?'<span style="font-size:13px;">'+esc(p.projectNames)+'</span>':'<span class="tag tag-default">未绑定</span>')+'</td><td><div style="display:flex;gap:4px;flex-wrap:wrap;">'+mods.map(function(m){return '<span class="tag tag-info" style="font-size:11px;">'+m+'</span>';}).join('')+'</div></td><td><span class="tag '+(p.status===1?'tag-success':'tag-default')+'">'+(p.status===1?'启用':'禁用')+'</span></td><td><div class="actions"><button class="btn btn-default btn-sm" onclick="editCapability('+p.id+')">编辑</button><button class="btn btn-default btn-sm" onclick="showBindProjectModal('+p.id+')">绑定项目</button><button class="btn btn-danger btn-sm" onclick="deleteCapability('+p.id+')">删除</button></div></td></tr>';
       }).join('');
@@ -769,16 +769,16 @@
       var body='<div class="form-group"><label>策略名称</label><input type="text" id="mCapName" placeholder="请输入策略名称"></div>'
         +'<div class="form-group"><label>版本</label><input type="text" id="mCapVersion" placeholder="如 v1.0.0"></div>'
         +'<div style="margin:16px 0 8px;font-weight:600;color:#1a1a2e;font-size:14px;border-bottom:1px solid #f0f0f0;padding-bottom:6px;">检测能力</div>'
-        +'<div class="form-group" style="display:flex;justify-content:space-between;align-items:center;"><span>SCA 开关</span><label class="toggle"><input type="checkbox" id="mCapSCA" checked><span class="slider"></span></label></div>'
-        +'<div class="form-group" style="display:flex;justify-content:space-between;align-items:center;"><span>SAST 开关</span><label class="toggle"><input type="checkbox" id="mCapSAST" checked><span class="slider"></span></label></div>'
-        +'<div class="form-group" style="display:flex;justify-content:space-between;align-items:center;"><span>Secrets 开关</span><label class="toggle"><input type="checkbox" id="mCapSecrets"><span class="slider"></span></label></div>'
-        +'<div class="form-group" style="display:flex;justify-content:space-between;align-items:center;"><span>Baseline 开关</span><label class="toggle"><input type="checkbox" id="mCapBaseline"><span class="slider"></span></label></div>'
+        +'<div class="form-group" style="display:flex;justify-content:space-between;align-items:center;"><span>依赖扫描(SCA)</span><label class="toggle"><input type="checkbox" id="mCapSCA" checked><span class="slider"></span></label></div>'
+        +'<div class="form-group" style="display:flex;justify-content:space-between;align-items:center;"><span>代码扫描(SAST)</span><label class="toggle"><input type="checkbox" id="mCapSAST" checked><span class="slider"></span></label></div>'
+        +'<div class="form-group" style="display:flex;justify-content:space-between;align-items:center;"><span>密钥检测(Secrets)</span><label class="toggle"><input type="checkbox" id="mCapSecrets"><span class="slider"></span></label></div>'
+        +'<div class="form-group" style="display:flex;justify-content:space-between;align-items:center;"><span>基线检查(Baseline)</span><label class="toggle"><input type="checkbox" id="mCapBaseline"><span class="slider"></span></label></div>'
         +'<div style="margin:16px 0 8px;font-weight:600;color:#1a1a2e;font-size:14px;border-bottom:1px solid #f0f0f0;padding-bottom:6px;">AI能力</div>'
         +'<div class="form-group" style="display:flex;justify-content:space-between;align-items:center;"><span>AI漏洞解释</span><label class="toggle"><input type="checkbox" id="mCapAIExplain" checked><span class="slider"></span></label></div>'
         +'<div class="form-group" style="display:flex;justify-content:space-between;align-items:center;"><span>AI修复建议</span><label class="toggle"><input type="checkbox" id="mCapAIFix"><span class="slider"></span></label></div>'
-        +'<div class="form-group" style="display:flex;justify-content:space-between;align-items:center;"><span>AI Patch生成</span><label class="toggle"><input type="checkbox" id="mCapAIPatch"><span class="slider"></span></label></div>'
+        +'<div class="form-group" style="display:flex;justify-content:space-between;align-items:center;"><span>AI补丁生成</span><label class="toggle"><input type="checkbox" id="mCapAIPatch"><span class="slider"></span></label></div>'
         +'<div style="margin:16px 0 8px;font-weight:600;color:#1a1a2e;font-size:14px;border-bottom:1px solid #f0f0f0;padding-bottom:6px;">提交控制</div>'
-        +'<div class="form-group" style="display:flex;justify-content:space-between;align-items:center;"><span>Git Commit检查</span><label class="toggle"><input type="checkbox" id="mCapGitCheck" checked><span class="slider"></span></label></div>'
+        +'<div class="form-group" style="display:flex;justify-content:space-between;align-items:center;"><span>提交检查(Git Commit)</span><label class="toggle"><input type="checkbox" id="mCapGitCheck" checked><span class="slider"></span></label></div>'
         +'<div class="form-group" style="display:flex;justify-content:space-between;align-items:center;"><span>高危阻断提交</span><label class="toggle"><input type="checkbox" id="mCapHighBlock"><span class="slider"></span></label></div>'
         +'<div style="margin:16px 0 8px;font-weight:600;color:#1a1a2e;font-size:14px;border-bottom:1px solid #f0f0f0;padding-bottom:6px;">数据策略</div>'
         +'<div class="form-group" style="display:flex;justify-content:space-between;align-items:center;"><span>结果自动上送</span><label class="toggle"><input type="checkbox" id="mCapAutoUpload" checked><span class="slider"></span></label></div>'
