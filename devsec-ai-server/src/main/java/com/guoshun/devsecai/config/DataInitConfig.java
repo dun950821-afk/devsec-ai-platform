@@ -91,6 +91,7 @@ public class DataInitConfig {
         
         Plugin p1 = new Plugin();
         p1.setName("代码安全扫描插件");
+        p1.setPluginKey("code-security-scanner");
         p1.setDescription("扫描源代码中的安全漏洞和潜在风险");
         p1.setCategory("security");
         p1.setVersion("1.0.0");
@@ -101,6 +102,7 @@ public class DataInitConfig {
         
         Plugin p2 = new Plugin();
         p2.setName("依赖漏洞检测插件");
+        p2.setPluginKey("dependency-vuln-detector");
         p2.setDescription("检测项目依赖中的已知漏洞");
         p2.setCategory("dependency");
         p2.setVersion("1.0.0");
@@ -111,6 +113,7 @@ public class DataInitConfig {
         
         Plugin p3 = new Plugin();
         p3.setName("秘钥凭证检测插件");
+        p3.setPluginKey("secret-credential-detector");
         p3.setDescription("检测代码中的硬编码密钥和凭证");
         p3.setCategory("secret");
         p3.setVersion("1.0.0");

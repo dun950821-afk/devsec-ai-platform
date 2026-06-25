@@ -44,6 +44,8 @@ public class SecurityConfig {
             .exceptionHandling(exception -> exception.authenticationEntryPoint(jwtAuthenticationEntryPoint))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**", "/api/public/**").permitAll()
+                .requestMatchers("/api/plugin-instance/handshake", "/api/plugin-instance/heartbeat", "/api/plugin-instance/policy").permitAll()
+                .requestMatchers("/api/finding/upload").permitAll()
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .anyRequest().authenticated()
             )

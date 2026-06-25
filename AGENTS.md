@@ -40,6 +40,10 @@
 │   │   ├── AuthController.java     # 认证接口
 │   │   ├── MainController.java     # 主控制器
 │   │   ├── PluginController.java   # 插件接口
+│   │   ├── PluginInstanceController.java  # 插件实例接口（握手/心跳/策略）
+│   │   ├── CapabilityPolicyController.java # 能力策略接口
+│   │   ├── PluginTokenController.java  # Token管理接口
+│   │   ├── FindingController.java  # Finding上送接口
 │   │   ├── ProjectController.java  # 项目接口
 │   │   ├── PolicyController.java    # 策略接口
 │   │   ├── RuleController.java      # 规则接口
@@ -88,6 +92,36 @@
 - `DELETE /api/plugin/{id}` - 删除插件
 - `PUT /api/plugin/{id}/status` - 更新插件状态
 - `POST /api/plugin/heartbeat` - 插件心跳
+
+### 插件实例管理（IDEA插件模块）
+- `GET /api/plugin-instance/list` - 插件实例列表（分页+筛选）
+- `GET /api/plugin-instance/{id}` - 插件实例详情
+- `POST /api/plugin-instance/handshake` - 握手认证（无需JWT，需accessToken）
+- `POST /api/plugin-instance/heartbeat` - 心跳上报（无需JWT）
+- `GET /api/plugin-instance/policy` - 获取策略配置（无需JWT）
+- `PUT /api/plugin-instance/{id}/status` - 更新插件实例状态
+- `DELETE /api/plugin-instance/{id}` - 删除插件实例
+
+### 能力策略管理
+- `GET /api/capability-policy/list` - 策略列表
+- `GET /api/capability-policy/{id}` - 策略详情
+- `POST /api/capability-policy` - 创建策略
+- `PUT /api/capability-policy/{id}` - 更新策略
+- `DELETE /api/capability-policy/{id}` - 删除策略
+- `PUT /api/capability-policy/{id}/status` - 更新策略状态
+
+### Token管理
+- `GET /api/plugin-token/list` - Token列表
+- `GET /api/plugin-token/{id}` - Token详情
+- `POST /api/plugin-token` - 生成Token
+- `PUT /api/plugin-token/{id}/revoke` - 吊销Token
+
+### Finding上送
+- `GET /api/finding/list` - Finding列表（分页+筛选）
+- `GET /api/finding/{id}` - Finding详情
+- `POST /api/finding/upload` - Finding上送（支持单条/批量）
+- `PUT /api/finding/{id}/status` - 更新Finding状态
+- `GET /api/finding/severity-counts` - 严重等级统计
 
 ### 项目管理
 - `GET /api/project/list` - 项目列表
@@ -158,7 +192,11 @@ mvn spring-boot:run -Dspring-boot.run.profiles=dev
 | 模块 | 状态 | 说明 |
 |-----|------|------|
 | 用户登录 | ✅ | JWT认证，支持登录/登出 |
-| 工作台 | ✅ | 统计数据仪表盘 + 最近检测结果 |
+| 工作台 | ✅ | 统计数据仪表盘 + 最近检测活动 + 风险分布 |
+| 插件实例管理 | ✅ | IDEA插件握手认证、心跳上报、策略下发、6值状态管理 |
+| 能力配置 | ✅ | 12项能力开关策略管理（检测/AI/提交/数据4组）、项目绑定 |
+| Token管理 | ✅ | 访问令牌生成、吊销、绑定插件、脱敏显示 |
+| Finding上送 | ✅ | SCA/SAST检测结果上送（单条/批量）、严重等级统计 |
 | 插件管理 | ✅ | CRUD、启用/禁用、心跳检测 |
 | 项目管理 | ✅ | CRUD、项目配置 |
 | 检测策略 | ✅ | CRUD、策略配置 |

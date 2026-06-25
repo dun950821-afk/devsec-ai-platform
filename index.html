@@ -106,7 +106,7 @@
     .search-bar input { min-width: 200px; }
 
     /* 统计卡片 */
-    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
+    .stats-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px; margin-bottom: 20px; }
     .stat-card { background: white; padding: 20px; border-radius: 10px; border: 1px solid #f0f0f0; transition: all 0.2s; }
     .stat-card:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
     .stat-card .sc-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
@@ -222,8 +222,14 @@
           <div class="menu-item active" data-page="dashboard" onclick="showPage('dashboard')"><span class="icon">📊</span><span>工作台</span></div>
         </div>
         <div class="menu-section">
+          <div class="menu-title">插件管理</div>
+          <div class="menu-item" data-page="pluginInstance" onclick="showPage('pluginInstance')"><span class="icon">🔌</span><span>插件实例</span></div>
+          <div class="menu-item" data-page="capability" onclick="showPage('capability')"><span class="icon">⚙️</span><span>能力配置</span></div>
+          <div class="menu-item" data-page="token" onclick="showPage('token')"><span class="icon">🔑</span><span>Token管理</span></div>
+        </div>
+        <div class="menu-section">
           <div class="menu-title">安全管理</div>
-          <div class="menu-item" data-page="plugin" onclick="showPage('plugin')"><span class="icon">🔌</span><span>插件管理</span></div>
+          <div class="menu-item" data-page="plugin" onclick="showPage('plugin')"><span class="icon">📦</span><span>插件注册</span></div>
           <div class="menu-item" data-page="project" onclick="showPage('project')"><span class="icon">📁</span><span>项目资产</span></div>
           <div class="menu-item" data-page="policy" onclick="showPage('policy')"><span class="icon">🛡️</span><span>检测策略</span></div>
           <div class="menu-item" data-page="rule" onclick="showPage('rule')"><span class="icon">📋</span><span>规则管理</span></div>
@@ -254,10 +260,12 @@
         <!-- ===== 工作台 ===== -->
         <div id="page-dashboard" class="page-content">
           <div class="stats-grid">
-            <div class="stat-card sc-blue"><div class="sc-top"><div><div class="sc-label">项目总数</div><div class="sc-value" id="statProjects">-</div><div class="sc-footer">活跃 <span id="statActiveProjects">-</span></div></div><div class="sc-icon">📁</div></div></div>
-            <div class="stat-card sc-green"><div class="sc-top"><div><div class="sc-label">活跃插件</div><div class="sc-value" id="statPlugins">-</div><div class="sc-footer">今日扫描 <span id="statTodayScans">-</span></div></div><div class="sc-icon">🔌</div></div></div>
-            <div class="stat-card sc-orange"><div class="sc-top"><div><div class="sc-label">安全问题</div><div class="sc-value" id="statIssues">-</div><div class="sc-footer">高危 <span id="statHighIssues">-</span></div></div><div class="sc-icon">⚠️</div></div></div>
-            <div class="stat-card sc-critical"><div class="sc-top"><div><div class="sc-label">严重问题</div><div class="sc-value" id="statCritical">-</div><div class="sc-footer">中危 <span id="statMediumIssues">-</span></div></div><div class="sc-icon">🔴</div></div></div>
+            <div class="stat-card sc-blue"><div class="sc-top"><div><div class="sc-label">在线插件</div><div class="sc-value" id="statOnlinePlugins">-</div></div><div class="sc-icon" style="background:rgba(82,196,26,0.1);">🟢</div></div></div>
+            <div class="stat-card"><div class="sc-top"><div><div class="sc-label">离线插件</div><div class="sc-value" id="statOfflinePlugins">-</div></div><div class="sc-icon" style="background:rgba(140,140,140,0.1);">⚫</div></div></div>
+            <div class="stat-card sc-orange"><div class="sc-top"><div><div class="sc-label">活跃策略</div><div class="sc-value" id="statActivePolicies">-</div></div><div class="sc-icon" style="background:rgba(250,173,20,0.1);">🛡️</div></div></div>
+            <div class="stat-card sc-blue"><div class="sc-top"><div><div class="sc-label">今日检测</div><div class="sc-value" id="statTodayDetections">-</div></div><div class="sc-icon" style="background:rgba(102,126,234,0.1);">🔍</div></div></div>
+            <div class="stat-card sc-red"><div class="sc-top"><div><div class="sc-label">高危Finding</div><div class="sc-value" id="statHighFindings">-</div></div><div class="sc-icon" style="background:rgba(255,77,79,0.1);">🔴</div></div></div>
+            <div class="stat-card"><div class="sc-top"><div><div class="sc-label">待处理Token</div><div class="sc-value" id="statPendingTokens">-</div></div><div class="sc-icon" style="background:rgba(235,47,150,0.1);">🔑</div></div></div>
           </div>
           <div class="grid-2">
             <div class="panel">
@@ -268,20 +276,62 @@
                   <div class="risk-bar-item"><span class="rb-label">高危</span><div class="rb-track"><div class="rb-fill" id="barHigh" style="width:0%;background:#f5222d;"></div></div><span class="rb-count" id="barHighN">0</span></div>
                   <div class="risk-bar-item"><span class="rb-label">中危</span><div class="rb-track"><div class="rb-fill" id="barMedium" style="width:0%;background:#fa8c16;"></div></div><span class="rb-count" id="barMediumN">0</span></div>
                   <div class="risk-bar-item"><span class="rb-label">低危</span><div class="rb-track"><div class="rb-fill" id="barLow" style="width:0%;background:#13c2c2;"></div></div><span class="rb-count" id="barLowN">0</span></div>
-                  <div class="risk-bar-item"><span class="rb-label">提示</span><div class="rb-track"><div class="rb-fill" id="barInfo" style="width:0%;background:#2f54eb;"></div></div><span class="rb-count" id="barInfoN">0</span></div>
                 </div></div>
               </div>
             </div>
             <div class="panel">
-              <div class="panel-header"><h4>插件状态概览</h4></div>
-              <div class="panel-body"><table class="table"><thead><tr><th>插件名称</th><th>类别</th><th>状态</th></tr></thead><tbody id="dashPluginStatus"></tbody></table></div>
+              <div class="panel-header"><h4>插件状态分布</h4></div>
+              <div class="panel-body padded">
+                <div style="display:flex;align-items:center;gap:20px;">
+                  <div style="width:120px;height:120px;border-radius:50%;background:conic-gradient(#52c41a 0deg 227deg,#8c8c8c 227deg 284deg,#ff4d4f 284deg 303deg,#d9d9d9 303deg 341deg,#faad14 341deg 360deg);display:flex;align-items:center;justify-content:center;"><div style="width:70px;height:70px;border-radius:50%;background:white;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:20px;color:#1a1a2e;" id="donutTotal">0</div></div>
+                  <div style="display:flex;flex-direction:column;gap:8px;">
+                    <div style="display:flex;align-items:center;gap:8px;"><span style="width:10px;height:10px;border-radius:50%;background:#52c41a;display:inline-block;"></span><span style="font-size:13px;color:#595959;">ONLINE <b id="donutOnline">0</b></span></div>
+                    <div style="display:flex;align-items:center;gap:8px;"><span style="width:10px;height:10px;border-radius:50%;background:#8c8c8c;display:inline-block;"></span><span style="font-size:13px;color:#595959;">OFFLINE <b id="donutOffline">0</b></span></div>
+                    <div style="display:flex;align-items:center;gap:8px;"><span style="width:10px;height:10px;border-radius:50%;background:#ff4d4f;display:inline-block;"></span><span style="font-size:13px;color:#595959;">ERROR <b id="donutError">0</b></span></div>
+                    <div style="display:flex;align-items:center;gap:8px;"><span style="width:10px;height:10px;border-radius:50%;background:#d9d9d9;display:inline-block;"></span><span style="font-size:13px;color:#595959;">DISABLED <b id="donutDisabled">0</b></span></div>
+                    <div style="display:flex;align-items:center;gap:8px;"><span style="width:10px;height:10px;border-radius:50%;background:#faad14;display:inline-block;"></span><span style="font-size:13px;color:#595959;">UPGRADE <b id="donutUpgrade">0</b></span></div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
           <div class="panel" style="margin-top:16px;">
-            <div class="panel-header"><h4>最近扫描结果</h4></div>
-            <div class="panel-body"><table class="table"><thead><tr><th>项目</th><th>规则</th><th>严重性</th><th>状态</th><th>时间</th></tr></thead><tbody id="dashResults"></tbody></table></div>
+            <div class="panel-header"><h4>最近检测活动</h4></div>
+            <div class="panel-body"><table class="table"><thead><tr><th>项目</th><th>检测类型</th><th>严重等级</th><th>状态</th><th>时间</th></tr></thead><tbody id="dashResults"></tbody></table></div>
           </div>
         </div>
+
+        <!-- ===== 插件实例管理 ===== -->
+        <div id="page-pluginInstance" class="page-content hidden">
+          <div class="page-header"><div class="page-title">插件实例管理</div><button class="btn btn-primary" onclick="refreshHeartbeats()">🔄 刷新心跳</button></div>
+          <div class="search-bar">
+            <input type="text" id="piSearch" placeholder="搜索插件ID/开发者..." oninput="loadPluginInstances()">
+            <select id="piStatusFilter" onchange="loadPluginInstances()"><option value="">全部状态</option><option value="ONLINE">ONLINE</option><option value="OFFLINE">OFFLINE</option><option value="ERROR">ERROR</option><option value="UPGRADE_REQUIRED">UPGRADE_REQUIRED</option><option value="DISABLED">DISABLED</option><option value="UNAUTHENTICATED">UNAUTHENTICATED</option></select>
+            <select id="piIdeFilter" onchange="loadPluginInstances()"><option value="">全部IDE</option><option value="IntelliJ IDEA">IntelliJ IDEA</option><option value="WebStorm">WebStorm</option><option value="PyCharm">PyCharm</option></select>
+          </div>
+          <div class="panel"><div class="panel-body"><table class="table"><thead><tr><th>插件ID</th><th>开发者</th><th>所属项目</th><th>IDE</th><th>插件版本</th><th>当前策略</th><th>最近心跳</th><th>状态</th><th>操作</th></tr></thead><tbody id="piTable"></tbody></table></div></div>
+        </div>
+
+        <!-- ===== 能力配置 ===== -->
+        <div id="page-capability" class="page-content hidden">
+          <div class="page-header">
+            <div><div class="page-title">能力配置</div><div style="font-size:13px;color:#8c8c8c;margin-top:4px;">管理插件的检测能力、AI能力、提交控制和数据策略开关</div></div>
+            <button class="btn btn-primary" onclick="showCapabilityModal()">+ 新建策略</button>
+          </div>
+          <div class="panel"><div class="panel-body"><table class="table"><thead><tr><th>策略名称</th><th>版本</th><th>绑定项目</th><th>启用模块</th><th>状态</th><th>操作</th></tr></thead><tbody id="capTable"></tbody></table></div></div>
+        </div>
+
+        <!-- ===== Token管理 ===== -->
+        <div id="page-token" class="page-content hidden">
+          <div style="background:#e6f7ff;border:1px solid #91d5ff;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#0050b3;">ℹ️ Token用于插件握手认证，生成后请在IDEA插件设置中配置。吊销Token后对应插件将无法连接平台。</div>
+          <div class="page-header">
+            <div><div class="page-title">Token管理</div><div style="font-size:13px;color:#8c8c8c;margin-top:4px;">管理插件访问令牌，用于握手认证</div></div>
+            <button class="btn btn-primary" onclick="showTokenGenModal()">+ 生成Token</button>
+          </div>
+          <div class="panel"><div class="panel-body"><table class="table"><thead><tr><th>Token</th><th>名称</th><th>绑定插件</th><th>状态</th><th>过期时间</th><th>创建时间</th><th>操作</th></tr></thead><tbody id="tokenTable"></tbody></table></div></div>
+        </div>
+
+
 
         <!-- ===== 用户管理 ===== -->
         <div id="page-user" class="page-content hidden">
@@ -417,6 +467,12 @@
     var ROLE_TAG = { admin:'tag-danger', user:'tag-info' };
     var RULE_CAT_MAP = { security:'安全', code_quality:'代码质量', best_practice:'最佳实践' };
     var RULE_CAT_TAG = { security:'tag-danger', code_quality:'tag-info', best_practice:'tag-success' };
+    var PI_STATUS_MAP = { ONLINE:'ONLINE', OFFLINE:'OFFLINE', ERROR:'ERROR', UPGRADE_REQUIRED:'UPGRADE_REQUIRED', DISABLED:'DISABLED', UNAUTHENTICATED:'UNAUTHENTICATED' };
+    var PI_STATUS_TAG = { ONLINE:'tag-success', OFFLINE:'tag-default', ERROR:'tag-danger', UPGRADE_REQUIRED:'tag-warning', DISABLED:'tag-default', UNAUTHENTICATED:'tag-warning' };
+    var TOKEN_STATUS_MAP = { ACTIVE:'ACTIVE', REVOKED:'REVOKED', EXPIRED:'EXPIRED' };
+    var TOKEN_STATUS_TAG = { ACTIVE:'tag-success', REVOKED:'tag-danger', EXPIRED:'tag-default' };
+    var FINDING_TYPE_MAP = { SCA:'SCA', SAST:'SAST' };
+    var FINDING_STATUS_MAP = { OPEN:'OPEN', FIXED:'FIXED', IGNORED:'IGNORED' };
 
     // ===== 初始化 =====
     function init() { if (token) { showApp(); loadDashboardData(); } }
@@ -432,10 +488,13 @@
       document.querySelectorAll('.menu-item').forEach(function(el) { el.classList.remove('active'); });
       var item = document.querySelector('.menu-item[data-page="' + page + '"]');
       if (item) item.classList.add('active');
-      var titles = { dashboard:'工作台', plugin:'插件管理', project:'项目资产', policy:'检测策略', rule:'规则管理', result:'检测结果', skill:'AI Skill', user:'用户管理', audit:'审计日志', settings:'系统设置' };
+      var titles = { dashboard:'工作台', pluginInstance:'插件实例', capability:'能力配置', token:'Token管理', plugin:'插件注册', project:'项目资产', policy:'检测策略', rule:'规则管理', result:'检测结果', skill:'AI Skill', user:'用户管理', audit:'审计日志', settings:'系统设置' };
       document.getElementById('pageTitle').textContent = titles[page] || '工作台';
       switch(page) {
         case 'dashboard': loadDashboardData(); break;
+        case 'pluginInstance': loadPluginInstances(); break;
+        case 'capability': loadCapabilities(); break;
+        case 'token': loadTokens(); break;
         case 'plugin': loadPlugins(); break;
         case 'project': loadProjects(); break;
         case 'policy': loadPolicies(); break;
@@ -468,40 +527,64 @@
 
     // ===== 1.1 首页仪表盘 =====
     function loadDashboardData() {
-      api('/api/dashboard').then(function(d){
+      // 加载插件实例统计
+      api('/api/plugin-instance/list').then(function(d){
         if(d.code===200){
-          var v=d.data;
-          document.getElementById('statProjects').textContent=v.totalProjects||0;
-          document.getElementById('statActiveProjects').textContent=v.activeProjects||0;
-          document.getElementById('statPlugins').textContent=v.activePlugins||0;
-          document.getElementById('statTodayScans').textContent=v.todayScans||0;
-          document.getElementById('statIssues').textContent=v.totalIssues||0;
-          document.getElementById('statHighIssues').textContent=v.highIssues||0;
-          document.getElementById('statCritical').textContent=v.criticalIssues||0;
-          document.getElementById('statMediumIssues').textContent=v.mediumIssues||0;
-          // 风险条形图
-          var max=Math.max(v.criticalIssues||0,v.highIssues||0,v.mediumIssues||0,v.lowIssues||0,v.infoIssues||0,1);
-          document.getElementById('barCritical').style.width=((v.criticalIssues||0)/max*100)+'%'; document.getElementById('barCriticalN').textContent=v.criticalIssues||0;
-          document.getElementById('barHigh').style.width=((v.highIssues||0)/max*100)+'%'; document.getElementById('barHighN').textContent=v.highIssues||0;
-          document.getElementById('barMedium').style.width=((v.mediumIssues||0)/max*100)+'%'; document.getElementById('barMediumN').textContent=v.mediumIssues||0;
-          document.getElementById('barLow').style.width=((v.lowIssues||0)/max*100)+'%'; document.getElementById('barLowN').textContent=v.lowIssues||0;
-          document.getElementById('barInfo').style.width=((v.infoIssues||0)/max*100)+'%'; document.getElementById('barInfoN').textContent=v.infoIssues||0;
+          var list = d.data.records || d.data || [];
+          var online = list.filter(function(x){return x.status==='ONLINE';}).length;
+          var offline = list.filter(function(x){return x.status==='OFFLINE';}).length;
+          var error = list.filter(function(x){return x.status==='ERROR';}).length;
+          var disabled = list.filter(function(x){return x.status==='DISABLED';}).length;
+          var upgrade = list.filter(function(x){return x.status==='UPGRADE_REQUIRED';}).length;
+          var total = list.length;
+          document.getElementById('statOnlinePlugins').textContent = online;
+          document.getElementById('statOfflinePlugins').textContent = offline;
+          document.getElementById('donutTotal').textContent = total;
+          document.getElementById('donutOnline').textContent = online;
+          document.getElementById('donutOffline').textContent = offline;
+          document.getElementById('donutError').textContent = error;
+          document.getElementById('donutDisabled').textContent = disabled;
+          document.getElementById('donutUpgrade').textContent = upgrade;
         }
       });
-      // 插件状态
-      api('/api/plugin/list').then(function(d){ if(d.code===200) renderDashPlugins(d.data.records||[]); });
-      // 最近结果
-      api('/api/result/list').then(function(d){ if(d.code===200) renderDashResults(d.data.records||[]); });
-    }
-    function renderDashPlugins(list) {
-      var tb=document.getElementById('dashPluginStatus');
-      if(!list.length){tb.innerHTML='<tr><td colspan="3" class="empty-state">暂无插件</td></tr>';return;}
-      tb.innerHTML=list.slice(0,5).map(function(p){return '<tr><td>'+esc(p.name)+'</td><td><span class="tag '+(CATEGORY_TAG[p.category]||'tag-default')+'">'+(CATEGORY_MAP[p.category]||p.category||'-')+'</span></td><td><span class="tag '+(PLUGIN_STATUS_TAG[p.status]||'tag-default')+'">'+(PLUGIN_STATUS_MAP[p.status]||p.status)+'</span></td></tr>';}).join('');
+      // 活跃策略
+      api('/api/capability-policy/list').then(function(d){
+        if(d.code===200){
+          var list = d.data.records || d.data || [];
+          document.getElementById('statActivePolicies').textContent = list.filter(function(x){return x.status===1;}).length;
+        }
+      });
+      // Findings统计
+      api('/api/finding/list').then(function(d){
+        if(d.code===200){
+          var list = d.data.records || d.data || [];
+          document.getElementById('statTodayDetections').textContent = list.length;
+          document.getElementById('statHighFindings').textContent = list.filter(function(x){return x.severity==='HIGH'||x.severity==='CRITICAL';}).length;
+          var crit=list.filter(function(x){return x.severity==='CRITICAL';}).length;
+          var high=list.filter(function(x){return x.severity==='HIGH';}).length;
+          var med=list.filter(function(x){return x.severity==='MEDIUM';}).length;
+          var low=list.filter(function(x){return x.severity==='LOW';}).length;
+          var max=Math.max(crit,high,med,low,1);
+          document.getElementById('barCritical').style.width=(crit/max*100)+'%'; document.getElementById('barCriticalN').textContent=crit;
+          document.getElementById('barHigh').style.width=(high/max*100)+'%'; document.getElementById('barHighN').textContent=high;
+          document.getElementById('barMedium').style.width=(med/max*100)+'%'; document.getElementById('barMediumN').textContent=med;
+          document.getElementById('barLow').style.width=(low/max*100)+'%'; document.getElementById('barLowN').textContent=low;
+        }
+      });
+      // Token统计
+      api('/api/plugin-token/list').then(function(d){
+        if(d.code===200){
+          var list = d.data.records || d.data || [];
+          document.getElementById('statPendingTokens').textContent = list.filter(function(x){return x.status==='ACTIVE';}).length;
+        }
+      });
+      // 最近检测活动
+      api('/api/finding/list').then(function(d){ if(d.code===200) renderDashResults(d.data.records||d.data||[]); });
     }
     function renderDashResults(list) {
       var tb=document.getElementById('dashResults');
-      if(!list.length){tb.innerHTML='<tr><td colspan="5" class="empty-state">暂无扫描结果</td></tr>';return;}
-      tb.innerHTML=list.slice(0,5).map(function(r){return '<tr><td>'+esc(r.projectName||'-')+'</td><td>'+esc(r.ruleName||'-')+'</td><td><span class="tag '+(SEVERITY_TAG[r.severity]||'tag-default')+'">'+(SEVERITY_MAP[r.severity]||r.severity||'-')+'</span></td><td><span class="tag '+(RESULT_STATUS_TAG[r.status]||'tag-default')+'">'+(RESULT_STATUS_MAP[r.status]||r.status||'-')+'</span></td><td>'+(r.createTime||'-')+'</td></tr>';}).join('');
+      if(!list||!list.length){tb.innerHTML='<tr><td colspan="5" class="empty-state">暂无检测活动</td></tr>';return;}
+      tb.innerHTML=list.slice(0,5).map(function(r){return '<tr><td>'+esc(r.projectName||'-')+'</td><td><span class="tag tag-info">'+esc(r.findingType||'-')+'</span></td><td><span class="tag '+(r.severity==='CRITICAL'?'tag-critical':r.severity==='HIGH'?'tag-high':r.severity==='MEDIUM'?'tag-medium':'tag-low')+'">'+esc(r.severity||'-')+'</span></td><td><span class="tag '+(r.status==='OPEN'?'tag-danger':r.status==='FIXED'?'tag-success':'tag-default')+'">'+esc(r.status||'-')+'</span></td><td style="font-size:12px;color:#8c8c8c;">'+esc(r.createTime||'-')+'</td></tr>';}).join('');
     }
 
     // ===== 1.2 用户管理 =====
@@ -584,6 +667,242 @@
     // ===== 模态框 =====
     function closeModal(){document.getElementById('modalOverlay').classList.add('hidden');currentModalType='';currentEditId=null;modalCallback=null;document.getElementById('modalConfirmBtn').classList.remove('hidden');}
     function confirmModal(){if(modalCallback)modalCallback();}
+
+    // ===== 4.1 插件实例管理 =====
+    function loadPluginInstances(){
+      var s=document.getElementById('piSearch').value, st=document.getElementById('piStatusFilter').value, ide=document.getElementById('piIdeFilter').value;
+      api('/api/plugin-instance/list?keyword='+encodeURIComponent(s)+'&status='+st+'&ideType='+ide).then(function(d){
+        if(d.code===200) renderPITable(d.data.records||d.data||[]);
+      });
+    }
+    function renderPITable(list){
+      var tb=document.getElementById('piTable');
+      if(!list.length){tb.innerHTML='<tr><td colspan="9" class="empty-state">暂无插件实例</td></tr>';return;}
+      tb.innerHTML=list.map(function(p){
+        return '<tr><td><code style="background:#f5f5f5;padding:2px 6px;border-radius:3px;font-size:12px;">'+esc(p.instanceId||p.id)+'</code></td><td>'+esc(p.developer||'-')+'</td><td>'+esc(p.projectName||'-')+'</td><td>'+esc(p.ideType||'-')+' '+esc(p.ideVersion||'')+'</td><td>'+esc(p.pluginVersion||'-')+'</td><td>'+(p.policyName?'<span class="tag tag-info">'+esc(p.policyName)+'</span>':'<span class="tag tag-default">未绑定</span>')+'</td><td style="font-size:12px;color:#8c8c8c;">'+esc(p.lastHeartbeat||'-')+'</td><td><span class="tag '+(PI_STATUS_TAG[p.status]||'tag-default')+'">'+(PI_STATUS_MAP[p.status]||p.status||'-')+'</span></td><td><div class="actions"><button class="btn btn-default btn-sm" onclick="viewPIDetail('+p.id+')">详情</button><button class="btn btn-default btn-sm" onclick="showPolicyDispatchModal('+p.id+')">下发策略</button>'+(p.status!=='DISABLED'?'<button class="btn btn-danger btn-sm" onclick="disablePluginInstance('+p.id+')">禁用</button>':'')+'</div></td></tr>';
+      }).join('');
+    }
+    function refreshHeartbeats(){loadPluginInstances();}
+    function viewPIDetail(id){
+      api('/api/plugin-instance/'+id).then(function(d){
+        if(d.code===200){
+          var p=d.data;
+          currentModalType='view';
+          document.getElementById('modalTitle').textContent='插件实例详情';
+          var modules = [];
+          if(p.scaEnabled)modules.push('<span class="tag tag-info">SCA</span>');
+          if(p.sastEnabled)modules.push('<span class="tag tag-success">SAST</span>');
+          if(p.secretsEnabled)modules.push('<span class="tag tag-warning">Secrets</span>');
+          if(p.baselineEnabled)modules.push('<span class="tag tag-default">Baseline</span>');
+          if(p.aiEnabled)modules.push('<span class="tag tag-danger">AI</span>');
+          var html='<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">'
+            +'<div><h4 style="margin-bottom:10px;font-size:14px;color:#1a1a2e;">基本信息</h4>'
+            +'<div class="dc-item"><span class="dc-label">插件ID:</span><span class="dc-value">'+esc(p.instanceId||p.id)+'</span></div>'
+            +'<div class="dc-item"><span class="dc-label">版本:</span><span class="dc-value">'+esc(p.pluginVersion||'-')+'</span></div>'
+            +'<div class="dc-item"><span class="dc-label">IDE:</span><span class="dc-value">'+esc(p.ideType||'-')+' '+esc(p.ideVersion||'')+'</span></div>'
+            +'<div class="dc-item"><span class="dc-label">机器码:</span><span class="dc-value" style="font-family:monospace;font-size:12px;">'+esc(p.machineId||'-')+'</span></div>'
+            +'<div class="dc-item"><span class="dc-label">开发者:</span><span class="dc-value">'+esc(p.developer||'-')+'</span></div>'
+            +'<div class="dc-item"><span class="dc-label">状态:</span><span class="dc-value"><span class="tag '+(PI_STATUS_TAG[p.status]||'tag-default')+'">'+(PI_STATUS_MAP[p.status]||p.status||'-')+'</span></span></div></div>'
+            +'<div><h4 style="margin-bottom:10px;font-size:14px;color:#1a1a2e;">绑定信息</h4>'
+            +'<div class="dc-item"><span class="dc-label">项目:</span><span class="dc-value">'+esc(p.projectName||'-')+'</span></div>'
+            +'<div class="dc-item"><span class="dc-label">策略:</span><span class="dc-value">'+esc(p.policyName||'-')+'</span></div>'
+            +'<div class="dc-item"><span class="dc-label">心跳:</span><span class="dc-value">'+esc(p.lastHeartbeat||'-')+'</span></div></div></div>'
+            +'<div style="margin-top:16px;"><h4 style="margin-bottom:10px;font-size:14px;color:#1a1a2e;">启用模块</h4><div style="display:flex;gap:6px;flex-wrap:wrap;">'+(modules.length?modules.join(' '):'<span style="color:#8c8c8c;font-size:13px;">无</span>')+'</div></div>';
+          document.getElementById('modalBody').innerHTML=html;
+          document.getElementById('modalConfirmBtn').classList.add('hidden');
+          document.getElementById('modalOverlay').classList.remove('hidden');
+          modalCallback=null;
+        }
+      });
+    }
+    function showPolicyDispatchModal(id){
+      currentEditId=id; currentModalType='policyDispatch';
+      document.getElementById('modalTitle').textContent='下发策略';
+      var body='<div class="form-group"><label>选择策略</label><select id="mDispatchPolicy"><option value="">请选择策略</option></select></div><div style="font-size:12px;color:#8c8c8c;margin-top:-10px;margin-bottom:12px;">策略将推送到插件实例，下次心跳时生效</div>';
+      document.getElementById('modalBody').innerHTML=body;
+      api('/api/capability-policy/list?status=1').then(function(d){
+        if(d.code===200){
+          var list=d.data.records||d.data||[];
+          var sel=document.getElementById('mDispatchPolicy');
+          list.forEach(function(p){var o=document.createElement('option');o.value=p.id;o.textContent=p.name+(p.version?' v'+p.version:'');sel.appendChild(o);});
+        }
+      });
+      document.getElementById('modalConfirmBtn').classList.remove('hidden');
+      document.getElementById('modalOverlay').classList.remove('hidden');
+      modalCallback=function(){
+        var polId=document.getElementById('mDispatchPolicy').value;
+        if(!polId){alert('请选择策略');return;}
+        api('/api/plugin-instance/'+currentEditId+'/policy',{method:'PUT',body:JSON.stringify({policyId:parseInt(polId)})}).then(function(d){
+          if(d.code===200){closeModal();loadPluginInstances();}
+          else alert(d.message||'下发失败');
+        });
+      };
+    }
+    function disablePluginInstance(id){
+      if(!confirm('确定要禁用该插件实例吗？'))return;
+      api('/api/plugin-instance/'+id+'/status',{method:'PUT',body:JSON.stringify({status:'DISABLED'})}).then(function(d){
+        if(d.code===200)loadPluginInstances();else alert(d.message||'操作失败');
+      });
+    }
+
+    // ===== 4.2 能力配置 =====
+    function loadCapabilities(){
+      api('/api/capability-policy/list').then(function(d){
+        if(d.code===200) renderCapTable(d.data.records||d.data||[]);
+      });
+    }
+    function renderCapTable(list){
+      var tb=document.getElementById('capTable');
+      if(!list.length){tb.innerHTML='<tr><td colspan="6" class="empty-state">暂无策略数据</td></tr>';return;}
+      tb.innerHTML=list.map(function(p){
+        var mods=[];
+        if(p.scaEnabled)mods.push('SCA');if(p.sastEnabled)mods.push('SAST');if(p.secretsEnabled)mods.push('Secrets');
+        if(p.baselineEnabled)mods.push('Baseline');if(p.aiVulnExplain)mods.push('AI解释');if(p.aiFixSuggest)mods.push('AI修复');
+        if(p.aiPatchGen)mods.push('AI Patch');if(p.gitCommitCheck)mods.push('Commit检查');if(p.highRiskBlock)mods.push('高危阻断');
+        if(p.autoUpload)mods.push('自动上送');if(p.codeSnippetUpload)mods.push('代码上传');if(p.desensitize)mods.push('脱敏');
+        return '<tr><td><b>'+esc(p.name)+'</b></td><td>'+esc(p.version||'-')+'</td><td>'+(p.projectNames?'<span style="font-size:13px;">'+esc(p.projectNames)+'</span>':'<span class="tag tag-default">未绑定</span>')+'</td><td><div style="display:flex;gap:4px;flex-wrap:wrap;">'+mods.map(function(m){return '<span class="tag tag-info" style="font-size:11px;">'+m+'</span>';}).join('')+'</div></td><td><span class="tag '+(p.status===1?'tag-success':'tag-default')+'">'+(p.status===1?'启用':'禁用')+'</span></td><td><div class="actions"><button class="btn btn-default btn-sm" onclick="editCapability('+p.id+')">编辑</button><button class="btn btn-default btn-sm" onclick="showBindProjectModal('+p.id+')">绑定项目</button><button class="btn btn-danger btn-sm" onclick="deleteCapability('+p.id+')">删除</button></div></td></tr>';
+      }).join('');
+    }
+    function showCapabilityModal(id){
+      currentEditId=id; currentModalType='capability';
+      document.getElementById('modalTitle').textContent=id?'编辑能力策略':'新建能力策略';
+      var body='<div class="form-group"><label>策略名称</label><input type="text" id="mCapName" placeholder="请输入策略名称"></div>'
+        +'<div class="form-group"><label>版本</label><input type="text" id="mCapVersion" placeholder="如 v1.0.0"></div>'
+        +'<div style="margin:16px 0 8px;font-weight:600;color:#1a1a2e;font-size:14px;border-bottom:1px solid #f0f0f0;padding-bottom:6px;">检测能力</div>'
+        +'<div class="form-group" style="display:flex;justify-content:space-between;align-items:center;"><span>SCA 开关</span><label class="toggle"><input type="checkbox" id="mCapSCA" checked><span class="slider"></span></label></div>'
+        +'<div class="form-group" style="display:flex;justify-content:space-between;align-items:center;"><span>SAST 开关</span><label class="toggle"><input type="checkbox" id="mCapSAST" checked><span class="slider"></span></label></div>'
+        +'<div class="form-group" style="display:flex;justify-content:space-between;align-items:center;"><span>Secrets 开关</span><label class="toggle"><input type="checkbox" id="mCapSecrets"><span class="slider"></span></label></div>'
+        +'<div class="form-group" style="display:flex;justify-content:space-between;align-items:center;"><span>Baseline 开关</span><label class="toggle"><input type="checkbox" id="mCapBaseline"><span class="slider"></span></label></div>'
+        +'<div style="margin:16px 0 8px;font-weight:600;color:#1a1a2e;font-size:14px;border-bottom:1px solid #f0f0f0;padding-bottom:6px;">AI能力</div>'
+        +'<div class="form-group" style="display:flex;justify-content:space-between;align-items:center;"><span>AI漏洞解释</span><label class="toggle"><input type="checkbox" id="mCapAIExplain" checked><span class="slider"></span></label></div>'
+        +'<div class="form-group" style="display:flex;justify-content:space-between;align-items:center;"><span>AI修复建议</span><label class="toggle"><input type="checkbox" id="mCapAIFix"><span class="slider"></span></label></div>'
+        +'<div class="form-group" style="display:flex;justify-content:space-between;align-items:center;"><span>AI Patch生成</span><label class="toggle"><input type="checkbox" id="mCapAIPatch"><span class="slider"></span></label></div>'
+        +'<div style="margin:16px 0 8px;font-weight:600;color:#1a1a2e;font-size:14px;border-bottom:1px solid #f0f0f0;padding-bottom:6px;">提交控制</div>'
+        +'<div class="form-group" style="display:flex;justify-content:space-between;align-items:center;"><span>Git Commit检查</span><label class="toggle"><input type="checkbox" id="mCapGitCheck" checked><span class="slider"></span></label></div>'
+        +'<div class="form-group" style="display:flex;justify-content:space-between;align-items:center;"><span>高危阻断提交</span><label class="toggle"><input type="checkbox" id="mCapHighBlock"><span class="slider"></span></label></div>'
+        +'<div style="margin:16px 0 8px;font-weight:600;color:#1a1a2e;font-size:14px;border-bottom:1px solid #f0f0f0;padding-bottom:6px;">数据策略</div>'
+        +'<div class="form-group" style="display:flex;justify-content:space-between;align-items:center;"><span>结果自动上送</span><label class="toggle"><input type="checkbox" id="mCapAutoUpload" checked><span class="slider"></span></label></div>'
+        +'<div class="form-group" style="display:flex;justify-content:space-between;align-items:center;"><span>代码片段上传</span><label class="toggle"><input type="checkbox" id="mCapCodeUpload"><span class="slider"></span></label></div>'
+        +'<div class="form-group" style="display:flex;justify-content:space-between;align-items:center;"><span>脱敏策略</span><label class="toggle"><input type="checkbox" id="mCapDesensitize" checked><span class="slider"></span></label></div>';
+      document.getElementById('modalBody').innerHTML=body;
+      if(id){
+        api('/api/capability-policy/'+id).then(function(d){
+          if(d.code===200){
+            var p=d.data;
+            document.getElementById('mCapName').value=p.name||'';
+            document.getElementById('mCapVersion').value=p.version||'';
+            document.getElementById('mCapSCA').checked=!!p.scaEnabled;
+            document.getElementById('mCapSAST').checked=!!p.sastEnabled;
+            document.getElementById('mCapSecrets').checked=!!p.secretsEnabled;
+            document.getElementById('mCapBaseline').checked=!!p.baselineEnabled;
+            document.getElementById('mCapAIExplain').checked=!!p.aiVulnExplain;
+            document.getElementById('mCapAIFix').checked=!!p.aiFixSuggest;
+            document.getElementById('mCapAIPatch').checked=!!p.aiPatchGen;
+            document.getElementById('mCapGitCheck').checked=!!p.gitCommitCheck;
+            document.getElementById('mCapHighBlock').checked=!!p.highRiskBlock;
+            document.getElementById('mCapAutoUpload').checked=!!p.autoUpload;
+            document.getElementById('mCapCodeUpload').checked=!!p.codeSnippetUpload;
+            document.getElementById('mCapDesensitize').checked=!!p.desensitize;
+          }
+        });
+      }
+      document.getElementById('modalOverlay').classList.remove('hidden');
+      modalCallback=saveCapability;
+    }
+    function editCapability(id){showCapabilityModal(id);}
+    function saveCapability(){
+      var body={
+        name:document.getElementById('mCapName').value,
+        version:document.getElementById('mCapVersion').value,
+        scaEnabled:document.getElementById('mCapSCA').checked?1:0,
+        sastEnabled:document.getElementById('mCapSAST').checked?1:0,
+        secretsEnabled:document.getElementById('mCapSecrets').checked?1:0,
+        baselineEnabled:document.getElementById('mCapBaseline').checked?1:0,
+        aiVulnExplain:document.getElementById('mCapAIExplain').checked?1:0,
+        aiFixSuggest:document.getElementById('mCapAIFix').checked?1:0,
+        aiPatchGen:document.getElementById('mCapAIPatch').checked?1:0,
+        gitCommitCheck:document.getElementById('mCapGitCheck').checked?1:0,
+        highRiskBlock:document.getElementById('mCapHighBlock').checked?1:0,
+        autoUpload:document.getElementById('mCapAutoUpload').checked?1:0,
+        codeSnippetUpload:document.getElementById('mCapCodeUpload').checked?1:0,
+        desensitize:document.getElementById('mCapDesensitize').checked?1:0
+      };
+      if(!body.name){alert('请输入策略名称');return;}
+      var m=currentEditId?'PUT':'POST', u=currentEditId?('/api/capability-policy/'+currentEditId):'/api/capability-policy';
+      api(u,{method:m,body:JSON.stringify(body)}).then(function(r){if(r.code===200){closeModal();loadCapabilities();}else alert(r.message||'保存失败');});
+    }
+    function deleteCapability(id){if(!confirm('确定要删除该策略吗？'))return;api('/api/capability-policy/'+id,{method:'DELETE'}).then(function(d){if(d.code===200)loadCapabilities();else alert(d.message||'删除失败');});}
+    function showBindProjectModal(id){
+      currentEditId=id; currentModalType='bindProject';
+      document.getElementById('modalTitle').textContent='绑定项目';
+      var body='<div id="bindProjectList" style="max-height:300px;overflow-y:auto;">加载中...</div>';
+      document.getElementById('modalBody').innerHTML=body;
+      api('/api/project/list').then(function(d){
+        if(d.code===200){
+          var list=d.data.records||[];
+          var html=list.map(function(p){return '<div style="padding:8px 0;border-bottom:1px solid #f5f5f5;"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" name="bindProj" value="'+p.id+'"> <span>'+esc(p.name)+'</span></label></div>';}).join('');
+          document.getElementById('bindProjectList').innerHTML=html||'<div class="empty-state">暂无项目</div>';
+        }
+      });
+      document.getElementById('modalConfirmBtn').classList.remove('hidden');
+      document.getElementById('modalOverlay').classList.remove('hidden');
+      modalCallback=function(){
+        var checked=document.querySelectorAll('input[name="bindProj"]:checked');
+        var ids=Array.from(checked).map(function(c){return parseInt(c.value);});
+        api('/api/capability-policy/'+currentEditId+'/bind-projects',{method:'PUT',body:JSON.stringify({projectIds:ids})}).then(function(d){
+          if(d.code===200){closeModal();loadCapabilities();}else alert(d.message||'绑定失败');
+        });
+      };
+    }
+
+    // ===== 4.3 Token管理 =====
+    function loadTokens(){
+      api('/api/plugin-token/list').then(function(d){
+        if(d.code===200) renderTokenTable(d.data.records||d.data||[]);
+      });
+    }
+    function renderTokenTable(list){
+      var tb=document.getElementById('tokenTable');
+      if(!list.length){tb.innerHTML='<tr><td colspan="7" class="empty-state">暂无Token数据</td></tr>';return;}
+      tb.innerHTML=list.map(function(t){
+        return '<tr><td><code style="background:#f5f5f5;padding:2px 6px;border-radius:3px;font-size:12px;font-family:monospace;">'+esc(t.token||t.tokenValue||'-')+'</code></td><td>'+esc(t.name||'-')+'</td><td>'+(t.pluginInstanceId?'<span class="tag tag-info">'+esc(t.pluginInstanceId)+'</span>':'<span style="color:#8c8c8c;font-size:12px;">未绑定</span>')+'</td><td><span class="tag '+(TOKEN_STATUS_TAG[t.status]||'tag-default')+'">'+(TOKEN_STATUS_MAP[t.status]||t.status||'-')+'</span></td><td style="font-size:12px;color:#8c8c8c;">'+esc(t.expireTime||'-')+'</td><td style="font-size:12px;color:#8c8c8c;">'+esc(t.createTime||'-')+'</td><td><div class="actions"><button class="btn btn-default btn-sm" onclick="copyToken(\''+esc(t.tokenValue||t.token||'')+'\')">复制</button>'+(t.status==='ACTIVE'?'<button class="btn btn-danger btn-sm" onclick="revokeToken('+t.id+')">吊销</button>':'<span style="color:#8c8c8c;font-size:12px;">-</span>')+'</div></td></tr>';
+      }).join('');
+    }
+    function showTokenGenModal(){
+      currentEditId=null; currentModalType='tokenGen';
+      document.getElementById('modalTitle').textContent='生成访问Token';
+      var body='<div class="form-group"><label>Token名称</label><input type="text" id="mTokenName" placeholder="如：支付团队Token"></div>'
+        +'<div class="form-group"><label>过期时间</label><select id="mTokenExpiry"><option value="30">30天</option><option value="90">90天</option><option value="180">180天</option><option value="365">1年</option><option value="-1">永不过期</option></select></div>'
+        +'<div id="tokenGenResult" style="display:none;margin-top:16px;padding:16px;background:#f6ffed;border:1px solid #b7eb8f;border-radius:8px;"><div style="font-weight:600;margin-bottom:8px;">Token已生成</div><div style="display:flex;gap:8px;align-items:center;"><code id="genTokenValue" style="flex:1;padding:8px;background:white;border:1px solid #d9d9d9;border-radius:4px;font-size:12px;word-break:break-all;"></code><button class="btn btn-primary btn-sm" onclick="copyToken(document.getElementById(\'genTokenValue\').textContent)">复制</button></div><div style="margin-top:8px;font-size:12px;color:#fa8c16;">⚠️ 请妥善保存，关闭后无法再次查看完整Token</div></div>';
+      document.getElementById('modalBody').innerHTML=body;
+      document.getElementById('modalOverlay').classList.remove('hidden');
+      modalCallback=generateToken;
+    }
+    function generateToken(){
+      var name=document.getElementById('mTokenName').value;
+      var expiry=document.getElementById('mTokenExpiry').value;
+      if(!name){alert('请输入Token名称');return;}
+      api('/api/plugin-token',{method:'POST',body:JSON.stringify({name:name,expireDays:parseInt(expiry)})}).then(function(d){
+        if(d.code===200){
+          var tokenVal=d.data.tokenValue||d.data.token||'';
+          document.getElementById('tokenGenResult').style.display='block';
+          document.getElementById('genTokenValue').textContent=tokenVal;
+          document.getElementById('mTokenName').disabled=true;
+          document.getElementById('mTokenExpiry').disabled=true;
+          modalCallback=function(){closeModal();loadTokens();};
+        } else alert(d.message||'生成失败');
+      });
+    }
+    function copyToken(val){
+      if(!val){alert('无Token值可复制');return;}
+      navigator.clipboard.writeText(val).then(function(){alert('Token已复制到剪贴板');}).catch(function(){alert('复制失败，请手动复制');});
+    }
+    function revokeToken(id){
+      if(!confirm('确定要吊销该Token吗？吊销后对应插件将无法连接平台。'))return;
+      api('/api/plugin-token/'+id+'/revoke',{method:'PUT'}).then(function(d){
+        if(d.code===200)loadTokens();else alert(d.message||'吊销失败');
+      });
+    }
 
     // ===== 启动 =====
     init();
