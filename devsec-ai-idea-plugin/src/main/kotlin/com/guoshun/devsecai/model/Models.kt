@@ -126,15 +126,15 @@ data class LocalFinding(
 )
 
 enum class FindingSeverity(val display: String, val color: String) {
-    CRITICAL("Critical", "#FF0000"),
-    HIGH("High", "#FF6600"),
-    MEDIUM("Medium", "#FFAA00"),
-    LOW("Low", "#66AAFF"),
-    INFO("Info", "#888888")
+    CRITICAL("严重", "#FF0000"),
+    HIGH("高危", "#FF6600"),
+    MEDIUM("中危", "#FFAA00"),
+    LOW("低危", "#66AAFF"),
+    INFO("提示", "#888888")
 }
 
 enum class FindingStatus(val display: String) {
-    OPEN("Open"),
-    FIXED("Fixed"),
-    IGNORED("Ignored")
+    OPEN("待处理"),
+    FIXED("已修复"),
+    IGNORED("已忽略")
 }
