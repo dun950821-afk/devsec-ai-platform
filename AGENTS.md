@@ -3,10 +3,11 @@
 ## 技术栈
 
 ### 前端
-- **框架**: 纯 HTML5 + CSS3 + Vanilla JavaScript (已修改)
+- **框架**: 纯 HTML5 + CSS3 + Vanilla JavaScript (ES6+)
 - **语言**: 原生 JavaScript ES6+
-- **样式**: 内联 CSS
-- **HTTP客户端**: Fetch API
+- **样式**: 内联 CSS（深色侧边栏 + 浅色内容区）
+- **HTTP客户端**: Fetch API + Bearer Token
+- **架构**: 单页应用(SPA)，条件渲染切换页面
 
 ### 后端
 - **框架**: Spring Boot 3.2

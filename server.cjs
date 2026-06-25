@@ -108,12 +108,20 @@ const server = http.createServer((req, res) => {
           res.end('Not Found');
           return;
         }
-        res.writeHead(200, { 'Content-Type': 'text/html' });
+        res.writeHead(200, {
+          'Content-Type': 'text/html',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        });
         res.end(data2);
       });
       return;
     }
-    res.writeHead(200, { 'Content-Type': MIME_TYPES[ext] || 'text/plain' });
+    const noCache = ext === '.html';
+    res.writeHead(200, {
+      'Content-Type': MIME_TYPES[ext] || 'text/plain',
+      ...(noCache ? { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' } : {})
+    });
     res.end(data);
   });
 });
