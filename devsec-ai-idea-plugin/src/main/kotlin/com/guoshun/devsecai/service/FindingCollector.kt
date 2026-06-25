@@ -7,12 +7,14 @@ import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import java.util.*
 import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.concurrent.ConcurrentHashMap
 
 @Service(Service.Level.PROJECT)
 class FindingCollector(private val project: Project) {
 
     private val logger = Logger.getInstance(FindingCollector::class.java)
     private val findings = ConcurrentLinkedQueue<LocalFinding>()
+    private val findingKeys = ConcurrentHashMap.newKeySet<String>()
     private val client = DevSecAIClient()
     private var uploadTimer: Timer? = null
 
@@ -35,7 +37,14 @@ class FindingCollector(private val project: Project) {
     }
 
     fun addFinding(finding: LocalFinding) {
-        findings.add(finding)
+        val key = finding.key()
+        if (findingKeys.add(key)) {
+            findings.add(finding)
+        }
+    }
+
+    fun addFindings(newFindings: Collection<LocalFinding>) {
+        newFindings.forEach { addFinding(it) }
     }
 
     fun getFindings(): List<LocalFinding> {
@@ -48,19 +57,26 @@ class FindingCollector(private val project: Project) {
 
     fun clearFindings() {
         findings.clear()
+        findingKeys.clear()
     }
 
-    fun flush() {
-        if (findings.isEmpty()) return
+    fun flush(): UploadResult {
+        if (findings.isEmpty()) return UploadResult(uploaded = 0, failed = 0, pending = 0)
 
         val batch = mutableListOf<LocalFinding>()
         while (batch.size < 10 && findings.isNotEmpty()) {
-            findings.poll()?.let { batch.add(it) }
+            findings.poll()?.let {
+                findingKeys.remove(it.key())
+                batch.add(it)
+            }
         }
 
-        if (batch.isEmpty()) return
+        if (batch.isEmpty()) return UploadResult(uploaded = 0, failed = 0, pending = findings.size)
 
         // Group by module and upload
+        var uploaded = 0
+        var failed = 0
+        val failureReasons = mutableListOf<String>()
         val grouped = batch.groupBy { it.module }
         for ((module, items) in grouped) {
             val findingItems = items.map { local ->
@@ -82,13 +98,28 @@ class FindingCollector(private val project: Project) {
                     owasp = local.owasp
                 )
             }
-            val success = client.uploadFindings(module, findingItems)
-            if (success) {
+            val upload = client.uploadFindings(module, findingItems)
+            if (upload.successful) {
                 logger.info("Uploaded ${findingItems.size} findings for module $module")
+                uploaded += findingItems.size
             } else {
-                logger.warn("Failed to upload findings for module $module, re-queuing")
-                findings.addAll(items)
+                val reason = upload.message.ifBlank { "未知错误" }
+                logger.warn("Failed to upload findings for module $module, re-queuing: $reason")
+                addFindings(items)
+                failed += findingItems.size
+                failureReasons.add("$module：$reason")
             }
         }
+        return UploadResult(uploaded = uploaded, failed = failed, pending = findings.size, failureReasons = failureReasons)
     }
+
+    data class UploadResult(
+        val uploaded: Int,
+        val failed: Int,
+        val pending: Int,
+        val failureReasons: List<String> = emptyList()
+    )
+
+    private fun LocalFinding.key(): String = listOf(ruleId, module, severity, filePath, startLine, endLine, componentName ?: "")
+        .joinToString("|")
 }
