@@ -104,7 +104,15 @@ data class FindingItem(
     val recommendation: String? = null,
     val cwe: String? = null,
     val owasp: String? = null
-)
+) {
+    fun toLocalFinding(module: String = "SAST"): LocalFinding = LocalFinding(
+        ruleId = ruleId, severity = severity, title = title, description = description,
+        filePath = filePath, startLine = startLine, endLine = endLine, module = module,
+        componentName = componentName, currentVersion = currentVersion, fixedVersion = fixedVersion,
+        vulnerabilityId = vulnerabilityId, confidence = confidence, recommendation = recommendation,
+        cwe = cwe, owasp = owasp
+    )
+}
 
 data class LocalFinding(
     val ruleId: String,
@@ -123,7 +131,15 @@ data class LocalFinding(
     val recommendation: String? = null,
     val cwe: String? = null,
     val owasp: String? = null
-)
+) {
+    fun toFindingItem(): FindingItem = FindingItem(
+        ruleId = ruleId, severity = severity, title = title, description = description,
+        filePath = filePath, startLine = startLine, endLine = endLine,
+        componentName = componentName, currentVersion = currentVersion, fixedVersion = fixedVersion,
+        vulnerabilityId = vulnerabilityId, confidence = confidence, recommendation = recommendation,
+        cwe = cwe, owasp = owasp
+    )
+}
 
 enum class FindingSeverity(val display: String, val color: String) {
     CRITICAL("严重", "#FF0000"),

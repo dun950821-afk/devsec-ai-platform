@@ -30,7 +30,7 @@ class SecurityScanService(private val project: Project) {
             findings.addAll(scanFile(file))
         }
 
-        collector.addFindings(findings)
+        collector.addLocalFindings(findings)
         return ScanSummary(filesScanned = files.size, findingsFound = findings.size)
     }
 
@@ -40,7 +40,7 @@ class SecurityScanService(private val project: Project) {
             collector.clearFindings()
         }
         val findings = files.flatMap { scanFile(it) }
-        collector.addFindings(findings)
+        collector.addLocalFindings(findings)
         return ScanSummary(filesScanned = files.size, findingsFound = findings.size)
     }
 

@@ -4,167 +4,227 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.guoshun.devsecai.config.DevSecAISettings
 import com.guoshun.devsecai.model.*
-import java.io.BufferedReader
-import java.io.InputStream
-import java.io.InputStreamReader
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.diagnostic.Logger
+import com.intellij.openapi.project.Project
 import java.io.OutputStreamWriter
 import java.net.HttpURLConnection
 import java.net.URL
 
-class DevSecAIClient {
+data class ApiResult(val successful: Boolean, val message: String, val data: String = "")
 
-    private val gson = Gson()
+class DevSecAIClient(private val project: Project) {
 
-    private fun getBaseUrl(): String {
-        val url = DevSecAISettings.getInstance().serverUrl
-        return if (url.endsWith("/")) url.dropLast(1) else url
+    companion object {
+        private val LOG = Logger.getInstance(DevSecAIClient::class.java)
+        private val gson = Gson()
     }
 
-    private fun getPluginId(): String {
-        return DevSecAISettings.getInstance().pluginId
+    private fun getSettings(): DevSecAISettings {
+        return DevSecAISettings.getInstance()
+    }
+
+    private fun getBaseUrl(): String {
+        return getSettings().serverUrl.trimEnd('/')
     }
 
     private fun getAccessToken(): String {
-        return DevSecAISettings.getInstance().accessToken
+        return getSettings().accessToken
     }
 
-    fun handshake(
-        ideName: String,
-        ideVersion: String,
-        machineId: String,
-        developer: String
-    ): HandshakeResponse? {
+    private fun getPluginId(): String {
+        return getSettings().pluginId
+    }
+
+    /**
+     * Create HttpURLConnection with common headers including accessToken
+     */
+    private fun createConnection(url: URL, method: String): HttpURLConnection {
+        val conn = url.openConnection() as HttpURLConnection
+        conn.requestMethod = method
+        conn.connectTimeout = 10000
+        conn.readTimeout = 15000
+        conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
+        conn.setRequestProperty("Accept", "application/json")
+
+        // Send accessToken header for authentication
+        val token = getAccessToken()
+        if (token.isNotEmpty()) {
+            conn.setRequestProperty("X-Access-Token", token)
+        }
+
+        return conn
+    }
+
+    /**
+     * Handshake with the platform server
+     */
+    fun handshake(): HandshakeResult {
+        val settings = getSettings()
         val url = URL("${getBaseUrl()}/api/plugin-instance/handshake")
-        val request = HandshakeRequest(
-            pluginId = getPluginId(),
-            pluginVersion = "1.0.0",
-            ideName = ideName,
-            ideVersion = ideVersion,
-            machineId = machineId,
-            developer = developer,
-            accessToken = getAccessToken()
+
+        val ideVersion = ApplicationManager.getApplication().let { app ->
+            com.intellij.openapi.util.BuildNumber.fromString(
+                app.getVersion() ?: "2026.1"
+            )?.asStringWithoutProductCode() ?: "2026.1"
+        }
+
+        val body = mapOf(
+            "pluginId" to getPluginId(),
+            "pluginVersion" to "1.0.0",
+            "ideName" to "IDEA",
+            "ideVersion" to ideVersion,
+            "machineId" to getMachineId(),
+            "developer" to System.getProperty("user.name", "unknown"),
+            "accessToken" to getAccessToken()
         )
-        return post(url, request, HandshakeResponse::class.java)
+
+        return try {
+            val conn = createConnection(url, "POST")
+            conn.doOutput = true
+            OutputStreamWriter(conn.outputStream, "UTF-8").use { writer ->
+                writer.write(gson.toJson(body))
+                writer.flush()
+            }
+
+            val responseCode = conn.responseCode
+            if (responseCode == 200) {
+                val response = conn.inputStream.bufferedReader().use { it.readText() }
+                LOG.info("Handshake successful: $response")
+                val resultType = object : TypeToken<Map<String, Any>>() {}.type
+                val result = gson.fromJson<Map<String, Any>>(response, resultType)
+                val data = result["data"] as? Map<String, Any>
+                HandshakeResult(
+                    successful = true,
+                    message = "Handshake successful",
+                    projectId = data?.get("projectId") as? String ?: "",
+                    projectName = data?.get("projectName") as? String ?: "",
+                    policyId = data?.get("policyId") as? String ?: "",
+                    enabledModules = (data?.get("enabledModules") as? List<String>) ?: emptyList()
+                )
+            } else {
+                val errorBody = try { conn.errorStream?.bufferedReader()?.use { it.readText() } } catch (_: Exception) { "" }
+                LOG.warn("Handshake failed: HTTP $responseCode - $errorBody")
+                HandshakeResult(
+                    successful = false,
+                    message = "HTTP $responseCode: ${errorBody.take(200)}"
+                )
+            }
+        } catch (e: Exception) {
+            LOG.warn("Handshake exception", e)
+            HandshakeResult(successful = false, message = "Connection failed: ${e.message}")
+        }
     }
 
-    fun heartbeat(status: String, activeModules: List<String>?): Boolean {
+    /**
+     * Send heartbeat to the platform server
+     */
+    fun heartbeat(): ApiResult {
         val url = URL("${getBaseUrl()}/api/plugin-instance/heartbeat")
-        val request = HeartbeatRequest(
-            pluginId = getPluginId(),
-            status = status,
-            activeModules = activeModules
+        val body = mapOf(
+            "pluginId" to getPluginId(),
+            "status" to "ONLINE"
         )
-        return postWithoutResponse(url, request).successful
+        return post(url, body)
     }
 
-    fun fetchPolicy(): PolicyData? {
+    /**
+     * Fetch policy configuration from the platform server
+     */
+    fun fetchPolicy(): PolicyResult {
         val url = URL("${getBaseUrl()}/api/plugin-instance/policy?pluginId=${getPluginId()}")
-        val response = get(url, PolicyResponse::class.java)
-        return response?.data
+
+        return try {
+            val conn = createConnection(url, "GET")
+            val responseCode = conn.responseCode
+            if (responseCode == 200) {
+                val response = conn.inputStream.bufferedReader().use { it.readText() }
+                val resultType = object : TypeToken<Map<String, Any>>() {}.type
+                val result = gson.fromJson<Map<String, Any>>(response, resultType)
+                val data = result["data"] as? Map<String, Any> ?: emptyMap()
+                LOG.info("Policy fetched successfully")
+                PolicyResult(successful = true, message = "OK", policyData = data)
+            } else {
+                val errorBody = try { conn.errorStream?.bufferedReader()?.use { it.readText() } } catch (_: Exception) { "" }
+                LOG.warn("Policy fetch failed: HTTP $responseCode")
+                PolicyResult(successful = false, message = "HTTP $responseCode: $errorBody")
+            }
+        } catch (e: Exception) {
+            LOG.warn("Policy fetch exception", e)
+            PolicyResult(successful = false, message = "Connection failed: ${e.message}")
+        }
     }
 
+    /**
+     * Upload findings to the platform server
+     */
     fun uploadFindings(module: String, findings: List<FindingItem>): ApiResult {
         val url = URL("${getBaseUrl()}/api/finding/upload")
-        val request = FindingUploadRequest(
-            pluginId = getPluginId(),
-            module = module,
-            findings = findings
+        val body = mapOf(
+            "pluginId" to getPluginId(),
+            "module" to module,
+            "findings" to findings
         )
-        return postWithoutResponse(url, request)
+        LOG.info("Uploading ${findings.size} findings for module $module to $url")
+        val result = post(url, body)
+        LOG.info("Upload result: successful=${result.successful}, message=${result.message}")
+        return result
     }
 
-    private fun <T> post(url: URL, body: Any, responseClass: Class<T>): T? {
-        var connection: HttpURLConnection? = null
-        try {
-            connection = url.openConnection() as HttpURLConnection
-            connection.requestMethod = "POST"
-            connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
-            connection.setRequestProperty("Accept", "application/json")
-            connection.doOutput = true
-            connection.connectTimeout = 10000
-            connection.readTimeout = 15000
-
-            val writer = OutputStreamWriter(connection.outputStream, "UTF-8")
-            writer.write(gson.toJson(body))
-            writer.flush()
-            writer.close()
-
-            val responseCode = connection.responseCode
-            if (responseCode in 200..299) {
-                val reader = BufferedReader(InputStreamReader(connection.inputStream, "UTF-8"))
-                val response = reader.readText()
-                reader.close()
-                return gson.fromJson(response, responseClass)
+    private fun post(url: URL, body: Any): ApiResult {
+        return try {
+            val conn = createConnection(url, "POST")
+            conn.doOutput = true
+            OutputStreamWriter(conn.outputStream, "UTF-8").use { writer ->
+                writer.write(gson.toJson(body))
+                writer.flush()
             }
-            return null
-        } catch (e: Exception) {
-            return null
-        } finally {
-            connection?.disconnect()
-        }
-    }
 
-    private fun postWithoutResponse(url: URL, body: Any): ApiResult {
-        var connection: HttpURLConnection? = null
-        try {
-            connection = url.openConnection() as HttpURLConnection
-            connection.requestMethod = "POST"
-            connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
-            connection.doOutput = true
-            connection.connectTimeout = 10000
-            connection.readTimeout = 15000
-
-            val writer = OutputStreamWriter(connection.outputStream, "UTF-8")
-            writer.write(gson.toJson(body))
-            writer.flush()
-            writer.close()
-
-            val responseCode = connection.responseCode
-            val responseBody = readBody(if (responseCode in 200..299) connection.inputStream else connection.errorStream)
-            return if (responseCode in 200..299) {
-                ApiResult(successful = true, httpCode = responseCode, message = responseBody.ifBlank { "请求成功" })
+            val responseCode = conn.responseCode
+            if (responseCode in 200..299) {
+                val response = conn.inputStream.bufferedReader().use { it.readText() }
+                ApiResult(successful = true, message = "OK", data = response)
             } else {
-                ApiResult(successful = false, httpCode = responseCode, message = responseBody.ifBlank { "平台返回 HTTP $responseCode" })
+                val errorBody = try { conn.errorStream?.bufferedReader()?.use { it.readText() } } catch (_: Exception) { "" }
+                LOG.warn("POST $url failed: HTTP $responseCode - $errorBody")
+                ApiResult(successful = false, message = "HTTP $responseCode: ${errorBody.take(200)}")
             }
         } catch (e: Exception) {
-            return ApiResult(successful = false, message = e.message ?: e.javaClass.simpleName)
-        } finally {
-            connection?.disconnect()
+            LOG.warn("POST $url exception", e)
+            ApiResult(successful = false, message = "Connection failed: ${e.message}")
         }
     }
 
-    private fun <T> get(url: URL, responseClass: Class<T>): T? {
-        var connection: HttpURLConnection? = null
-        try {
-            connection = url.openConnection() as HttpURLConnection
-            connection.requestMethod = "GET"
-            connection.setRequestProperty("Accept", "application/json")
-            connection.connectTimeout = 10000
-            connection.readTimeout = 15000
-
-            val responseCode = connection.responseCode
-            if (responseCode in 200..299) {
-                val reader = BufferedReader(InputStreamReader(connection.inputStream, "UTF-8"))
-                val response = reader.readText()
-                reader.close()
-                return gson.fromJson(response, responseClass)
+    private fun getMachineId(): String {
+        return try {
+            val prefs = com.intellij.openapi.util.JDOMExternalizer.getInstance()
+            val id = prefs?.getValue("DevSecAI.MachineId")
+            if (id.isNullOrEmpty()) {
+                val newId = java.util.UUID.randomUUID().toString().replace("-", "").take(16)
+                prefs?.setValue("DevSecAI.MachineId", newId)
+                newId
+            } else {
+                id
             }
-            return null
         } catch (e: Exception) {
-            return null
-        } finally {
-            connection?.disconnect()
+            val fallback = java.util.UUID.randomUUID().toString().replace("-", "").take(16)
+            LOG.warn("Failed to get machine ID, using fallback", e)
+            fallback
         }
     }
-
-    private fun readBody(stream: InputStream?): String {
-        if (stream == null) return ""
-        return BufferedReader(InputStreamReader(stream, "UTF-8")).use { it.readText() }
-    }
-
-    data class ApiResult(
-        val successful: Boolean,
-        val httpCode: Int? = null,
-        val message: String = ""
-    )
 }
+
+data class HandshakeResult(
+    val successful: Boolean,
+    val message: String,
+    val projectId: String = "",
+    val projectName: String = "",
+    val policyId: String = "",
+    val enabledModules: List<String> = emptyList()
+)
+
+data class PolicyResult(
+    val successful: Boolean,
+    val message: String,
+    val policyData: Map<String, Any> = emptyMap()
+)

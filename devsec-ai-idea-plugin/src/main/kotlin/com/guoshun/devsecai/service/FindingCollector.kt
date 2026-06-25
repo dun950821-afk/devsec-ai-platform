@@ -5,121 +5,128 @@ import com.guoshun.devsecai.model.LocalFinding
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
-import java.util.*
 import java.util.concurrent.ConcurrentLinkedQueue
-import java.util.concurrent.ConcurrentHashMap
+import java.util.*
 
 @Service(Service.Level.PROJECT)
 class FindingCollector(private val project: Project) {
 
-    private val logger = Logger.getInstance(FindingCollector::class.java)
-    private val findings = ConcurrentLinkedQueue<LocalFinding>()
-    private val findingKeys = ConcurrentHashMap.newKeySet<String>()
-    private val client = DevSecAIClient()
-    private var uploadTimer: Timer? = null
-
-    fun start() {
-        stop()
-        uploadTimer = Timer("DevSecAI-FindingUpload", true)
-        uploadTimer?.scheduleAtFixedRate(object : TimerTask() {
-            override fun run() {
-                flush()
-            }
-        }, 30 * 1000L, 30 * 1000L) // every 30 seconds
-        logger.info("Finding collector started")
+    companion object {
+        private val LOG = Logger.getInstance(FindingCollector::class.java)
+        private const val BATCH_SIZE = 10
+        private const val FLUSH_INTERVAL_MS = 30_000L
     }
 
-    fun stop() {
-        flush()
-        uploadTimer?.cancel()
-        uploadTimer = null
-        logger.info("Finding collector stopped")
+    private val findings = ConcurrentLinkedQueue<FindingItem>()
+    private var flushTimer: Timer? = null
+    private var autoUploadEnabled = true
+
+    fun startAutoUpload() {
+        stopAutoUpload()
+        autoUploadEnabled = true
+        flushTimer = Timer("DevSecAI-FindingFlush", true)
+        flushTimer?.scheduleAtFixedRate(object : TimerTask() {
+            override fun run() {
+                try {
+                    if (project.isDisposed) {
+                        stopAutoUpload()
+                        return
+                    }
+                    flushIfNeeded()
+                } catch (e: Exception) {
+                    LOG.warn("Auto-flush error: ${e.message}")
+                }
+            }
+        }, FLUSH_INTERVAL_MS, FLUSH_INTERVAL_MS)
+        LOG.info("Finding auto-upload started")
+    }
+
+    fun stopAutoUpload() {
+        autoUploadEnabled = false
+        flushTimer?.cancel()
+        flushTimer = null
+        LOG.info("Finding auto-upload stopped")
+    }
+
+    fun addFinding(finding: FindingItem) {
+        findings.add(finding)
+        LOG.info("Finding added: [${finding.severity}] ${finding.title} at ${finding.filePath}:${finding.startLine}")
+        if (autoUploadEnabled && findings.size >= BATCH_SIZE) {
+            flushIfNeeded()
+        }
     }
 
     fun addFinding(finding: LocalFinding) {
-        val key = finding.key()
-        if (findingKeys.add(key)) {
-            findings.add(finding)
+        addFinding(finding.toFindingItem())
+    }
+
+    fun addFindings(newFindings: List<FindingItem>) {
+        findings.addAll(newFindings)
+        LOG.info("Added ${newFindings.size} findings, total: ${findings.size}")
+        if (autoUploadEnabled && findings.size >= BATCH_SIZE) {
+            flushIfNeeded()
         }
     }
 
-    fun addFindings(newFindings: Collection<LocalFinding>) {
-        newFindings.forEach { addFinding(it) }
+    fun addLocalFindings(newFindings: List<LocalFinding>) {
+        val items = newFindings.map { it.toFindingItem() }
+        addFindings(items)
     }
 
-    fun getFindings(): List<LocalFinding> {
+    fun getLocalFindings(): List<LocalFinding> {
+        return findings.map { it.toLocalFinding() }
+    }
+
+    fun getFindings(): List<FindingItem> {
         return findings.toList()
     }
 
-    fun getPendingCount(): Int {
-        return findings.size
-    }
+    fun getPendingCount(): Int = findings.size
 
     fun clearFindings() {
         findings.clear()
-        findingKeys.clear()
+        LOG.info("All local findings cleared")
     }
 
-    fun flush(): UploadResult {
-        if (findings.isEmpty()) return UploadResult(uploaded = 0, failed = 0, pending = 0)
-
-        val batch = mutableListOf<LocalFinding>()
-        while (batch.size < 10 && findings.isNotEmpty()) {
-            findings.poll()?.let {
-                findingKeys.remove(it.key())
-                batch.add(it)
-            }
+    fun flush(): ApiResult {
+        val pending = mutableListOf<FindingItem>()
+        while (findings.isNotEmpty()) {
+            findings.poll()?.let { pending.add(it) }
         }
 
-        if (batch.isEmpty()) return UploadResult(uploaded = 0, failed = 0, pending = findings.size)
+        if (pending.isEmpty()) {
+            return ApiResult(successful = true, message = "No findings to upload")
+        }
 
-        // Group by module and upload
-        var uploaded = 0
-        var failed = 0
-        val failureReasons = mutableListOf<String>()
-        val grouped = batch.groupBy { it.module }
-        for ((module, items) in grouped) {
-            val findingItems = items.map { local ->
-                FindingItem(
-                    ruleId = local.ruleId,
-                    severity = local.severity,
-                    title = local.title,
-                    description = local.description,
-                    filePath = local.filePath,
-                    startLine = local.startLine,
-                    endLine = local.endLine,
-                    componentName = local.componentName,
-                    currentVersion = local.currentVersion,
-                    fixedVersion = local.fixedVersion,
-                    vulnerabilityId = local.vulnerabilityId,
-                    confidence = local.confidence,
-                    recommendation = local.recommendation,
-                    cwe = local.cwe,
-                    owasp = local.owasp
-                )
-            }
-            val upload = client.uploadFindings(module, findingItems)
-            if (upload.successful) {
-                logger.info("Uploaded ${findingItems.size} findings for module $module")
-                uploaded += findingItems.size
+        val client = DevSecAIClient(project)
+        val byModule = pending.groupBy { it.module }
+
+        var allSuccess = true
+        val errors = mutableListOf<String>()
+
+        for ((module, moduleFindings) in byModule) {
+            val result = client.uploadFindings(module, moduleFindings)
+            if (!result.successful) {
+                allSuccess = false
+                errors.add("$module: ${result.message}")
+                // Re-add failed findings
+                findings.addAll(moduleFindings)
+                LOG.warn("Upload failed for module $module: ${result.message}")
             } else {
-                val reason = upload.message.ifBlank { "未知错误" }
-                logger.warn("Failed to upload findings for module $module, re-queuing: $reason")
-                addFindings(items)
-                failed += findingItems.size
-                failureReasons.add("$module：$reason")
+                LOG.info("Uploaded ${moduleFindings.size} findings for module $module")
             }
         }
-        return UploadResult(uploaded = uploaded, failed = failed, pending = findings.size, failureReasons = failureReasons)
+
+        return if (allSuccess) {
+            ApiResult(successful = true, message = "Uploaded ${pending.size} findings")
+        } else {
+            ApiResult(successful = false, message = "Some uploads failed: ${errors.joinToString("; ")}")
+        }
     }
 
-    data class UploadResult(
-        val uploaded: Int,
-        val failed: Int,
-        val pending: Int,
-        val failureReasons: List<String> = emptyList()
-    )
-
-    private fun LocalFinding.key(): String = listOf(ruleId, module, severity, filePath, startLine, endLine, componentName ?: "")
-        .joinToString("|")
+    private fun flushIfNeeded() {
+        if (findings.isNotEmpty()) {
+            flush()
+        }
+    }
 }
