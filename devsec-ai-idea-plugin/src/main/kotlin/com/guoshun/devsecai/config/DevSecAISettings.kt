@@ -28,7 +28,12 @@ class DevSecAISettings : PersistentStateComponent<DevSecAISettings.State> {
         var blockCritical: Boolean = true,
         var blockHigh: Boolean = true,
         var blockMedium: Boolean = false,
-        var blockLow: Boolean = false
+        var blockLow: Boolean = false,
+        var criticalHighlightLevel: String = "ERROR",
+        var highHighlightLevel: String = "ERROR",
+        var mediumHighlightLevel: String = "WARNING",
+        var lowHighlightLevel: String = "WARNING",
+        var infoHighlightLevel: String = "WARNING"
     )
 
     override fun getState(): State = state
@@ -96,6 +101,26 @@ class DevSecAISettings : PersistentStateComponent<DevSecAISettings.State> {
     var blockLow: Boolean
         get() = state.blockLow
         set(value) { state.blockLow = value }
+
+    var criticalHighlightLevel: String
+        get() = state.criticalHighlightLevel
+        set(value) { state.criticalHighlightLevel = value }
+
+    var highHighlightLevel: String
+        get() = state.highHighlightLevel
+        set(value) { state.highHighlightLevel = value }
+
+    var mediumHighlightLevel: String
+        get() = state.mediumHighlightLevel
+        set(value) { state.mediumHighlightLevel = value }
+
+    var lowHighlightLevel: String
+        get() = state.lowHighlightLevel
+        set(value) { state.lowHighlightLevel = value }
+
+    var infoHighlightLevel: String
+        get() = state.infoHighlightLevel
+        set(value) { state.infoHighlightLevel = value }
 
     companion object {
         fun getInstance(): DevSecAISettings {
