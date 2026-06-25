@@ -21,8 +21,8 @@ com/guoshun/devsecai/service/DashboardService.class
 com/guoshun/devsecai/mapper/ScanRuleMapper.class
 com/guoshun/devsecai/entity/Skill.class
 com/guoshun/devsecai/entity/User.class
-com/guoshun/devsecai/controller/ResultController.class
 com/guoshun/devsecai/mapper/AuditLogMapper.class
+com/guoshun/devsecai/controller/ResultController.class
 com/guoshun/devsecai/mapper/ScanPolicyMapper.class
 com/guoshun/devsecai/config/SecurityConfig.class
 com/guoshun/devsecai/service/AuthService.class
@@ -32,15 +32,15 @@ com/guoshun/devsecai/config/DataInitConfig.class
 com/guoshun/devsecai/mapper/PluginMapper.class
 com/guoshun/devsecai/service/PolicyService.class
 com/guoshun/devsecai/dto/LoginVO.class
-com/guoshun/devsecai/service/AuditLogService.class
 com/guoshun/devsecai/controller/MainController.class
+com/guoshun/devsecai/service/AuditLogService.class
 com/guoshun/devsecai/controller/PolicyController.class
 com/guoshun/devsecai/dto/DashboardVO.class
 com/guoshun/devsecai/dto/LoginDTO.class
 com/guoshun/devsecai/controller/AuthController.class
 com/guoshun/devsecai/config/MyMetaObjectHandler.class
-com/guoshun/devsecai/entity/ScanRule.class
 com/guoshun/devsecai/entity/ScanPolicy.class
+com/guoshun/devsecai/entity/ScanRule.class
 com/guoshun/devsecai/controller/ProjectController.class
 com/guoshun/devsecai/config/DatabaseInitRunner.class
 com/guoshun/devsecai/service/ResultService.class

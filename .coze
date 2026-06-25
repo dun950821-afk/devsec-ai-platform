@@ -1,12 +1,12 @@
 [project]
 requires = ["nodejs-24"]
 template = "native-static"
-version = "0.0.29"
+version = "0.0.30"
 
 [dev]
-build = ["echo", "Static site, no build needed"]
+build = ["sh", "-c", "apt-get install -y openjdk-17-jdk-headless maven > /dev/null 2>&1; export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64; export PATH=$JAVA_HOME/bin:$PATH; cd /workspace/projects/devsec-ai-server && mvn spring-boot:run -Dspring-boot.run.profiles=dev &"]
 run = ["node", "server.cjs"]
 
 [deploy]
-build = ["echo", "Static site, no build needed"]
+build = ["sh", "-c", "apt-get install -y openjdk-17-jdk-headless maven > /dev/null 2>&1; export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64; export PATH=$JAVA_HOME/bin:$PATH; cd /workspace/projects/devsec-ai-server && mvn spring-boot:run -Dspring-boot.run.profiles=dev &"]
 run = ["node", "server.cjs"]
