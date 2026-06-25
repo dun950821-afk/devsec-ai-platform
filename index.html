@@ -289,7 +289,7 @@
                     <div style="display:flex;align-items:center;gap:8px;"><span style="width:10px;height:10px;border-radius:50%;background:#8c8c8c;display:inline-block;"></span><span style="font-size:13px;color:#595959;">离线 <b id="donutOffline">0</b></span></div>
                     <div style="display:flex;align-items:center;gap:8px;"><span style="width:10px;height:10px;border-radius:50%;background:#ff4d4f;display:inline-block;"></span><span style="font-size:13px;color:#595959;">异常 <b id="donutError">0</b></span></div>
                     <div style="display:flex;align-items:center;gap:8px;"><span style="width:10px;height:10px;border-radius:50%;background:#d9d9d9;display:inline-block;"></span><span style="font-size:13px;color:#595959;">已禁用 <b id="donutDisabled">0</b></span></div>
-                    <div style="display:flex;align-items:center;gap:8px;"><span style="width:10px;height:10px;border-radius:50%;background:#faad14;display:inline-block;"></span><span style="font-size:13px;color:#595959;">UPGRADE <b id="donutUpgrade">0</b></span></div>
+                    <div style="display:flex;align-items:center;gap:8px;"><span style="width:10px;height:10px;border-radius:50%;background:#faad14;display:inline-block;"></span><span style="font-size:13px;color:#595959;">需升级 <b id="donutUpgrade">0</b></span></div>
                   </div>
                 </div>
               </div>
@@ -453,8 +453,8 @@
     // ===== 常量映射 =====
     var CATEGORY_MAP = { code_scanner:'代码扫描', dependency_check:'依赖检查', secret_detection:'密钥检测', baseline_check:'基线检查', ai_analysis:'AI分析' };
     var CATEGORY_TAG = { code_scanner:'tag-info', dependency_check:'tag-success', secret_detection:'tag-warning', baseline_check:'tag-default', ai_analysis:'tag-danger' };
-    var SEVERITY_MAP = { critical:'严重', high:'高危', medium:'中危', low:'低危', info:'提示' };
-    var SEVERITY_TAG = { critical:'tag-critical', high:'tag-high', medium:'tag-medium', low:'tag-low', info:'tag-info-level' };
+    var SEVERITY_MAP = { critical:'严重', high:'高危', medium:'中危', low:'低危', info:'提示', CRITICAL:'严重', HIGH:'高危', MEDIUM:'中危', LOW:'低危', INFO:'提示' };
+    var SEVERITY_TAG = { critical:'tag-critical', high:'tag-high', medium:'tag-medium', low:'tag-low', info:'tag-info-level', CRITICAL:'tag-critical', HIGH:'tag-high', MEDIUM:'tag-medium', LOW:'tag-low', INFO:'tag-info-level' };
     var SCAN_TYPE_MAP = { 0:'手动触发', 1:'实时扫描', 2:'定时扫描' };
     var SCAN_TYPE_TAG = { 0:'tag-default', 1:'tag-info', 2:'tag-warning' };
     var RESULT_STATUS_MAP = { 0:'待确认', 1:'已确认', 2:'已修复', 3:'已忽略', 4:'误报' };
@@ -679,7 +679,7 @@
       var tb=document.getElementById('piTable');
       if(!list.length){tb.innerHTML='<tr><td colspan="9" class="empty-state">暂无插件实例</td></tr>';return;}
       tb.innerHTML=list.map(function(p){
-        return '<tr><td><code style="background:#f5f5f5;padding:2px 6px;border-radius:3px;font-size:12px;">'+esc(p.instanceId||p.id)+'</code></td><td>'+esc(p.developer||'-')+'</td><td>'+esc(p.projectName||'-')+'</td><td>'+esc(p.ideType||'-')+' '+esc(p.ideVersion||'')+'</td><td>'+esc(p.pluginVersion||'-')+'</td><td>'+(p.policyName?'<span class="tag tag-info">'+esc(p.policyName)+'</span>':'<span class="tag tag-default">未绑定</span>')+'</td><td style="font-size:12px;color:#8c8c8c;">'+esc(p.lastHeartbeat||'-')+'</td><td><span class="tag '+(PI_STATUS_TAG[p.status]||'tag-default')+'">'+(PI_STATUS_MAP[p.status]||p.status||'-')+'</span></td><td><div class="actions"><button class="btn btn-default btn-sm" onclick="viewPIDetail('+p.id+')">详情</button><button class="btn btn-default btn-sm" onclick="showPolicyDispatchModal('+p.id+')">下发策略</button>'+(p.status!=='DISABLED'?'<button class="btn btn-danger btn-sm" onclick="disablePluginInstance('+p.id+')">禁用</button>':'')+'</div></td></tr>';
+        return '<tr><td><code style="background:#f5f5f5;padding:2px 6px;border-radius:3px;font-size:12px;">'+esc(p.pluginId||p.id)+'</code></td><td>'+esc(p.developer||'-')+'</td><td>'+esc(p.projectName||'-')+'</td><td>'+esc(p.ideName||'-')+' '+esc(p.ideVersion||'')+'</td><td>'+esc(p.pluginVersion||'-')+'</td><td>'+(p.policyName?'<span class="tag tag-info">'+esc(p.policyName)+'</span>':'<span class="tag tag-default">未绑定</span>')+'</td><td style="font-size:12px;color:#8c8c8c;">'+esc(p.lastHeartbeat||'-')+'</td><td><span class="tag '+(PI_STATUS_TAG[p.status]||'tag-default')+'">'+(PI_STATUS_MAP[p.status]||p.status||'-')+'</span></td><td><div class="actions"><button class="btn btn-default btn-sm" onclick="viewPIDetail('+p.id+')">详情</button><button class="btn btn-default btn-sm" onclick="showPolicyDispatchModal('+p.id+')">下发策略</button>'+(p.status!=='DISABLED'?'<button class="btn btn-danger btn-sm" onclick="disablePluginInstance('+p.id+')">禁用</button>':'')+'</div></td></tr>';
       }).join('');
     }
     function refreshHeartbeats(){loadPluginInstances();}
@@ -690,16 +690,16 @@
           currentModalType='view';
           document.getElementById('modalTitle').textContent='插件实例详情';
           var modules = [];
-          if(p.scaEnabled)modules.push('<span class="tag tag-info">SCA</span>');
-          if(p.sastEnabled)modules.push('<span class="tag tag-success">SAST</span>');
-          if(p.secretsEnabled)modules.push('<span class="tag tag-warning">密钥检测</span>');
-          if(p.baselineEnabled)modules.push('<span class="tag tag-default">基线检查</span>');
-          if(p.aiEnabled)modules.push('<span class="tag tag-danger">AI</span>');
+          if((p.enabledModules&&p.enabledModules.includes('SCA'))||p.scaEnabled)modules.push('<span class="tag tag-info">软件成分分析</span>');
+          if((p.enabledModules&&p.enabledModules.includes('SAST'))||p.sastEnabled)modules.push('<span class="tag tag-success">静态扫描</span>');
+          if((p.enabledModules&&p.enabledModules.includes('SECRETS'))||p.secretsEnabled)modules.push('<span class="tag tag-warning">密钥检测</span>');
+          if((p.enabledModules&&p.enabledModules.includes('BASELINE'))||p.baselineEnabled)modules.push('<span class="tag tag-default">基线检查</span>');
+          if((p.enabledModules&&p.enabledModules.includes('AI'))||p.aiEnabled)modules.push('<span class="tag tag-danger">AI辅助</span>');
           var html='<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">'
             +'<div><h4 style="margin-bottom:10px;font-size:14px;color:#1a1a2e;">基本信息</h4>'
-            +'<div class="dc-item"><span class="dc-label">插件ID:</span><span class="dc-value">'+esc(p.instanceId||p.id)+'</span></div>'
+            +'<div class="dc-item"><span class="dc-label">插件ID:</span><span class="dc-value">'+esc(p.pluginId||p.id)+'</span></div>'
             +'<div class="dc-item"><span class="dc-label">版本:</span><span class="dc-value">'+esc(p.pluginVersion||'-')+'</span></div>'
-            +'<div class="dc-item"><span class="dc-label">IDE:</span><span class="dc-value">'+esc(p.ideType||'-')+' '+esc(p.ideVersion||'')+'</span></div>'
+            +'<div class="dc-item"><span class="dc-label">IDE:</span><span class="dc-value">'+esc(p.ideName||'-')+' '+esc(p.ideVersion||'')+'</span></div>'
             +'<div class="dc-item"><span class="dc-label">机器码:</span><span class="dc-value" style="font-family:monospace;font-size:12px;">'+esc(p.machineId||'-')+'</span></div>'
             +'<div class="dc-item"><span class="dc-label">开发者:</span><span class="dc-value">'+esc(p.developer||'-')+'</span></div>'
             +'<div class="dc-item"><span class="dc-label">状态:</span><span class="dc-value"><span class="tag '+(PI_STATUS_TAG[p.status]||'tag-default')+'">'+(PI_STATUS_MAP[p.status]||p.status||'-')+'</span></span></div></div>'
@@ -865,7 +865,7 @@
       var tb=document.getElementById('tokenTable');
       if(!list.length){tb.innerHTML='<tr><td colspan="7" class="empty-state">暂无Token数据</td></tr>';return;}
       tb.innerHTML=list.map(function(t){
-        return '<tr><td><code style="background:#f5f5f5;padding:2px 6px;border-radius:3px;font-size:12px;font-family:monospace;">'+esc(t.token||t.tokenValue||'-')+'</code></td><td>'+esc(t.name||'-')+'</td><td>'+(t.pluginInstanceId?'<span class="tag tag-info">'+esc(t.pluginInstanceId)+'</span>':'<span style="color:#8c8c8c;font-size:12px;">未绑定</span>')+'</td><td><span class="tag '+(TOKEN_STATUS_TAG[t.status]||'tag-default')+'">'+(TOKEN_STATUS_MAP[t.status]||t.status||'-')+'</span></td><td style="font-size:12px;color:#8c8c8c;">'+esc(t.expireTime||'-')+'</td><td style="font-size:12px;color:#8c8c8c;">'+esc(t.createTime||'-')+'</td><td><div class="actions"><button class="btn btn-default btn-sm" onclick="copyToken(\''+esc(t.tokenValue||t.token||'')+'\')">复制</button>'+(t.status==='ACTIVE'?'<button class="btn btn-danger btn-sm" onclick="revokeToken('+t.id+')">吊销</button>':'<span style="color:#8c8c8c;font-size:12px;">-</span>')+'</div></td></tr>';
+        return '<tr><td><code style="background:#f5f5f5;padding:2px 6px;border-radius:3px;font-size:12px;font-family:monospace;">'+esc(t.token||t.tokenValue||'-')+'</code></td><td>'+esc(t.name||'-')+'</td><td>'+(t.bindPluginId?'<span class="tag tag-info">'+esc(t.bindPluginId)+'</span>':'<span style="color:#8c8c8c;font-size:12px;">未绑定</span>')+'</td><td><span class="tag '+(TOKEN_STATUS_TAG[t.status]||'tag-default')+'">'+(TOKEN_STATUS_MAP[t.status]||t.status||'-')+'</span></td><td style="font-size:12px;color:#8c8c8c;">'+esc(t.expireTime||'-')+'</td><td style="font-size:12px;color:#8c8c8c;">'+esc(t.createTime||'-')+'</td><td><div class="actions"><button class="btn btn-default btn-sm" onclick="copyToken(\''+esc(t.tokenValue||t.token||'')+'\')">复制</button>'+(t.status==='ACTIVE'?'<button class="btn btn-danger btn-sm" onclick="revokeToken('+t.id+')">吊销</button>':'<span style="color:#8c8c8c;font-size:12px;">-</span>')+'</div></td></tr>';
       }).join('');
     }
     function showTokenGenModal(){
