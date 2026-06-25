@@ -1,8 +1,8 @@
 package com.guoshun.devsecai.action
 
-import com.guoshun.devsecai.model.LocalFinding
 import com.guoshun.devsecai.service.FindingCollector
 import com.guoshun.devsecai.service.PolicyService
+import com.guoshun.devsecai.service.SecurityScanService
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
@@ -10,7 +10,6 @@ import com.intellij.openapi.vcs.CheckinProjectPanel
 import com.intellij.openapi.vcs.changes.CommitContext
 import com.intellij.openapi.vcs.checkin.CheckinHandler
 import com.intellij.openapi.vcs.checkin.CheckinHandlerFactory
-import com.intellij.openapi.wm.WindowManager
 
 class SecurityCheckinHandlerFactory : CheckinHandlerFactory() {
 
@@ -32,6 +31,9 @@ class SecurityCheckinHandlerFactory : CheckinHandlerFactory() {
                 val policyService = project.getService(PolicyService::class.java)
                 val blockingRules = policyService.getBlockingRulesCached()
                 val collector = project.getService(FindingCollector::class.java)
+                if (collector.getFindings().isEmpty()) {
+                    project.getService(SecurityScanService::class.java).scanProject(clearPrevious = false)
+                }
                 val findings = collector.getFindings()
 
                 val blockedSeverities = mutableSetOf<String>()
@@ -46,34 +48,32 @@ class SecurityCheckinHandlerFactory : CheckinHandlerFactory() {
                     return ReturnResult.COMMIT
                 }
 
-                // Group by severity
                 val critical = blockingFindings.count { it.severity == "CRITICAL" }
                 val high = blockingFindings.count { it.severity == "HIGH" }
                 val medium = blockingFindings.count { it.severity == "MEDIUM" }
                 val low = blockingFindings.count { it.severity == "LOW" }
 
-                val message = StringBuilder("DevSecAI Security Check - ${blockingFindings.size} blocking finding(s):\n")
-                if (critical > 0) message.append("  Critical: $critical\n")
-                if (high > 0) message.append("  High: $high\n")
-                if (medium > 0) message.append("  Medium: $medium\n")
-                if (low > 0) message.append("  Low: $low\n")
+                val message = StringBuilder("DevSecAI 提交前安全检查发现 ${blockingFindings.size} 个阻断风险：\n")
+                if (critical > 0) message.append("  严重：$critical\n")
+                if (high > 0) message.append("  高危：$high\n")
+                if (medium > 0) message.append("  中危：$medium\n")
+                if (low > 0) message.append("  低危：$low\n")
 
                 if (blockingRules.allowOverride) {
-                    message.append("\nDo you want to commit anyway?")
-                    val frame = WindowManager.getInstance().getFrame(project)
+                    message.append("\n是否仍要继续提交？")
                     val result = Messages.showYesNoDialog(
-                            frame, message.toString(), "DevSecAI Security Check",
+                            project, message.toString(), "DevSecAI 提交前安全检查",
                             Messages.getWarningIcon()
                     )
                     return if (result == Messages.YES) ReturnResult.COMMIT else ReturnResult.CANCEL
                 } else {
                     Messages.showErrorDialog(
-                            project, message.toString(), "DevSecAI: Commit Blocked"
+                            project, message.toString(), "DevSecAI：提交已阻断"
                     )
                     return ReturnResult.CANCEL
                 }
             } catch (e: Exception) {
-                logger.warn("Security checkin handler error: ${e.message}")
+                logger.warn("提交前安全检查异常：${e.message}")
                 return ReturnResult.COMMIT
             }
         }
