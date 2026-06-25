@@ -6,7 +6,6 @@ import com.guoshun.devsecai.service.PolicyService
 import com.intellij.codeInspection.LocalInspectionTool
 import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.openapi.diagnostic.Logger
-import com.intellij.openapi.editor.Document
 import com.intellij.openapi.project.Project
 import com.intellij.psi.*
 
@@ -16,21 +15,21 @@ class SecretsInspectionTool : LocalInspectionTool() {
 
     private val patterns = listOf(
             SecretPattern("AWS Access Key", "AKIA[0-9A-Z]{16}", "CRITICAL", "SECRETS-AWS-KEY",
-                    "AWS Access Key ID detected. Rotate the key immediately."),
+                    "检测到 AWS Access Key ID，请立即轮换密钥。"),
             SecretPattern("AWS Secret Key", "(?i)aws(.{0,20})?(?-i)['\\\"][0-9a-zA-Z/+]{40}['\\\"]", "CRITICAL", "SECRETS-AWS-SECRET",
-                    "AWS Secret Access Key detected. Rotate the key immediately."),
+                    "检测到 AWS Secret Access Key，请立即轮换密钥。"),
             SecretPattern("GitHub Token", "gh[ps]_[0-9a-zA-Z]{36}", "CRITICAL", "SECRETS-GITHUB-TOKEN",
-                    "GitHub Token detected. Revoke and regenerate the token."),
+                    "检测到 GitHub Token，请吊销后重新生成。"),
             SecretPattern("JWT Token", "eyJ[A-Za-z0-9-_]+\\.eyJ[A-Za-z0-9-_]+\\.[A-Za-z0-9-_]+", "HIGH", "SECRETS-JWT",
-                    "JWT Token detected in source code. Store in environment variables."),
-            SecretPattern("Private Key", "-----BEGIN (?:RSA |EC |DSA )?PRIVATE KEY-----", "CRITICAL", "SECRETS-PRIVATE-KEY",
-                    "Private key detected. Store in secure key management system."),
-            SecretPattern("Database Password", "(?i)(password|passwd|pwd)\\s*[:=]\\s*['\\\"][^'\\\"]{8,}['\\\"]", "HIGH", "SECRETS-DB-PASSWORD",
-                    "Database password detected. Use environment variables or vault."),
-            SecretPattern("API Key Generic", "(?i)(api[_-]?key|apikey)\\s*[:=]\\s*['\\\"][^'\\\"]{16,}['\\\"]", "HIGH", "SECRETS-API-KEY",
-                    "API key detected. Store in environment variables or vault."),
+                    "源码中检测到 JWT Token，请改为环境变量或安全配置。"),
+            SecretPattern("私钥", "-----BEGIN (?:RSA |EC |DSA )?PRIVATE KEY-----", "CRITICAL", "SECRETS-PRIVATE-KEY",
+                    "检测到私钥，请存放到安全密钥管理系统。"),
+            SecretPattern("数据库密码", "(?i)(password|passwd|pwd)\\s*[:=]\\s*['\\\"][^'\\\"]{8,}['\\\"]", "HIGH", "SECRETS-DB-PASSWORD",
+                    "检测到数据库密码，请使用环境变量或密钥库。"),
+            SecretPattern("通用 API Key", "(?i)(api[_-]?key|apikey)\\s*[:=]\\s*['\\\"][^'\\\"]{16,}['\\\"]", "HIGH", "SECRETS-API-KEY",
+                    "检测到 API Key，请使用环境变量或密钥库。"),
             SecretPattern("Slack Token", "xox[baprs]-[0-9]{10,}-[0-9a-zA-Z]{24,}", "HIGH", "SECRETS-SLACK-TOKEN",
-                    "Slack token detected. Revoke and use environment variables.")
+                    "检测到 Slack Token，请吊销后改用环境变量。")
     )
 
     override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean): PsiElementVisitor {
@@ -62,16 +61,18 @@ class SecretsInspectionTool : LocalInspectionTool() {
             try {
                 val regex = Regex(pattern.regex)
                 if (regex.containsMatchIn(text)) {
-                    val message = "Secret Detected: ${pattern.name}. ${pattern.recommendation}"
-                    holder.registerProblem(element, message,
-                            com.intellij.codeInspection.ProblemHighlightType.WARNING)
+                    val reason = "代码中出现了 ${pattern.name}，仓库、日志或构建产物泄露后会导致凭据暴露。"
+                    val message = DevSecAIInspectionSupport.problemMessage("敏感信息泄露：${pattern.name}", reason, pattern.recommendation)
+                    val replacement = if (element is PsiLiteralExpression) "\"***REMOVED_SECRET***\"" else "/* DevSecAI: sensitive information removed */"
+                    holder.registerProblem(element, message, DevSecAIInspectionSupport.highlightType(pattern.severity),
+                            *DevSecAIInspectionSupport.fixes(pattern.name, pattern.recommendation, replacement))
                     addFinding(project, pattern.ruleId, pattern.severity, pattern.name,
                             pattern.recommendation,
                             element.containingFile?.virtualFile?.path ?: "",
                             getLineNumber(element), getLineNumber(element))
                 }
             } catch (e: Exception) {
-                logger.warn("Regex error for pattern ${pattern.name}: ${e.message}")
+                logger.warn("敏感信息规则 ${pattern.name} 正则执行异常：${e.message}")
             }
         }
     }
@@ -91,7 +92,7 @@ class SecretsInspectionTool : LocalInspectionTool() {
                     module = "SECRETS"
             ))
         } catch (e: Exception) {
-            logger.warn("Failed to add finding: ${e.message}")
+            logger.warn("添加检测结果失败：${e.message}")
         }
     }
 
