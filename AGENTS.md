@@ -17,6 +17,14 @@
 - **安全**: Spring Security + JWT
 - **构建工具**: Maven
 
+### IDEA插件
+- **框架**: IntelliJ Platform Plugin SDK
+- **语言**: Kotlin 1.9.22 (JVM Target 17)
+- **构建工具**: Gradle 8.5 + IntelliJ Platform Gradle Plugin 1.17.2
+- **目标平台**: IntelliJ IDEA 2024.1+
+- **HTTP客户端**: java.net.HttpURLConnection + Gson
+- **依赖**: OkHttp 4.12.0, Gson 2.10.1
+
 ## 目录结构
 
 ### 前端 (/workspace/projects)
@@ -163,6 +171,38 @@
 ### 审计日志
 - `GET /api/audit/list` - 审计日志列表
 
+### IDEA插件 (/workspace/projects/devsec-ai-idea-plugin)
+```
+├── build.gradle.kts                    # Gradle 构建配置
+├── settings.gradle.kts                 # Gradle 项目设置
+├── gradle/wrapper/                     # Gradle Wrapper
+├── src/main/kotlin/com/guoshun/devsecai/
+│   ├── model/
+│   │   └── Models.kt                   # 数据模型（Handshake/Policy/Finding等）
+│   ├── config/
+│   │   ├── DevSecAISettings.kt         # PersistentStateComponent 持久化配置
+│   │   └── DevSecAISettingsConfigurable.kt  # Settings UI面板
+│   ├── service/
+│   │   ├── DevSecAIClient.kt           # HTTP客户端（握手/心跳/策略/Finding上送）
+│   │   ├── HeartbeatService.kt         # 定时心跳服务（5分钟间隔）
+│   │   ├── PolicyService.kt            # 策略拉取+缓存
+│   │   ├── FindingCollector.kt         # Finding收集器（线程安全+批量上送）
+│   │   └── ProjectStartupListener.kt   # 项目启动监听（触发握手+心跳+策略）
+│   ├── inspection/
+│   │   ├── SecurityInspectionTool.kt   # SAST检测（SQL注入/XSS/命令注入/弱加密等）
+│   │   └── SecretsInspectionTool.kt    # Secrets检测（AWS/GitHub/JWT/密码/私钥等）
+│   ├── ui/
+│   │   ├── DevSecAIToolWindowFactory.kt # ToolWindow工厂
+│   │   └── DevSecAIToolWindowPanel.kt  # 检测结果面板（表格+严重等级筛选+颜色标记）
+│   └── action/
+│       ├── SecurityCheckinHandlerFactory.kt  # Git Commit拦截（高危Finding阻断提交）
+│       ├── ManualScanAction.kt         # 手动触发全项目安全扫描
+│       └── UploadFindingsAction.kt     # 手动上送检测结果
+├── src/main/resources/
+│   └── META-INF/plugin.xml             # IntelliJ 插件描述符
+└── .coze
+```
+
 ## 启动命令
 
 ### 前端（静态服务器 + API代理）
@@ -175,6 +215,15 @@ node server.cjs
 ```bash
 cd /workspace/projects/devsec-ai-server
 mvn spring-boot:run -Dspring-boot.run.profiles=dev
+```
+
+### IDEA插件
+```bash
+cd /workspace/projects/devsec-ai-idea-plugin
+# 构建（需要网络下载 IntelliJ Platform SDK）
+./gradlew buildPlugin
+# 开发模式运行
+./gradlew runIde
 ```
 
 ### 默认账户
@@ -205,3 +254,12 @@ mvn spring-boot:run -Dspring-boot.run.profiles=dev
 | AI Skill | ✅ | CRUD、Skill配置 |
 | 审计日志 | ✅ | 操作日志记录 |
 | 系统设置 | ✅ | 基本信息展示 |
+| IDEA插件-握手认证 | ✅ | AccessToken握手、项目绑定、策略下发 |
+| IDEA插件-心跳上报 | ✅ | 5分钟定时心跳、离线检测 |
+| IDEA插件-SAST检测 | ✅ | SQL注入/XSS/命令注入/路径遍历/反序列化/弱加密/不安全Socket |
+| IDEA插件-Secrets检测 | ✅ | AWS/GitHub/JWT/密码/私钥/数据库密码/API Key正则检测 |
+| IDEA插件-策略管理 | ✅ | 策略拉取+5分钟缓存、能力开关判断 |
+| IDEA插件-Finding收集 | ✅ | 线程安全队列、30秒批量上送、按module分组 |
+| IDEA插件-Git Commit拦截 | ✅ | 严重/高危Finding阻断提交、用户确认 |
+| IDEA插件-ToolWindow | ✅ | 检测结果表格、严重等级筛选+颜色标记 |
+| IDEA插件-Settings | ✅ | 服务器地址/Token/功能开关配置面板 |

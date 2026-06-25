@@ -1,0 +1,91 @@
+<idea-plugin>
+    <id>com.guoshun.devsecai</id>
+    <name>DevSecAI - 安全开发助手</name>
+    <vendor email="devsecai@guoshun.com" url="https://devsecai.guoshun.com">国舜安全</vendor>
+    <description><![CDATA[
+    <h3>DevSecAI 安全开发助手</h3>
+    <p>面向开发者的安全检测 IDE 插件，在编码过程中实时检测安全风险。</p>
+    <ul>
+      <li><b>SAST 静态代码扫描</b>：实时检测 Java/Kotlin 代码中的安全漏洞</li>
+      <li><b>SCA 软件成分分析</b>：检测项目依赖中的已知漏洞</li>
+      <li><b>Secrets 敏感信息检测</b>：防止硬编码密钥、密码等泄露</li>
+      <li><b>AI 智能分析</b>：提供漏洞解释和修复建议</li>
+      <li><b>Git 提交检查</b>：高危漏洞阻断提交</li>
+    </ul>
+    ]]></description>
+    <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.modules.java</depends>
+    <depends>Git4Idea</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <!-- 应用级配置 -->
+        <applicationConfigurable
+                parentId="tools"
+                instance="com.guoshun.devsecai.config.DevSecAISettingsConfigurable"
+                id="com.guoshun.devsecai.config.DevSecAISettingsConfigurable"
+                displayName="DevSecAI 安全助手"/>
+
+        <!-- 持久化配置 -->
+        <applicationService
+                serviceImplementation="com.guoshun.devsecai.config.DevSecAISettings"/>
+
+        <!-- 项目级服务 -->
+        <projectService
+                serviceImplementation="com.guoshun.devsecai.service.PolicyService"/>
+        <projectService
+                serviceImplementation="com.guoshun.devsecai.service.FindingCollector"/>
+        <projectService
+                serviceImplementation="com.guoshun.devsecai.service.HeartbeatService"/>
+
+        <!-- SAST 安全检测 (Java) -->
+        <localInspection
+                language="JAVA"
+                displayName="DevSecAI 安全检测"
+                groupName="DevSecAI"
+                enabledByDefault="true"
+                level="WARNING"
+                implementationClass="com.guoshun.devsecai.inspection.SecurityInspectionTool"/>
+
+        <!-- Secrets 敏感信息检测 (Java) -->
+        <localInspection
+                language="JAVA"
+                displayName="DevSecAI 敏感信息检测"
+                groupName="DevSecAI"
+                enabledByDefault="true"
+                level="WARNING"
+                implementationClass="com.guoshun.devsecai.inspection.SecretsInspectionTool"/>
+
+        <!-- Tool Window -->
+        <toolWindow
+                id="DevSecAI"
+                secondary="true"
+                anchor="bottom"
+                factoryClass="com.guoshun.devsecai.ui.DevSecAIToolWindowFactory"/>
+
+        <!-- Git Commit 检查 -->
+        <checkinHandlerFactory
+                implementation="com.guoshun.devsecai.action.SecurityCheckinHandlerFactory"/>
+    </extensions>
+
+    <actions>
+        <!-- 手动触发扫描 -->
+        <action id="DevSecAI.ManualScan"
+                class="com.guoshun.devsecai.action.ManualScanAction"
+                text="DevSecAI 安全扫描"
+                description="对当前项目执行安全扫描">
+            <add-to-group group-id="AnalyzeActions" anchor="last"/>
+        </action>
+        <!-- 上送检测结果 -->
+        <action id="DevSecAI.UploadFindings"
+                class="com.guoshun.devsecai.action.UploadFindingsAction"
+                text="上送检测结果"
+                description="将检测结果上送至管理平台">
+            <add-to-group group-id="AnalyzeActions" anchor="last"/>
+        </action>
+    </actions>
+
+    <projectListeners>
+        <listener class="com.guoshun.devsecai.service.ProjectStartupListener"
+                  topic="com.intellij.openapi.project.ProjectManagerListener"/>
+    </projectListeners>
+</idea-plugin>
