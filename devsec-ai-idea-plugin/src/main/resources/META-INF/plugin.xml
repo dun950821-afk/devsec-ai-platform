@@ -1,16 +1,15 @@
 <idea-plugin>
     <id>com.guoshun.devsecai</id>
-    <name>DevSecAI - Security Assistant</name>
-    <vendor email="devsecai@guoshun.com" url="https://devsecai.guoshun.com">Guoshun Security</vendor>
+    <name>DevSecAI Security Assistant</name>
+    <vendor email="devsecai@guoshun.com" url="https://devsecai.guoshun.com">国舜安全</vendor>
     <description><![CDATA[
-    <h3>DevSecAI Security Assistant</h3>
-    <p>Security detection IDE plugin for developers, real-time security risk detection during coding.</p>
+    <p><b>DevSecAI Security Assistant for IntelliJ IDEA.</b></p>
+    <p>DevSecAI 安全开发助手用于在 IntelliJ IDEA 中进行项目安全自查，并与 DevSecAI 插件管理平台联动。</p>
     <ul>
-      <li><b>SAST Static Code Analysis</b>: Real-time detection of security vulnerabilities in Java/Kotlin code</li>
-      <li><b>SCA Software Composition Analysis</b>: Detect known vulnerabilities in project dependencies</li>
-      <li><b>Secrets Detection</b>: Prevent hardcoded keys, passwords and other leaks</li>
-      <li><b>AI Analysis</b>: Provide vulnerability explanation and fix suggestions</li>
-      <li><b>Git Commit Check</b>: Block commits with high-severity vulnerabilities</li>
+      <li>在设置页配置平台地址、访问令牌和插件实例 ID。</li>
+      <li>在 DevSecAI 工具窗口执行 SAST、Secrets、SCA 检测并查看风险列表。</li>
+      <li>将检测结果上传到管理平台，便于统一查看和治理。</li>
+      <li>提交代码前按后台策略进行安全检查，可阻断严重或高危风险。</li>
     </ul>
     ]]></description>
     <depends>com.intellij.modules.platform</depends>
@@ -22,7 +21,7 @@
                 parentId="tools"
                 instance="com.guoshun.devsecai.config.DevSecAISettingsConfigurable"
                 id="com.guoshun.devsecai.config.DevSecAISettingsConfigurable"
-                displayName="DevSecAI Security"/>
+                displayName="DevSecAI 安全开发助手"/>
 
         <applicationService
                 serviceImplementation="com.guoshun.devsecai.config.DevSecAISettings"/>
@@ -33,13 +32,15 @@
                 serviceImplementation="com.guoshun.devsecai.service.FindingCollector"/>
         <projectService
                 serviceImplementation="com.guoshun.devsecai.service.HeartbeatService"/>
+        <projectService
+                serviceImplementation="com.guoshun.devsecai.service.SecurityScanService"/>
 
         <postStartupActivity
                 implementation="com.guoshun.devsecai.service.ProjectStartupListener"/>
 
         <localInspection
                 language="JAVA"
-                displayName="DevSecAI Security Inspection"
+                displayName="DevSecAI 代码安全检测"
                 groupName="DevSecAI"
                 enabledByDefault="true"
                 level="WARNING"
@@ -47,11 +48,15 @@
 
         <localInspection
                 language="JAVA"
-                displayName="DevSecAI Secrets Detection"
+                displayName="DevSecAI 敏感信息检测"
                 groupName="DevSecAI"
                 enabledByDefault="true"
                 level="WARNING"
                 implementationClass="com.guoshun.devsecai.inspection.SecretsInspectionTool"/>
+
+        <annotator
+                language="JAVA"
+                implementationClass="com.guoshun.devsecai.inspection.DevSecAIJavaAnnotator"/>
 
         <toolWindow
                 id="DevSecAI"
@@ -66,14 +71,14 @@
     <actions>
         <action id="DevSecAI.ManualScan"
                 class="com.guoshun.devsecai.action.ManualScanAction"
-                text="DevSecAI Security Scan"
-                description="Run security scan on current project">
+                text="DevSecAI 安全扫描"
+                description="对当前项目执行安全扫描">
             <add-to-group group-id="AnalyzeActions" anchor="last"/>
         </action>
         <action id="DevSecAI.UploadFindings"
                 class="com.guoshun.devsecai.action.UploadFindingsAction"
-                text="Upload Findings"
-                description="Upload detection results to management platform">
+                text="上传检测结果"
+                description="将检测结果上传到管理平台">
             <add-to-group group-id="AnalyzeActions" anchor="last"/>
         </action>
     </actions>
