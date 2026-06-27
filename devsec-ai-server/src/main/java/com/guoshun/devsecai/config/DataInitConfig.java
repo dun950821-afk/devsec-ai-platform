@@ -8,6 +8,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import jakarta.annotation.Resource;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Configuration
 public class DataInitConfig {
@@ -28,6 +29,12 @@ public class DataInitConfig {
     private AuditLogMapper auditLogMapper;
     
     @Resource
+    private ProjectMapper projectMapper;
+    
+    @Resource
+    private SkillMapper skillMapper;
+    
+    @Resource
     private PasswordEncoder passwordEncoder;
 
     @Bean
@@ -35,22 +42,24 @@ public class DataInitConfig {
         return args -> {
             initUsers();
             initPlugins();
+            initProjects();
             initPolicies();
             initRules();
+            initSkills();
             initAuditLogs();
-            System.out.println("========== 数据初始化完成 ==========");
+            System.out.println("========== data init complete ==========");
         };
     }
     
     private void initUsers() {
         if (userMapper.selectCount(null) > 0) {
-            System.out.println("用户数据已存在，跳过初始化");
+            System.out.println("users already exist, skip");
             return;
         }
         User admin = new User();
         admin.setUsername("admin");
         admin.setPassword(passwordEncoder.encode("admin123"));
-        admin.setRealName("系统管理员");
+        admin.setRealName("system admin");
         admin.setEmail("admin@devsecai.com");
         admin.setRole("admin");
         admin.setStatus(1);
@@ -61,7 +70,7 @@ public class DataInitConfig {
         User dev = new User();
         dev.setUsername("developer");
         dev.setPassword(passwordEncoder.encode("dev123"));
-        dev.setRealName("开发人员");
+        dev.setRealName("developer");
         dev.setEmail("dev@devsecai.com");
         dev.setRole("developer");
         dev.setStatus(1);
@@ -72,7 +81,7 @@ public class DataInitConfig {
         User op = new User();
         op.setUsername("operator");
         op.setPassword(passwordEncoder.encode("op123"));
-        op.setRealName("运维人员");
+        op.setRealName("operator");
         op.setEmail("op@devsecai.com");
         op.setRole("operator");
         op.setStatus(1);
@@ -80,19 +89,19 @@ public class DataInitConfig {
         op.setUpdateTime(LocalDateTime.now());
         userMapper.insert(op);
         
-        System.out.println("初始化了3个用户");
+        System.out.println("init 3 users");
     }
     
     private void initPlugins() {
         if (pluginMapper.selectCount(null) > 0) {
-            System.out.println("插件数据已存在，跳过初始化");
+            System.out.println("plugins already exist, skip");
             return;
         }
         
         Plugin p1 = new Plugin();
-        p1.setName("代码安全扫描插件");
-        p1.setPluginKey("code-security-scanner");
-        p1.setDescription("扫描源代码中的安全漏洞和潜在风险");
+        p1.setName("IDEA Security Scanner");
+        p1.setPluginKey("devsec-ai-idea");
+        p1.setDescription("IntelliJ IDEA plugin for code security scanning, SAST, Secrets detection, and Git commit blocking");
         p1.setCategory("security");
         p1.setVersion("1.0.0");
         p1.setStatus(1);
@@ -101,9 +110,9 @@ public class DataInitConfig {
         pluginMapper.insert(p1);
         
         Plugin p2 = new Plugin();
-        p2.setName("依赖漏洞检测插件");
+        p2.setName("Dependency Vulnerability Detector");
         p2.setPluginKey("dependency-vuln-detector");
-        p2.setDescription("检测项目依赖中的已知漏洞");
+        p2.setDescription("Detect known vulnerabilities in project dependencies");
         p2.setCategory("dependency");
         p2.setVersion("1.0.0");
         p2.setStatus(1);
@@ -112,9 +121,9 @@ public class DataInitConfig {
         pluginMapper.insert(p2);
         
         Plugin p3 = new Plugin();
-        p3.setName("秘钥凭证检测插件");
+        p3.setName("Secret Credential Detector");
         p3.setPluginKey("secret-credential-detector");
-        p3.setDescription("检测代码中的硬编码密钥和凭证");
+        p3.setDescription("Detect hardcoded keys and credentials in source code");
         p3.setCategory("secret");
         p3.setVersion("1.0.0");
         p3.setStatus(1);
@@ -122,18 +131,51 @@ public class DataInitConfig {
         p3.setUpdateTime(LocalDateTime.now());
         pluginMapper.insert(p3);
         
-        System.out.println("初始化了3个插件");
+        System.out.println("init 3 plugins");
+    }
+    
+    private void initProjects() {
+        if (projectMapper.selectCount(null) > 0) {
+            System.out.println("projects already exist, skip");
+            return;
+        }
+        
+        Project proj1 = new Project();
+        proj1.setName("DevSecAI Platform");
+        proj1.setDescription("DevSecAI Plugin Management Platform - Web + Backend + IDEA Plugin");
+        proj1.setStatus(1);
+        proj1.setCreateTime(LocalDateTime.now());
+        proj1.setUpdateTime(LocalDateTime.now());
+        projectMapper.insert(proj1);
+        
+        Project proj2 = new Project();
+        proj2.setName("E-Commerce System");
+        proj2.setDescription("Spring Boot e-commerce backend with payment integration");
+        proj2.setStatus(1);
+        proj2.setCreateTime(LocalDateTime.now());
+        proj2.setUpdateTime(LocalDateTime.now());
+        projectMapper.insert(proj2);
+        
+        Project proj3 = new Project();
+        proj3.setName("Mobile API Gateway");
+        proj3.setDescription("API gateway for mobile applications with auth and rate limiting");
+        proj3.setStatus(1);
+        proj3.setCreateTime(LocalDateTime.now());
+        proj3.setUpdateTime(LocalDateTime.now());
+        projectMapper.insert(proj3);
+        
+        System.out.println("init 3 projects");
     }
     
     private void initPolicies() {
         if (policyMapper.selectCount(null) > 0) {
-            System.out.println("策略数据已存在，跳过初始化");
+            System.out.println("policies already exist, skip");
             return;
         }
         
         ScanPolicy policy = new ScanPolicy();
-        policy.setName("默认安全扫描策略");
-        policy.setDescription("包含常见安全漏洞检测规则");
+        policy.setName("Default Security Policy");
+        policy.setDescription("Common security vulnerability detection rules");
         policy.setRuleIds("1,2,3");
         policy.setPluginIds("1,2,3");
         policy.setScanType(2);
@@ -143,8 +185,8 @@ public class DataInitConfig {
         policyMapper.insert(policy);
         
         ScanPolicy policy2 = new ScanPolicy();
-        policy2.setName("代码质量策略");
-        policy2.setDescription("代码质量和最佳实践检查");
+        policy2.setName("Code Quality Policy");
+        policy2.setDescription("Code quality and best practice checks");
         policy2.setRuleIds("1,2");
         policy2.setPluginIds("1");
         policy2.setScanType(1);
@@ -153,23 +195,23 @@ public class DataInitConfig {
         policy2.setUpdateTime(LocalDateTime.now());
         policyMapper.insert(policy2);
         
-        System.out.println("初始化了2个策略");
+        System.out.println("init 2 policies");
     }
     
     private void initRules() {
         if (ruleMapper.selectCount(null) > 0) {
-            System.out.println("规则数据已存在，跳过初始化");
+            System.out.println("rules already exist, skip");
             return;
         }
         
         ScanRule rule1 = new ScanRule();
-        rule1.setName("SQL注入检测");
+        rule1.setName("SQL Injection Detection");
         rule1.setRuleKey("sql-injection");
         rule1.setSeverity("high");
         rule1.setCategory("security");
-        rule1.setDescription("检测可能的SQL注入漏洞");
+        rule1.setDescription("Detect potential SQL injection vulnerabilities");
         rule1.setPattern("(?i)(select|insert|update|delete).*from.*where");
-        rule1.setSolution("使用参数化查询");
+        rule1.setSolution("Use parameterized queries");
         rule1.setStatus(1);
         rule1.setPluginId(1L);
         rule1.setCreateTime(LocalDateTime.now());
@@ -177,13 +219,13 @@ public class DataInitConfig {
         ruleMapper.insert(rule1);
         
         ScanRule rule2 = new ScanRule();
-        rule2.setName("硬编码密码检测");
+        rule2.setName("Hardcoded Password Detection");
         rule2.setRuleKey("hardcoded-password");
         rule2.setSeverity("high");
         rule2.setCategory("security");
-        rule2.setDescription("检测代码中的硬编码密码");
+        rule2.setDescription("Detect hardcoded passwords in source code");
         rule2.setPattern("(?i)(password|pwd|pass).*=.*[\"'][^\"']+[\"']");
-        rule2.setSolution("使用环境变量或配置文件存储敏感信息");
+        rule2.setSolution("Use environment variables or config files for sensitive data");
         rule2.setStatus(1);
         rule2.setPluginId(1L);
         rule2.setCreateTime(LocalDateTime.now());
@@ -191,32 +233,71 @@ public class DataInitConfig {
         ruleMapper.insert(rule2);
         
         ScanRule rule3 = new ScanRule();
-        rule3.setName("XSS漏洞检测");
+        rule3.setName("XSS Vulnerability Detection");
         rule3.setRuleKey("xss-vulnerability");
         rule3.setSeverity("medium");
         rule3.setCategory("security");
-        rule3.setDescription("检测跨站脚本攻击漏洞");
+        rule3.setDescription("Detect cross-site scripting vulnerabilities");
         rule3.setPattern("(?i)innerHTML|document\\.write");
-        rule3.setSolution("使用textContent代替innerHTML");
+        rule3.setSolution("Use textContent instead of innerHTML");
         rule3.setStatus(1);
         rule3.setPluginId(1L);
         rule3.setCreateTime(LocalDateTime.now());
         rule3.setUpdateTime(LocalDateTime.now());
         ruleMapper.insert(rule3);
         
-        System.out.println("初始化了3条规则");
+        System.out.println("init 3 rules");
+    }
+    
+    private void initSkills() {
+        if (skillMapper.selectCount(null) > 0) {
+            System.out.println("skills already exist, skip");
+            return;
+        }
+        
+        Skill s1 = new Skill();
+        s1.setSkillKey("ai-vuln-explain");
+        s1.setName("Vulnerability Explanation");
+        s1.setDescription("AI-powered vulnerability explanation and risk assessment");
+        s1.setType("ai");
+        s1.setStatus(1);
+        s1.setCreateTime(LocalDateTime.now());
+        s1.setUpdateTime(LocalDateTime.now());
+        skillMapper.insert(s1);
+        
+        Skill s2 = new Skill();
+        s2.setSkillKey("ai-fix-suggestion");
+        s2.setName("Fix Suggestion");
+        s2.setDescription("AI-powered code fix suggestions for security vulnerabilities");
+        s2.setType("ai");
+        s2.setStatus(1);
+        s2.setCreateTime(LocalDateTime.now());
+        s2.setUpdateTime(LocalDateTime.now());
+        skillMapper.insert(s2);
+        
+        Skill s3 = new Skill();
+        s3.setSkillKey("ai-patch-generate");
+        s3.setName("Patch Generation");
+        s3.setDescription("Automatically generate security patches for detected vulnerabilities");
+        s3.setType("ai");
+        s3.setStatus(1);
+        s3.setCreateTime(LocalDateTime.now());
+        s3.setUpdateTime(LocalDateTime.now());
+        skillMapper.insert(s3);
+        
+        System.out.println("init 3 skills");
     }
     
     private void initAuditLogs() {
         if (auditLogMapper.selectCount(null) > 0) {
-            System.out.println("审计日志数据已存在，跳过初始化");
+            System.out.println("audit logs already exist, skip");
             return;
         }
         
         AuditLog log1 = new AuditLog();
         log1.setUsername("admin");
         log1.setOperation("LOGIN");
-        log1.setModule("认证");
+        log1.setModule("Auth");
         log1.setStatus(1);
         log1.setIp("127.0.0.1");
         log1.setCreateTime(LocalDateTime.now());
@@ -225,13 +306,13 @@ public class DataInitConfig {
         AuditLog log2 = new AuditLog();
         log2.setUsername("admin");
         log2.setOperation("CREATE");
-        log2.setModule("插件管理");
-        log2.setDescription("创建了代码安全扫描插件");
+        log2.setModule("Plugin Management");
+        log2.setDescription("Created IDEA Security Scanner plugin");
         log2.setStatus(1);
         log2.setIp("127.0.0.1");
         log2.setCreateTime(LocalDateTime.now());
         auditLogMapper.insert(log2);
         
-        System.out.println("初始化了2条审计日志");
+        System.out.println("init 2 audit logs");
     }
 }

@@ -23,15 +23,16 @@ public class DatabaseInitRunner implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-        // Check if user data already exists (for data seeding skip logic)
+        // Check if seed data already exists (for data seeding skip logic)
+        // Use PLUGIN_CAPABILITY_POLICY as the marker - it's only populated by seed data
         boolean hasExistingData = false;
         try {
-            Integer userCount = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM SYS_USER", Integer.class);
-            if (userCount != null && userCount > 0) {
+            Integer policyCount = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM PLUGIN_CAPABILITY_POLICY", Integer.class);
+            if (policyCount != null && policyCount > 0) {
                 hasExistingData = true;
             }
         } catch (Exception e) {
-            // Table doesn't exist, need to initialize
+            // Table doesn't exist yet, need to initialize
         }
 
         System.out.println("=== Initializing database tables ===");
